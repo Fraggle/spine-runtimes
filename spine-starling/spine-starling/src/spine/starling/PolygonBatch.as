@@ -251,6 +251,7 @@ internal class PolygonBatch {
 		if (texture.repeat) bits |= 1 << 2;
 		if (smoothing != TextureSmoothing.BILINEAR) bits |= 1 << (smoothing == TextureSmoothing.TRILINEAR ? 3 : 4);
 		if (texture.format != Context3DTextureFormat.BGRA) bits |= 1 << (texture.format == "compressedAlpha" ? 5 : 6);
+		if (!texture.premultipliedAlpha && Starling.current.convertToPMA) bits |= 1 << (!texture.premultipliedAlpha ? 7 : 8);
 		if (bits == _programBits) return;
 		_programBits = bits;
 
@@ -275,7 +276,15 @@ internal class PolygonBatch {
 			var flags:String = RenderSupport.getTextureLookupFlags(texture.format, texture.mipMapping, texture.repeat, smoothing);
 			var fragmentShader:String = 
 				"tex ft1, v1, fs0 " + flags + " \n" + // sample texture 0
-				"mul oc, ft1, v0 \n"; // multiply color with texel color
+				(
+					(!texture.premultipliedAlpha && Starling.current.convertToPMA) ?
+					"mul ft1, ft1, v0 \n" + 
+					"mul ft1.xyz, ft1.xyz, ft1.w \n" +
+					"mov oc, ft1 \n"
+					:
+					"mul oc, ft1, v0 \n"
+				); // multiply color with texel color
+				
 			program = Starling.current.registerProgramFromSource(name, vertexShader, fragmentShader);
 		}
 		context.setProgram(program);
