@@ -34,7 +34,7 @@ package com.esotericsoftware.spine;
 import com.esotericsoftware.spine.attachments.Attachment;
 import com.esotericsoftware.spine.attachments.MeshAttachment;
 import com.esotericsoftware.spine.attachments.RegionAttachment;
-import com.esotericsoftware.spine.attachments.SkinnedMeshAttachment;
+import com.esotericsoftware.spine.attachments.WeightedMeshAttachment;
 
 import static com.badlogic.gdx.graphics.g2d.Batch.*;
 
@@ -87,8 +87,8 @@ public class SkeletonRendererDebug {
 			for (int i = 0, n = bones.size; i < n; i++) {
 				Bone bone = bones.get(i);
 				if (bone.parent == null) continue;
-				float x = skeletonX + bone.data.length * bone.m00 + bone.worldX;
-				float y = skeletonY + bone.data.length * bone.m10 + bone.worldY;
+				float x = skeletonX + bone.data.length * bone.a + bone.worldX;
+				float y = skeletonY + bone.data.length * bone.c + bone.worldY;
 				shapes.rectLine(skeletonX + bone.worldX, skeletonY + bone.worldY, x, y, boneWidth * scale);
 			}
 			shapes.end();
@@ -105,8 +105,7 @@ public class SkeletonRendererDebug {
 				Attachment attachment = slot.attachment;
 				if (attachment instanceof RegionAttachment) {
 					RegionAttachment regionAttachment = (RegionAttachment)attachment;
-					regionAttachment.updateWorldVertices(slot, false);
-					float[] vertices = regionAttachment.getWorldVertices();
+					float[] vertices = regionAttachment.updateWorldVertices(slot, false);
 					shapes.line(vertices[X1], vertices[Y1], vertices[X2], vertices[Y2]);
 					shapes.line(vertices[X2], vertices[Y2], vertices[X3], vertices[Y3]);
 					shapes.line(vertices[X3], vertices[Y3], vertices[X4], vertices[Y4]);
@@ -129,8 +128,8 @@ public class SkeletonRendererDebug {
 					vertices = mesh.getWorldVertices();
 					triangles = mesh.getTriangles();
 					hullLength = mesh.getHullLength();
-				} else if (attachment instanceof SkinnedMeshAttachment) {
-					SkinnedMeshAttachment mesh = (SkinnedMeshAttachment)attachment;
+				} else if (attachment instanceof WeightedMeshAttachment) {
+					WeightedMeshAttachment mesh = (WeightedMeshAttachment)attachment;
 					mesh.updateWorldVertices(slot, false);
 					vertices = mesh.getWorldVertices();
 					triangles = mesh.getTriangles();

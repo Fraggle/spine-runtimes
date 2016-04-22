@@ -33,12 +33,9 @@ package spine.flash {
 import flash.display.Bitmap;
 import flash.display.BitmapData;
 import flash.display.BlendMode;
-import flash.display.DisplayObject;
-import flash.display.DisplayObjectContainer;
 import flash.display.Sprite;
 import flash.events.Event;
 import flash.geom.ColorTransform;
-import flash.geom.Matrix;
 import flash.geom.Point;
 import flash.geom.Rectangle;
 import flash.utils.getTimer;
@@ -51,8 +48,6 @@ import spine.atlas.AtlasRegion;
 import spine.attachments.RegionAttachment;
 
 public class SkeletonSprite extends Sprite {
-	static private var tempPoint:Point = new Point();
-	static private var tempMatrix:Matrix = new Matrix();
 	static private var blendModes:Vector.<String> = new <String>[
 		BlendMode.NORMAL, BlendMode.ADD, BlendMode.MULTIPLY, BlendMode.SCREEN];
 
@@ -83,7 +78,7 @@ public class SkeletonSprite extends Sprite {
 		for (var i:int = 0, n:int = drawOrder.length; i < n; i++) {
 			var slot:Slot = drawOrder[i];
 			var regionAttachment:RegionAttachment = slot.attachment as RegionAttachment;
-			if (regionAttachment != null) {
+			if (regionAttachment) {
 				var wrapper:Sprite = regionAttachment["wrapper"];
 				var region:AtlasRegion = AtlasRegion(regionAttachment.rendererObject);
 				if (!wrapper) {
@@ -134,12 +129,10 @@ public class SkeletonSprite extends Sprite {
 				var bone:Bone = slot.bone;
 				var flipX:int = skeleton.flipX ? -1 : 1;
 				var flipY:int = skeleton.flipY ? -1 : 1;
-				if (bone.worldFlipX) flipX = -flipX;
-				if (bone.worldFlipY) flipY = -flipY;
 
 				wrapper.x = bone.worldX;
 				wrapper.y = bone.worldY;
-				wrapper.rotation = -bone.worldRotation * flipX * flipY;
+				wrapper.rotation = bone.worldRotationX * flipX * flipY;
 				wrapper.scaleX = bone.worldScaleX * flipX;
 				wrapper.scaleY = bone.worldScaleY * flipY;
 				addChild(wrapper);
