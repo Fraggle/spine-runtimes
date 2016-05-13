@@ -36,13 +36,13 @@ import com.esotericsoftware.spine.attachments.AttachmentLoader;
 import com.esotericsoftware.spine.attachments.BoundingBoxAttachment;
 import com.esotericsoftware.spine.attachments.MeshAttachment;
 import com.esotericsoftware.spine.attachments.RegionAttachment;
-import com.esotericsoftware.spine.attachments.SkinnedMeshAttachment;
+import com.esotericsoftware.spine.attachments.WeightedMeshAttachment;
 
 public class BonePlotting {
 	static public void main (String[] args) throws Exception {
 		// This example shows how to load skeleton data and plot a bone transform for each animation.
 		SkeletonJson json = new SkeletonJson(new AttachmentLoader() {
-			public SkinnedMeshAttachment newSkinnedMeshAttachment (Skin skin, String name, String path) {
+			public WeightedMeshAttachment newWeightedMeshAttachment (Skin skin, String name, String path) {
 				return null;
 			}
 
@@ -67,8 +67,8 @@ public class BonePlotting {
 			while (time < animation.getDuration()) {
 				animation.apply(skeleton, time, time, false, null);
 				skeleton.updateWorldTransform();
-				System.out.println(animation.getName() + "," + bone.getWorldX() + "," + bone.getWorldY() + ","
-					+ bone.getWorldRotation() + "," + bone.getWorldScaleX() + "," + bone.getWorldScaleY());
+				System.out
+					.println(animation.getName() + "," + bone.getWorldX() + "," + bone.getWorldY() + "," + bone.getWorldRotationX());
 				time += fps;
 			}
 		}

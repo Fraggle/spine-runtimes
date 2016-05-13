@@ -58,7 +58,7 @@ namespace Spine {
 
 			if (loop && duration != 0) {
 				time %= duration;
-				lastTime %= duration;
+				if (lastTime > 0) lastTime %= duration;
 			}
 
 			ExposedList<Timeline> timelines = this.timelines;
@@ -75,7 +75,7 @@ namespace Spine {
 
 			if (loop && duration != 0) {
 				time %= duration;
-				lastTime %= duration;
+				if (lastTime > 0) lastTime %= duration;
 			}
 
 			ExposedList<Timeline> timelines = this.timelines;
@@ -452,7 +452,7 @@ namespace Spine {
 
 			String attachmentName = attachmentNames[frameIndex];
 			skeleton.slots.Items[slotIndex].Attachment =
-				 attachmentName == null ? null : skeleton.GetAttachment(slotIndex, attachmentName);
+				attachmentName == null ? null : skeleton.GetAttachment(slotIndex, attachmentName);
 		}
 	}
 
@@ -470,8 +470,8 @@ namespace Spine {
 		}
 
 		/// <summary>Sets the time and value of the specified keyframe.</summary>
-		public void SetFrame (int frameIndex, float time, Event e) {
-			frames[frameIndex] = time;
+		public void SetFrame (int frameIndex, Event e) {
+			frames[frameIndex] = e.Time;
 			events[frameIndex] = e;
 		}
 
@@ -548,7 +548,7 @@ namespace Spine {
 		}
 	}
 
-	public class FFDTimeline : CurveTimeline {
+	public class FfdTimeline : CurveTimeline {
 		internal int slotIndex;
 		internal float[] frames;
 		private float[][] frameVertices;
@@ -559,7 +559,7 @@ namespace Spine {
 		public float[][] Vertices { get { return frameVertices; } set { frameVertices = value; } }
 		public Attachment Attachment { get { return attachment; } set { attachment = value; } }
 
-		public FFDTimeline (int frameCount)
+		public FfdTimeline (int frameCount)
 			: base(frameCount) {
 			frames = new float[frameCount];
 			frameVertices = new float[frameCount][];
@@ -573,7 +573,8 @@ namespace Spine {
 
 		override public void Apply (Skeleton skeleton, float lastTime, float time, ExposedList<Event> firedEvents, float alpha) {
 			Slot slot = skeleton.slots.Items[slotIndex];
-			if (slot.attachment != attachment) return;
+			IFfdAttachment ffdAttachment = slot.attachment as IFfdAttachment;
+			if (ffdAttachment == null || !ffdAttachment.ApplyFFD(attachment)) return;
 
 			float[] frames = this.frames;
 			if (time < frames[0]) return; // Time is before first frame.
@@ -582,11 +583,13 @@ namespace Spine {
 			int vertexCount = frameVertices[0].Length;
 
 			float[] vertices = slot.attachmentVertices;
+			if (slot.attachmentVerticesCount != vertexCount) alpha = 1; // Don't mix from uninitialized slot vertices.
+
+			// Ensure capacity
 			if (vertices.Length < vertexCount) {
 				vertices = new float[vertexCount];
 				slot.attachmentVertices = vertices;
 			}
-			if (vertices.Length != vertexCount) alpha = 1; // Don't mix from uninitialized slot vertices.
 			slot.attachmentVerticesCount = vertexCount;
 
 			if (time >= frames[frames.Length - 1]) { // Time is after last frame.
@@ -672,54 +675,6 @@ namespace Spine {
 			float mix = prevFrameMix + (frames[frameIndex + FRAME_MIX] - prevFrameMix) * percent;
 			ikConstraint.mix += (mix - ikConstraint.mix) * alpha;
 			ikConstraint.bendDirection = (int)frames[frameIndex + PREV_FRAME_BEND_DIRECTION];
-		}
-	}
-
-	public class FlipXTimeline : Timeline {
-		internal int boneIndex;
-		internal float[] frames;
-
-		public int BoneIndex { get { return boneIndex; } set { boneIndex = value; } }
-		public float[] Frames { get { return frames; } set { frames = value; } } // time, flip, ...
-		public int FrameCount { get { return frames.Length >> 1; } }
-
-		public FlipXTimeline (int frameCount) {
-			frames = new float[frameCount << 1];
-		}
-
-		/// <summary>Sets the time and value of the specified keyframe.</summary>
-		public void SetFrame (int frameIndex, float time, bool flip) {
-			frameIndex *= 2;
-			frames[frameIndex] = time;
-			frames[frameIndex + 1] = flip ? 1 : 0;
-		}
-
-		public void Apply (Skeleton skeleton, float lastTime, float time, ExposedList<Event> firedEvents, float alpha) {
-			float[] frames = this.frames;
-			if (time < frames[0]) {
-				if (lastTime > time) Apply(skeleton, lastTime, int.MaxValue, null, 0);
-				return;
-			} else if (lastTime > time) //
-				lastTime = -1;
-
-			int frameIndex = (time >= frames[frames.Length - 2] ? frames.Length : Animation.binarySearch(frames, time, 2)) - 2;
-			if (frames[frameIndex] < lastTime) return;
-
-			SetFlip(skeleton.bones.Items[boneIndex], frames[frameIndex + 1] != 0);
-		}
-
-		virtual protected void SetFlip (Bone bone, bool flip) {
-			bone.flipX = flip;
-		}
-	}
-
-	public class FlipYTimeline : FlipXTimeline {
-		public FlipYTimeline (int frameCount)
-			: base(frameCount) {
-		}
-
-		override protected void SetFlip (Bone bone, bool flip) {
-			bone.flipY = flip;
 		}
 	}
 }

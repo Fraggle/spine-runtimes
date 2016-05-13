@@ -31,18 +31,17 @@
 
 package com.esotericsoftware.spine.attachments;
 
-import com.esotericsoftware.spine.Bone;
-import com.esotericsoftware.spine.Skeleton;
-import com.esotericsoftware.spine.Slot;
-
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.NumberUtils;
+import com.esotericsoftware.spine.Bone;
+import com.esotericsoftware.spine.Skeleton;
+import com.esotericsoftware.spine.Slot;
 
 /** Attachment that displays a texture region. */
-public class MeshAttachment extends Attachment {
+public class MeshAttachment extends Attachment implements FfdAttachment {
 	private TextureRegion region;
 	private String path;
 	private float[] vertices, regionUVs;
@@ -50,9 +49,11 @@ public class MeshAttachment extends Attachment {
 	private float[] worldVertices;
 	private final Color color = new Color(1, 1, 1, 1);
 	private int hullLength;
+	private MeshAttachment parentMesh;
+	private boolean inheritFFD;
 
 	// Nonessential.
-	private int[] edges;
+	private short[] edges;
 	private float width, height;
 
 	public MeshAttachment (String name) {
@@ -98,7 +99,8 @@ public class MeshAttachment extends Attachment {
 		}
 	}
 
-	public void updateWorldVertices (Slot slot, boolean premultipliedAlpha) {
+	/** @return The updated world vertices. */
+	public float[] updateWorldVertices (Slot slot, boolean premultipliedAlpha) {
 		Skeleton skeleton = slot.getSkeleton();
 		Color skeletonColor = skeleton.getColor();
 		Color slotColor = slot.getColor();
@@ -117,7 +119,7 @@ public class MeshAttachment extends Attachment {
 		if (slotVertices.size == vertices.length) vertices = slotVertices.items;
 		Bone bone = slot.getBone();
 		float x = skeleton.getX() + bone.getWorldX(), y = skeleton.getY() + bone.getWorldY();
-		float m00 = bone.getM00(), m01 = bone.getM01(), m10 = bone.getM10(), m11 = bone.getM11();
+		float m00 = bone.getA(), m01 = bone.getB(), m10 = bone.getC(), m11 = bone.getD();
 		for (int v = 0, w = 0, n = worldVertices.length; w < n; v += 2, w += 5) {
 			float vx = vertices[v];
 			float vy = vertices[v + 1];
@@ -125,6 +127,11 @@ public class MeshAttachment extends Attachment {
 			worldVertices[w + 1] = vx * m10 + vy * m11 + y;
 			worldVertices[w + 2] = color;
 		}
+		return worldVertices;
+	}
+
+	public boolean applyFFD (Attachment sourceAttachment) {
+		return this == sourceAttachment || (inheritFFD && parentMesh == sourceAttachment);
 	}
 
 	public float[] getWorldVertices () {
@@ -175,11 +182,11 @@ public class MeshAttachment extends Attachment {
 		this.hullLength = hullLength;
 	}
 
-	public int[] getEdges () {
+	public short[] getEdges () {
 		return edges;
 	}
 
-	public void setEdges (int[] edges) {
+	public void setEdges (short[] edges) {
 		this.edges = edges;
 	}
 
@@ -197,5 +204,32 @@ public class MeshAttachment extends Attachment {
 
 	public void setHeight (float height) {
 		this.height = height;
+	}
+
+	/** Returns the source mesh if this is a linked mesh, else returns null. */
+	public MeshAttachment getParentMesh () {
+		return parentMesh;
+	}
+
+	/** @param parentMesh May be null. */
+	public void setParentMesh (MeshAttachment parentMesh) {
+		this.parentMesh = parentMesh;
+		if (parentMesh != null) {
+			vertices = parentMesh.vertices;
+			regionUVs = parentMesh.regionUVs;
+			triangles = parentMesh.triangles;
+			hullLength = parentMesh.hullLength;
+			edges = parentMesh.edges;
+			width = parentMesh.width;
+			height = parentMesh.height;
+		}
+	}
+
+	public boolean getInheritFFD () {
+		return inheritFFD;
+	}
+
+	public void setInheritFFD (boolean inheritFFD) {
+		this.inheritFFD = inheritFFD;
 	}
 }

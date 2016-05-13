@@ -31,9 +31,6 @@
 
 package com.esotericsoftware.spine;
 
-import com.esotericsoftware.spine.AnimationState.AnimationStateAdapter;
-import com.esotericsoftware.spine.attachments.SkeletonAttachment;
-
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
@@ -41,11 +38,12 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.esotericsoftware.spine.attachments.SkeletonAttachment;
 
 public class SkeletonAttachmentTest extends ApplicationAdapter {
 	OrthographicCamera camera;
 	PolygonSpriteBatch batch;
-	SkeletonRenderer renderer;
+	SkeletonMeshRenderer renderer;
 
 	Skeleton spineboy, goblin;
 	AnimationState spineboyState, goblinState;
@@ -53,7 +51,7 @@ public class SkeletonAttachmentTest extends ApplicationAdapter {
 	public void create () {
 		camera = new OrthographicCamera();
 		batch = new PolygonSpriteBatch();
-		renderer = new SkeletonRenderer();
+		renderer = new SkeletonMeshRenderer();
 		renderer.setPremultipliedAlpha(true);
 
 		{
@@ -68,18 +66,13 @@ public class SkeletonAttachmentTest extends ApplicationAdapter {
 			stateData.setMix("walk", "jump", 0.2f);
 			stateData.setMix("jump", "walk", 0.2f);
 			spineboyState = new AnimationState(stateData);
-			new AnimationStateAdapter() {
-				public void start (int trackIndex) {
-					spineboyState.addAnimation(0, "walk", true, 0);
-					spineboyState.addAnimation(0, "jump", false, 3).setListener(this);
-				}
-			}.start(0);
+			spineboyState.addAnimation(0, "walk", true, 0);
 		}
 
 		{
-			TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("goblins/goblins-ffd.atlas"));
+			TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("goblins/goblins-mesh.atlas"));
 			SkeletonJson json = new SkeletonJson(atlas);
-			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("goblins/goblins-ffd.json"));
+			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("goblins/goblins-mesh.json"));
 			goblin = new Skeleton(skeletonData);
 			goblin.setSkin("goblin");
 			goblin.setSlotsToSetupPose();

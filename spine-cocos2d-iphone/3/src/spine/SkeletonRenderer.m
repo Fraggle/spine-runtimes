@@ -32,10 +32,9 @@
 #import <spine/SkeletonRenderer.h>
 #import <spine/spine-cocos2d-iphone.h>
 #import <spine/extension.h>
-#import "CCNode_Private.h"
 #import "CCDrawNode.h"
 
-static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
+static const unsigned short quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 
 @interface SkeletonRenderer (Private)
 - (void) initialize:(spSkeletonData*)skeletonData ownsSkeletonData:(bool)ownsSkeletonData;
@@ -148,7 +147,7 @@ static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 	int blendMode = -1;
 	const float* uvs = 0;
 	int verticesCount = 0;
-	const int* triangles = 0;
+	const unsigned short* triangles = 0;
 	int trianglesCount = 0;
 	float r = 0, g = 0, b = 0, a = 0;
 	for (int i = 0, n = _skeleton->slotsCount; i < n; i++) {
@@ -184,10 +183,10 @@ static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 			a = attachment->a;
 			break;
 		}
-		case SP_ATTACHMENT_SKINNED_MESH: {
-			spSkinnedMeshAttachment* attachment = (spSkinnedMeshAttachment*)slot->attachment;
-			spSkinnedMeshAttachment_computeWorldVertices(attachment, slot, _worldVertices);
-			texture = [self getTextureForSkinnedMesh:attachment];
+		case SP_ATTACHMENT_WEIGHTED_MESH: {
+			spWeightedMeshAttachment* attachment = (spWeightedMeshAttachment*)slot->attachment;
+			spWeightedMeshAttachment_computeWorldVertices(attachment, slot, _worldVertices);
+			texture = [self getTextureForWeightedMesh:attachment];
 			uvs = attachment->uvs;
 			verticesCount = attachment->uvsCount;
 			triangles = attachment->triangles;
@@ -267,8 +266,8 @@ static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 		// Bone lengths.
 		for (int i = 0, n = _skeleton->bonesCount; i < n; i++) {
 			spBone *bone = _skeleton->bones[i];
-			float x = bone->data->length * bone->m00 + bone->worldX;
-			float y = bone->data->length * bone->m10 + bone->worldY;
+			float x = bone->data->length * bone->a + bone->worldX;
+			float y = bone->data->length * bone->c + bone->worldY;
 			[_drawNode drawSegmentFrom:ccp(bone->worldX, bone->worldY) to: ccp(x, y)radius:2 color:[CCColor redColor]];
 		}
 		
@@ -289,7 +288,7 @@ static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 	return (CCTexture*)((spAtlasRegion*)attachment->rendererObject)->page->rendererObject;
 }
 
-- (CCTexture*) getTextureForSkinnedMesh:(spSkinnedMeshAttachment*)attachment {
+- (CCTexture*) getTextureForWeightedMesh:(spWeightedMeshAttachment*)attachment {
 	return (CCTexture*)((spAtlasRegion*)attachment->rendererObject)->page->rendererObject;
 }
 
@@ -308,9 +307,9 @@ static const int quadTriangles[6] = {0, 1, 2, 2, 3, 0};
 			spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
 			spMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
 			verticesCount = mesh->verticesCount;
-		} else if (slot->attachment->type == SP_ATTACHMENT_SKINNED_MESH) {
-			spSkinnedMeshAttachment* mesh = (spSkinnedMeshAttachment*)slot->attachment;
-			spSkinnedMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
+		} else if (slot->attachment->type == SP_ATTACHMENT_WEIGHTED_MESH) {
+			spWeightedMeshAttachment* mesh = (spWeightedMeshAttachment*)slot->attachment;
+			spWeightedMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
 			verticesCount = mesh->uvsCount;
 		} else
 			continue;
