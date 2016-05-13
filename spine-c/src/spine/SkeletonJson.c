@@ -253,9 +253,17 @@ static spAnimation* _spSkeletonJson_readAnimation (spSkeletonJson* self, Json* r
 					if (duration > animation->duration) animation->duration = duration;
 
 				} else {
-					spAnimation_dispose(animation);
-					_spSkeletonJson_setError(self, 0, "Invalid timeline type for a bone: ", timelineArray->name);
-					return 0;
+                    // Hack hack hack
+                    if ((strcmp(timelineArray->name, "flipX") == 0) || (strcmp(timelineArray->name, "flipY") == 0)) {
+                        spTranslateTimeline *timeline = spTranslateTimeline_create(1);
+                        timeline->boneIndex = boneIndex;
+                        spTranslateTimeline_setFrame(timeline, 0., 0., 0., 0.);                        
+                        animation->timelines[animation->timelinesCount++] = SUPER_CAST(spTimeline, timeline);
+                    } else {
+                        spAnimation_dispose(animation);
+                        _spSkeletonJson_setError(self, 0, "Invalid timeline type for a bone: ", timelineArray->name);
+                        return 0;
+                    }
 				}
 			}
 		}

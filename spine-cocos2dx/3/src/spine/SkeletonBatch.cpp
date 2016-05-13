@@ -82,7 +82,7 @@ void SkeletonBatch::addCommand (cocos2d::Renderer* renderer, float globalZOrder,
 	BlendFunc blendFunc, const TrianglesCommand::Triangles& triangles, const Mat4& transform, uint32_t transformFlags
 ) {
 	if (_position + triangles.vertCount > _capacity) {
-		int newCapacity = max(_capacity + _capacity / 2, _position + triangles.vertCount);
+		int newCapacity = max(_capacity + _capacity / 2, _position + (int)triangles.vertCount);
 		V3F_C4B_T2F* newBuffer = new V3F_C4B_T2F[newCapacity];
 		memcpy(newBuffer, _buffer, _position);
 
