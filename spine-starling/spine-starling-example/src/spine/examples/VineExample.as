@@ -29,30 +29,45 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-package spine.starling {
-import spine.SkeletonData;
-import spine.animation.AnimationState;
-import spine.animation.AnimationStateData;
+package spine.examples {
+import spine.*;
+import spine.atlas.Atlas;
+import spine.attachments.AtlasAttachmentLoader;
+import spine.attachments.AttachmentLoader;
+import spine.starling.SkeletonAnimation;
+import spine.starling.StarlingTextureLoader;
 
-import starling.animation.IAnimatable;
+import starling.core.Starling;
+import starling.display.Sprite;
 
-public class SkeletonAnimation extends SkeletonSprite implements IAnimatable {
-	public var state:AnimationState;
-	public var timeScale:Number = 1;
+public class VineExample extends Sprite {
+	[Embed(source = "/vine.json", mimeType = "application/octet-stream")]
+	static public const VineJson:Class;
 	
-	public function SkeletonAnimation (skeletonData:SkeletonData, stateData:AnimationStateData = null) {
-		super(skeletonData);
-		state = new AnimationState(stateData ? stateData : new AnimationStateData(skeletonData));
-	}
+	[Embed(source = "/vine.atlas", mimeType = "application/octet-stream")]
+	static public const VineAtlas:Class;
+	
+	[Embed(source = "/vine.png")]
+	static public const VineAtlasTexture:Class;
+	
+	private var skeleton:SkeletonAnimation;	
 
-	public function advanceTime (time:Number) : void {
-		time *= timeScale;
-		skeleton.update(time);
-		state.update(time);
-		state.apply(skeleton);
-		skeleton.updateWorldTransform();
-		this.setRequiresRedraw();
-	}
+	public function VineExample () {
+		var attachmentLoader:AttachmentLoader;
+		var spineAtlas:Atlas = new Atlas(new VineAtlas(), new StarlingTextureLoader(new VineAtlasTexture()));
+		attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
+
+		var json:SkeletonJson = new SkeletonJson(attachmentLoader);
+		json.scale = 0.5;
+		var skeletonData:SkeletonData = json.readSkeletonData(new VineJson());
+
+		skeleton = new SkeletonAnimation(skeletonData);
+		skeleton.x = 400;
+		skeleton.y = 560;
+		skeleton.state.setAnimationByName(0, "animation", true);
+
+		addChild(skeleton);
+		Starling.juggler.add(skeleton);		
+	}	
 }
-
 }

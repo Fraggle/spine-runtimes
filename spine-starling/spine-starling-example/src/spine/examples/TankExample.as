@@ -29,27 +29,45 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-package spine {
-
-import flash.display.Sprite;
+package spine.examples {
+import spine.atlas.Atlas;
+import spine.*;
+import spine.attachments.AtlasAttachmentLoader;
+import spine.attachments.AttachmentLoader;
+import spine.starling.SkeletonAnimation;
+import spine.starling.StarlingTextureLoader;
 
 import starling.core.Starling;
+import starling.display.Sprite;
 
-[SWF(width = "800", height = "600", frameRate = "60", backgroundColor = "#dddddd")]
-public class Main extends Sprite {
-	private var _starling:Starling;
+public class TankExample extends Sprite {
+	[Embed(source = "/tank.json", mimeType = "application/octet-stream")]
+	static public const TankJson:Class;
+	
+	[Embed(source = "/tank.atlas", mimeType = "application/octet-stream")]
+	static public const TankAtlas:Class;
+	
+	[Embed(source = "/tank.png")]
+	static public const TankAtlasTexture:Class;
+	
+	private var skeleton:SkeletonAnimation;	
 
-	public function Main () {
-		var example:Class;
-		//example = SpineboyExample;
-		//example = GoblinsExample;
-		example = RaptorExample;
+	public function TankExample () {
+		var attachmentLoader:AttachmentLoader;
+		var spineAtlas:Atlas = new Atlas(new TankAtlas(), new StarlingTextureLoader(new TankAtlasTexture()));
+		attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
 
-		_starling = new Starling(example, stage);
-		_starling.enableErrorChecking = true;
-		_starling.showStats = true;
-		_starling.start();
-	}
+		var json:SkeletonJson = new SkeletonJson(attachmentLoader);
+		json.scale = 0.5;
+		var skeletonData:SkeletonData = json.readSkeletonData(new TankJson());
+
+		skeleton = new SkeletonAnimation(skeletonData);
+		skeleton.x = 400;
+		skeleton.y = 560;
+		skeleton.state.setAnimationByName(0, "drive", true);
+
+		addChild(skeleton);
+		Starling.juggler.add(skeleton);	
+	}	
 }
-
 }

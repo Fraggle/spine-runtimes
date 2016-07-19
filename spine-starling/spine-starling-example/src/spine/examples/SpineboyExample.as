@@ -29,8 +29,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-package spine {
+package spine.examples {
 import spine.animation.AnimationStateData;
+import spine.*;
 import spine.atlas.Atlas;
 import spine.attachments.AtlasAttachmentLoader;
 import spine.attachments.AttachmentLoader;
@@ -67,7 +68,7 @@ public class SpineboyExample extends Sprite {
 		stateData.setMixByName("jump", "run", 0.4);
 		stateData.setMixByName("jump", "jump", 0.2);
 
-		skeleton = new SkeletonAnimation(skeletonData, false, stateData);
+		skeleton = new SkeletonAnimation(skeletonData, stateData);
 		skeleton.x = 400;
 		skeleton.y = 560;
 		
@@ -85,6 +86,7 @@ public class SpineboyExample extends Sprite {
 				+ event.data.name + ": " + event.intValue + ", " + event.floatValue + ", " + event.stringValue);
 		});
 
+		skeleton.skeleton.setToSetupPose();
 		skeleton.state.setAnimationByName(0, "run", true);
 		skeleton.state.addAnimationByName(0, "jump", false, 3);
 		skeleton.state.addAnimationByName(0, "run", true, 0);
