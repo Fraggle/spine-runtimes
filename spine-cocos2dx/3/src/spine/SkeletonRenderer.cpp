@@ -158,6 +158,8 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 	for (int i = 0, n = _skeleton->slotsCount; i < n; ++i) {
 		spSlot* slot = _skeleton->drawOrder[i];
 		if (!slot->attachment) continue;
+        
+        bool mask = false;
 
 		switch (slot->attachment->type) {
 		case SP_ATTACHMENT_REGION: {
@@ -167,17 +169,19 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			color.r = attachment->r;
 			color.g = attachment->g;
 			color.b = attachment->b;
-			color.a = attachment->a;
+            color.a = attachment->a;
 			break;
 		}
 		case SP_ATTACHMENT_MESH: {
+            mask = (strncmp(slot->data->name, "mask_", 5) == 0);
+            
 			spMeshAttachment* attachment = (spMeshAttachment*)slot->attachment;
 			spMeshAttachment_computeWorldVertices(attachment, slot, _worldVertices);
 			attachmentVertices = getAttachmentVertices(attachment);
 			color.r = attachment->r;
 			color.g = attachment->g;
 			color.b = attachment->b;
-			color.a = attachment->a;
+            color.a = mask ? 0 : attachment->a;
 			break;
 		}
 		case SP_ATTACHMENT_WEIGHTED_MESH: {
@@ -225,6 +229,11 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			blendFunc.src = _premultipliedAlpha ? GL_ONE : GL_SRC_ALPHA;
 			blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		}
+        
+        if ( mask ) {
+            blendFunc.src = GL_ONE;
+            blendFunc.dst = GL_ZERO;
+        }
 
 		batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture->getName(), _glProgramState, blendFunc,
 			*attachmentVertices->_triangles, transform, transformFlags);
