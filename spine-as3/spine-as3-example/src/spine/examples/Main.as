@@ -29,10 +29,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-package spine {
+package spine.examples {
 
 import flash.display.Sprite;
 
+import spine.*;
 import spine.animation.AnimationStateData;
 import spine.atlas.Atlas;
 import spine.attachments.AtlasAttachmentLoader;
@@ -68,7 +69,7 @@ public class Main extends Sprite {
 		skeleton.y = 560;
 		
 		skeleton.state.onStart.add(function (trackIndex:int) : void {
-			trace(trackIndex + " start: " + skeleton.state.getCurrent(trackIndex));
+			trace(trackIndex + " fuu start: " + skeleton.state.getCurrent(trackIndex));
 		});
 		skeleton.state.onEnd.add(function (trackIndex:int) : void {
 			trace(trackIndex + " end: " + skeleton.state.getCurrent(trackIndex));
