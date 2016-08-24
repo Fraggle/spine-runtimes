@@ -305,39 +305,44 @@ AttachmentVertices* SkeletonRenderer::getAttachmentVertices (spWeightedMeshAttac
 	return (AttachmentVertices*)attachment->rendererObject;
 }
 
-Rect SkeletonRenderer::getBoundingBox () const {
-	float minX = FLT_MAX, minY = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN;
-	float scaleX = getScaleX(), scaleY = getScaleY();
-	for (int i = 0; i < _skeleton->slotsCount; ++i) {
-		spSlot* slot = _skeleton->slots[i];
-		if (!slot->attachment) continue;
-		int verticesCount;
-		if (slot->attachment->type == SP_ATTACHMENT_REGION) {
-			spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
-			spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices);
-			verticesCount = 8;
-		} else if (slot->attachment->type == SP_ATTACHMENT_MESH) {
-			spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
-			spMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
-			verticesCount = mesh->verticesCount;
-		} else if (slot->attachment->type == SP_ATTACHMENT_WEIGHTED_MESH) {
-			spWeightedMeshAttachment* mesh = (spWeightedMeshAttachment*)slot->attachment;
-			spWeightedMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
-			verticesCount = mesh->uvsCount;
-		} else
-			continue;
-		for (int ii = 0; ii < verticesCount; ii += 2) {
-			float x = _worldVertices[ii] * scaleX, y = _worldVertices[ii + 1] * scaleY;
-			minX = min(minX, x);
-			minY = min(minY, y);
-			maxX = max(maxX, x);
-			maxY = max(maxY, y);
-		}
-	}
-	Vec2 position = getPosition();
-	return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
-}
 
+Rect SkeletonRenderer::getBoundingBox () const {
+    float minX = FLT_MAX, minY = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN;
+        
+    AffineTransform nodeToParentTransform = getNodeToParentAffineTransform();
+        
+    for (int i = 0; i < _skeleton->slotsCount; ++i) {
+        spSlot* slot = _skeleton->slots[i];
+        if (!slot->attachment) continue;
+        int verticesCount;
+        if (slot->attachment->type == SP_ATTACHMENT_REGION) {
+            spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
+            spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices);
+            verticesCount = 8;
+        } else if (slot->attachment->type == SP_ATTACHMENT_MESH) {
+            spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
+            spMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
+            verticesCount = mesh->verticesCount;
+        } else if (slot->attachment->type == SP_ATTACHMENT_WEIGHTED_MESH) {
+            spWeightedMeshAttachment* mesh = (spWeightedMeshAttachment*)slot->attachment;
+            spWeightedMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
+            verticesCount = mesh->uvsCount;
+        } else
+            continue;
+        for (int ii = 0; ii < verticesCount; ii += 2) {
+            float x = _worldVertices[ii] * nodeToParentTransform.a + _worldVertices[ii + 1] * nodeToParentTransform.c + nodeToParentTransform.tx;
+            float y = _worldVertices[ii] * nodeToParentTransform.b + _worldVertices[ii + 1] * nodeToParentTransform.d + nodeToParentTransform.ty;
+            minX = min(minX, x);
+            minY = min(minY, y);
+            maxX = max(maxX, x);
+            maxY = max(maxY, y);
+        }
+    }
+    Vec2 position = getPosition();
+    return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
+}
+    
+    
 // --- Convenience methods for Skeleton_* functions.
 
 void SkeletonRenderer::updateWorldTransform () {
