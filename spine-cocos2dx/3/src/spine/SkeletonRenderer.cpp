@@ -307,10 +307,10 @@ AttachmentVertices* SkeletonRenderer::getAttachmentVertices (spWeightedMeshAttac
 
 
 Rect SkeletonRenderer::getBoundingBox () const {
-    float minX = FLT_MAX, minY = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN;
-        
+    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX; // keep -FLT_MAX for maxs as FLT_MIN is the lowest possible positive value not the smallest value
+
     AffineTransform nodeToParentTransform = getNodeToParentAffineTransform();
-        
+
     for (int i = 0; i < _skeleton->slotsCount; ++i) {
         spSlot* slot = _skeleton->slots[i];
         if (!slot->attachment) continue;
@@ -330,16 +330,22 @@ Rect SkeletonRenderer::getBoundingBox () const {
         } else
             continue;
         for (int ii = 0; ii < verticesCount; ii += 2) {
+
+            // precision needed for the spine rendering in a render texture (keep the RT the smallest posssible)
+            // so transform here not with a RectApplyAffineTransform(rect, getNodeToParentAffineTransform()) at the end of the function !
+            // that would make the BBOX a bit bigger !
             float x = _worldVertices[ii] * nodeToParentTransform.a + _worldVertices[ii + 1] * nodeToParentTransform.c + nodeToParentTransform.tx;
             float y = _worldVertices[ii] * nodeToParentTransform.b + _worldVertices[ii + 1] * nodeToParentTransform.d + nodeToParentTransform.ty;
+            
             minX = min(minX, x);
             minY = min(minY, y);
             maxX = max(maxX, x);
             maxY = max(maxY, y);
         }
     }
-    Vec2 position = getPosition();
-    return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
+
+    Rect rect(minX, minY, maxX - minX, maxY - minY);
+    return rect;
 }
     
     
