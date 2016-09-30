@@ -99,14 +99,7 @@ public class SkeletonSprite extends DisplayObject {
 					b * slot.b * region.b);
 
 				var image:Image = region.rendererObject as Image;
-				if (image == null) {
-					var origImage:Image = Image(AtlasRegion(region.rendererObject).rendererObject);
-					region.rendererObject = image = new Image(origImage.texture);
-					for (var j:int = 0; j < 4; j++) {
-						var p: Point = origImage.getTexCoords(j);
-						image.setTexCoords(j, p.x, p.y);
-					}
-				}
+				if (image == null) region.rendererObject = image = Image(AtlasRegion(region.rendererObject).rendererObject);
 				
 				image.setVertexPosition(0, worldVertices[2], worldVertices[3]);
 				image.setVertexColor(0, rgb);
@@ -162,10 +155,11 @@ public class SkeletonSprite extends DisplayObject {
 					
 				vertexData = mesh.getVertexData();
 				uvs = meshAttachment.uvs;
-				vertexData.colorize("color", rgb, a);
 				for (ii = 0, iii = 0; ii < verticesCount; ii++, iii+=2) {
 					mesh.setVertexPosition(ii, worldVertices[iii], worldVertices[iii+1]);
-					mesh.setTexCoords(ii, uvs[iii], uvs[iii+1]);			
+					mesh.setTexCoords(ii, uvs[iii], uvs[iii+1]);
+					mesh.setVertexColor(ii, rgb);
+					mesh.setVertexAlpha(ii, a);				
 				}
 				vertexData.numVertices = verticesCount;
 				// FIXME set smoothing/filter
