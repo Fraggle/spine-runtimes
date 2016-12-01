@@ -86,12 +86,9 @@ var transitionsDemo = function(loadingComplete, bgColor) {
 		state.addAnimation(0, "run", true, mix);
 		state.addAnimation(0, "jump", true, 0.5);
 		state.addAnimation(0, "run", true, mix).listener = {
-			event: function (trackIndex, event) {},
-			complete: function (trackIndex, loopCount) {},
 			start: function (trackIndex) { 
 				setAnimations(state, mix);
-			},
-			end: function (trackIndex) {}
+			}
 		};
 	}
 
@@ -99,7 +96,7 @@ var transitionsDemo = function(loadingComplete, bgColor) {
 		var atlas = new spine.TextureAtlas(assetManager.get(DEMO_NAME, "atlas1.atlas"), function(path) {
 			return assetManager.get(DEMO_NAME, path);		
 		});
-		var atlasLoader = new spine.TextureAtlasAttachmentLoader(atlas);
+		var atlasLoader = new spine.AtlasAttachmentLoader(atlas);
 		var skeletonJson = new spine.SkeletonJson(atlasLoader);
 		var skeletonData = skeletonJson.readSkeletonData(assetManager.get(DEMO_NAME, "demos.json")[name]);
 		var skeleton = new spine.Skeleton(skeletonData);
