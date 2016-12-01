@@ -59,7 +59,7 @@ public class AnimationState {
 	boolean animationsChanged;
 	private float timeScale = 1;
 
-	final Pool<TrackEntry> trackEntryPool = new Pool() {
+	Pool<TrackEntry> trackEntryPool = new Pool() {
 		protected Object newObject () {
 			return new TrackEntry();
 		}
@@ -101,7 +101,7 @@ public class AnimationState {
 					next.delay = 0;
 					next.trackTime = nextTime + delta * next.timeScale;
 					current.trackTime += currentDelta;
-					setCurrent(i, next);
+					setCurrent(i, next, true);
 					while (next.mixingFrom != null) {
 						next.mixTime += currentDelta;
 						next = next.mixingFrom;
@@ -239,6 +239,9 @@ public class AnimationState {
 
 	private void applyRotateTimeline (Timeline timeline, Skeleton skeleton, float time, float alpha, boolean setupPose,
 		float[] timelinesRotation, int i, boolean firstFrame) {
+
+		if (firstFrame) timelinesRotation[i] = 0;
+
 		if (alpha == 1) {
 			timeline.apply(skeleton, 0, time, null, 1, setupPose, false);
 			return;
@@ -272,13 +275,9 @@ public class AnimationState {
 		// Mix between rotations using the direction of the shortest route on the first frame while detecting crosses.
 		float r1 = setupPose ? bone.data.rotation : bone.rotation;
 		float total, diff = r2 - r1;
-		if (diff == 0) {
-			if (firstFrame) {
-				timelinesRotation[i] = 0;
-				total = 0;
-			} else
-				total = timelinesRotation[i];
-		} else {
+		if (diff == 0)
+			total = timelinesRotation[i];
+		else {
 			diff -= (16384 - (int)(16384.499999999996 - diff / 360)) * 360;
 			float lastTotal, lastDiff;
 			if (firstFrame) {
@@ -374,14 +373,16 @@ public class AnimationState {
 		queue.drain();
 	}
 
-	private void setCurrent (int index, TrackEntry current) {
+	private void setCurrent (int index, TrackEntry current, boolean interrupt) {
 		TrackEntry from = expandToIndex(index);
 		tracks.set(index, current);
 
 		if (from != null) {
-			queue.interrupt(from);
+			if (interrupt) queue.interrupt(from);
 			current.mixingFrom = from;
 			current.mixTime = 0;
+
+			from.timelinesRotation.clear(); // Reset rotation for mixing out, in case entry was mixed in.
 
 			// If not completely mixed in, set mixAlpha so mixing out happens from current mix to zero.
 			if (from.mixingFrom != null) current.mixAlpha *= Math.min(from.mixTime / from.mixDuration, 1);
@@ -406,6 +407,7 @@ public class AnimationState {
 	 *         after the {@link AnimationStateListener#dispose(TrackEntry)} event occurs. */
 	public TrackEntry setAnimation (int trackIndex, Animation animation, boolean loop) {
 		if (animation == null) throw new IllegalArgumentException("animation cannot be null.");
+		boolean interrupt = true;
 		TrackEntry current = expandToIndex(trackIndex);
 		if (current != null) {
 			if (current.nextTrackLast == -1) {
@@ -415,11 +417,12 @@ public class AnimationState {
 				queue.end(current);
 				disposeNext(current);
 				current = current.mixingFrom;
+				interrupt = false; // mixingFrom is current again, but don't interrupt it twice.
 			} else
 				disposeNext(current);
 		}
 		TrackEntry entry = trackEntry(trackIndex, animation, loop, current);
-		setCurrent(trackIndex, entry);
+		setCurrent(trackIndex, entry, interrupt);
 		queue.drain();
 		return entry;
 	}
@@ -451,7 +454,7 @@ public class AnimationState {
 		TrackEntry entry = trackEntry(trackIndex, animation, loop, last);
 
 		if (last == null) {
-			setCurrent(trackIndex, entry);
+			setCurrent(trackIndex, entry, true);
 			queue.drain();
 		} else {
 			last.next = entry;

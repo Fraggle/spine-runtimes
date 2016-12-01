@@ -216,6 +216,9 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		if (ui.skinList.getSelected() != null) skeleton.setSkin(ui.skinList.getSelected());
 		setAnimation();
+
+		// ui.animationList.clearListeners();
+		// state.setAnimation(0, "walk", true);
 	}
 
 	void setAnimation () {
@@ -703,7 +706,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 		}
 
 		void render () {
-			if (state.getCurrent(ui.trackButtons.getCheckedIndex()) == null) {
+			if (state != null && state.getCurrent(ui.trackButtons.getCheckedIndex()) == null) {
 				ui.animationList.getSelection().setProgrammaticChangeEvents(false);
 				ui.animationList.setSelected(null);
 				ui.animationList.getSelection().setProgrammaticChangeEvents(true);

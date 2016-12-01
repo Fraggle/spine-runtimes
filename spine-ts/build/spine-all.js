@@ -1323,7 +1323,7 @@ var spine;
 						next.delay = 0;
 						next.trackTime = nextTime + delta * next.timeScale;
 						current.trackTime += currentDelta;
-						this.setCurrent(i, next);
+						this.setCurrent(i, next, true);
 						while (next.mixingFrom != null) {
 							next.mixTime += currentDelta;
 							next = next.mixingFrom;
@@ -1447,6 +1447,8 @@ var spine;
 			return mix;
 		};
 		AnimationState.prototype.applyRotateTimeline = function (timeline, skeleton, time, alpha, setupPose, timelinesRotation, i, firstFrame) {
+			if (firstFrame)
+				timelinesRotation[i] = 0;
 			if (alpha == 1) {
 				timeline.apply(skeleton, 0, time, null, 1, setupPose, false);
 				return;
@@ -1475,12 +1477,7 @@ var spine;
 			var r1 = setupPose ? bone.data.rotation : bone.rotation;
 			var total = 0, diff = r2 - r1;
 			if (diff == 0) {
-				if (firstFrame) {
-					timelinesRotation[i] = 0;
-					total = 0;
-				}
-				else
-					total = timelinesRotation[i];
+				total = timelinesRotation[i];
 			}
 			else {
 				diff -= (16384 - ((16384.499999999996 - diff / 360) | 0)) * 360;
@@ -1562,13 +1559,15 @@ var spine;
 			this.tracks[current.trackIndex] = null;
 			this.queue.drain();
 		};
-		AnimationState.prototype.setCurrent = function (index, current) {
+		AnimationState.prototype.setCurrent = function (index, current, interrupt) {
 			var from = this.expandToIndex(index);
 			this.tracks[index] = current;
 			if (from != null) {
-				this.queue.interrupt(from);
+				if (interrupt)
+					this.queue.interrupt(from);
 				current.mixingFrom = from;
 				current.mixTime = 0;
+				from.timelinesRotation.length = 0;
 				if (from.mixingFrom != null)
 					current.mixAlpha *= Math.min(from.mixTime / from.mixDuration, 1);
 			}
@@ -1583,6 +1582,7 @@ var spine;
 		AnimationState.prototype.setAnimationWith = function (trackIndex, animation, loop) {
 			if (animation == null)
 				throw new Error("animation cannot be null.");
+			var interrupt = true;
 			var current = this.expandToIndex(trackIndex);
 			if (current != null) {
 				if (current.nextTrackLast == -1) {
@@ -1591,12 +1591,13 @@ var spine;
 					this.queue.end(current);
 					this.disposeNext(current);
 					current = current.mixingFrom;
+					interrupt = false;
 				}
 				else
 					this.disposeNext(current);
 			}
 			var entry = this.trackEntry(trackIndex, animation, loop, current);
-			this.setCurrent(trackIndex, entry);
+			this.setCurrent(trackIndex, entry, interrupt);
 			this.queue.drain();
 			return entry;
 		};
@@ -1616,7 +1617,7 @@ var spine;
 			}
 			var entry = this.trackEntry(trackIndex, animation, loop, last);
 			if (last == null) {
-				this.setCurrent(trackIndex, entry);
+				this.setCurrent(trackIndex, entry, true);
 				this.queue.drain();
 			}
 			else {
