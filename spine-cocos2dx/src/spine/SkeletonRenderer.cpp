@@ -328,7 +328,6 @@ AttachmentVertices* SkeletonRenderer::getAttachmentVertices (spMeshAttachment* a
 
 Rect SkeletonRenderer::getBoundingBox () const {
 	float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
-	float scaleX = getScaleX(), scaleY = getScaleY();
 	for (int i = 0; i < _skeleton->slotsCount; ++i) {
 		spSlot* slot = _skeleton->slots[i];
 		if (!slot->attachment) continue;
@@ -344,7 +343,7 @@ Rect SkeletonRenderer::getBoundingBox () const {
 		} else
 			continue;
 		for (int ii = 0; ii < verticesCount; ii += 2) {
-			float x = _worldVertices[ii] * scaleX, y = _worldVertices[ii + 1] * scaleY;
+			float x = _worldVertices[ii], y = _worldVertices[ii + 1];
 			minX = min(minX, x);
 			minY = min(minY, y);
 			maxX = max(maxX, x);
@@ -353,7 +352,7 @@ Rect SkeletonRenderer::getBoundingBox () const {
 	}
 	Vec2 position = getPosition();
     if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;    
-	return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
+	return RectApplyAffineTransform( Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY), getNodeToParentAffineTransform());
 }
 
 // --- Convenience methods for Skeleton_* functions.
