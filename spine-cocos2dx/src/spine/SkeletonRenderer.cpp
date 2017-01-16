@@ -327,31 +327,33 @@ AttachmentVertices* SkeletonRenderer::getAttachmentVertices (spMeshAttachment* a
 }
 
 Rect SkeletonRenderer::getBoundingBox () const {
-	float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
-	for (int i = 0; i < _skeleton->slotsCount; ++i) {
-		spSlot* slot = _skeleton->slots[i];
-		if (!slot->attachment) continue;
-		int verticesCount;
-		if (slot->attachment->type == SP_ATTACHMENT_REGION) {
-			spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
-			spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices);
-			verticesCount = 8;
-		} else if (slot->attachment->type == SP_ATTACHMENT_MESH) {
-			spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
-			spMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
-			verticesCount = mesh->super.worldVerticesLength;
-		} else
-			continue;
-		for (int ii = 0; ii < verticesCount; ii += 2) {
-			float x = _worldVertices[ii], y = _worldVertices[ii + 1];
-			minX = min(minX, x);
-			minY = min(minY, y);
-			maxX = max(maxX, x);
-			maxY = max(maxY, y);
-		}
-	}
-    if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;
-	return RectApplyAffineTransform( Rect(minX, minY, maxX - minX, maxY - minY), getNodeToParentAffineTransform());
+    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+    float scaleX = getScaleX(), scaleY = getScaleY();
+    for (int i = 0; i < _skeleton->slotsCount; ++i) {
+        spSlot* slot = _skeleton->slots[i];
+        if (!slot->attachment) continue;
+        int verticesCount;
+        if (slot->attachment->type == SP_ATTACHMENT_REGION) {
+            spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
+            spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices);
+            verticesCount = 8;
+        } else if (slot->attachment->type == SP_ATTACHMENT_MESH) {
+            spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
+            spMeshAttachment_computeWorldVertices(mesh, slot, _worldVertices);
+            verticesCount = mesh->super.worldVerticesLength;
+        } else
+            continue;
+        for (int ii = 0; ii < verticesCount; ii += 2) {
+            float x = _worldVertices[ii] * scaleX, y = _worldVertices[ii + 1] * scaleY;
+            minX = min(minX, x);
+            minY = min(minY, y);
+            maxX = max(maxX, x);
+            maxY = max(maxY, y);
+        }
+    }
+    Vec2 position = getPosition();
+    if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;    
+    return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
 }
 
 // --- Convenience methods for Skeleton_* functions.
