@@ -350,9 +350,8 @@ Rect SkeletonRenderer::getBoundingBox () const {
 			maxY = max(maxY, y);
 		}
 	}
-	Vec2 position = getPosition();
-    if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;    
-	return RectApplyAffineTransform( Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY), getNodeToParentAffineTransform());
+    if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;
+	return RectApplyAffineTransform( Rect(minX, minY, maxX - minX, maxY - minY), getNodeToParentAffineTransform());
 }
 
 // --- Convenience methods for Skeleton_* functions.
