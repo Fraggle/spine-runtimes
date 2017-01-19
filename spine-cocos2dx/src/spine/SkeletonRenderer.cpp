@@ -212,7 +212,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
             color.r = attachment->r;
             color.g = attachment->g;
             color.b = attachment->b;
-            color.a = attachment->a;
+            color.a = mask ? 0 : attachment->a;
 			break;
 		}
 		default:
