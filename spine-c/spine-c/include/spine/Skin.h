@@ -32,6 +32,7 @@
 #define SPINE_SKIN_H_
 
 #include <spine/Attachment.h>
+#include "uthash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,15 +53,15 @@ typedef struct spSkin {
 /* Private structs, needed by Skeleton */
 typedef struct _Entry _Entry;
 struct _Entry {
-	int slotIndex;
-	const char* name;
 	spAttachment* attachment;
-	_Entry* next;
+    UT_hash_handle hh; /* make this hashable */
+    int slotIndex;
+    char name[];
 };
-
+    
 typedef struct {
 	spSkin super;
-	_Entry* entries;
+    _Entry* entries;
 } _spSkin;
 
 spSkin* spSkin_create (const char* name);
