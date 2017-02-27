@@ -583,7 +583,7 @@ static spAnimation* _spSkeletonBinary_readAnimation (spSkeletonBinary* self, con
 
 	animation = spAnimation_create(name, 0);
 	animation->duration = duration;
-	animation->timelinesCount = kv_size(timelines);
+	animation->timelinesCount = (int)(kv_size(timelines));
 	animation->timelines = kv_array(timelines);
 	return animation;
 }
@@ -647,11 +647,11 @@ static void _readVertices(spSkeletonBinary* self, _dataInput* input, spVertexAtt
 	}
 
 	kv_trim(float, weights);
-	attachment->verticesCount = kv_size(weights);
+	attachment->verticesCount = (int)(kv_size(weights));
 	attachment->vertices = kv_array(weights);
 
 	kv_trim(int, bones);
-	attachment->bonesCount = kv_size(bones);
+	attachment->bonesCount = (int)(kv_size(bones));
 	attachment->bones = kv_array(bones);
 }
 
