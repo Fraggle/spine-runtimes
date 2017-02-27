@@ -209,7 +209,7 @@ static void _sortPathConstraintAttachment(_spSkeleton* const internal, spSkin* s
 	_Entry* entry = SUB_CAST(_spSkin, skin)->entries;
 	while (entry) {
 		if (entry->slotIndex == slotIndex) _sortPathConstraintAttachmentBones(internal, entry->attachment, slotBone);
-		entry = entry->next;
+		entry = entry->hh.next;
 	}
 }
 
