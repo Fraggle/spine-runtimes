@@ -343,12 +343,13 @@ namespace Spine {
 		/// It may be desired to use <see cref="AnimationState.SetEmptyAnimations(float)"/> to mix the skeletons back to the setup pose, 
 		/// rather than leaving them in their previous pose.</summary>
 		public void ClearTracks () {
+			bool oldDrainDisabled = queue.drainDisabled;
 			queue.drainDisabled = true;
 			for (int i = 0, n = tracks.Count; i < n; i++) {
 				ClearTrack(i);
 			}
 			tracks.Clear();
-			queue.drainDisabled = false;
+			queue.drainDisabled = oldDrainDisabled;
 			queue.Drain();
 		}
 
@@ -510,12 +511,13 @@ namespace Spine {
 		/// <summary>
 		/// Sets an empty animation for every track, discarding any queued animations, and mixes to it over the specified mix duration.</summary>
 		public void SetEmptyAnimations (float mixDuration) {
+			bool oldDrainDisabled = queue.drainDisabled;
 			queue.drainDisabled = true;
 			for (int i = 0, n = tracks.Count; i < n; i++) {
 				TrackEntry current = tracks.Items[i];
 				if (current != null) SetEmptyAnimation(i, mixDuration);
 			}
-			queue.drainDisabled = false;
+			queue.drainDisabled = oldDrainDisabled;
 			queue.Drain();
 		}
 
@@ -838,7 +840,7 @@ namespace Spine {
 	}
 
 	class EventQueue {
-		private readonly ExposedList<EventQueueEntry> eventQueueEntries = new ExposedList<EventQueueEntry>();
+		private readonly List<EventQueueEntry> eventQueueEntries = new List<EventQueueEntry>();
 		public bool drainDisabled;
 
 		private readonly AnimationState state;
@@ -898,11 +900,11 @@ namespace Spine {
 			drainDisabled = true;
 
 			var entries = this.eventQueueEntries;
-			var entriesItems = entries.Items;
 			AnimationState state = this.state;
 
-			for (int i = 0, n = entries.Count; i < n; i++) {
-				var queueEntry = entriesItems[i];
+			// Don't cache entries.Count so callbacks can queue their own events (eg, call SetAnimation in AnimationState_Complete).
+			for (int i = 0; i < entries.Count; i++) {
+				var queueEntry = entries[i];
 				TrackEntry trackEntry = queueEntry.entry;
 
 				switch (queueEntry.type) {

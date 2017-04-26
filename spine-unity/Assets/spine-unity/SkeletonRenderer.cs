@@ -35,7 +35,6 @@
 
 //#define SPINE_OPTIONAL_FRONTFACING
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Spine.Unity.MeshGeneration;
@@ -161,14 +160,21 @@ namespace Spine.Unity {
 		}
 
 		void OnDisable () {
-			if (clearStateOnDisable)
+			if (clearStateOnDisable && valid)
 				ClearState();
+		}
+
+		void OnDestroy () {
+			if (doubleBufferedMesh == null) return;
+			doubleBufferedMesh.GetNext().Dispose();
+			doubleBufferedMesh.GetNext().Dispose();
+			doubleBufferedMesh = null;
 		}
 
 		protected virtual void ClearState () {
 			meshFilter.sharedMesh = null;
 			currentInstructions.Clear();
-			skeleton.SetToSetupPose();
+			if (skeleton != null) skeleton.SetToSetupPose();
 		}
 
 		public virtual void Initialize (bool overwrite) {
@@ -316,7 +322,11 @@ namespace Spine.Unity {
 				// Slot with a separator/new material will become the starting slot of the next new instruction.
 				bool forceSeparate = (hasSeparators && separatorSlots.Contains(slot));
 				if (noRender) {
-					if (forceSeparate && vertexCount > 0 && this.generateMeshOverride != null) {
+					if (forceSeparate && vertexCount > 0
+						#if SPINE_OPTIONAL_RENDEROVERRIDE
+						&& this.generateMeshOverride != null
+						#endif
+					) {
 						workingSubmeshInstructions.Add(
 							new Spine.Unity.MeshGeneration.SubmeshInstruction {
 								skeleton = this.skeleton,
@@ -422,14 +432,16 @@ namespace Spine.Unity {
 
 			// STEP 2. Update vertex buffer based on verts from the attachments.  ============================================================
 			// Uses values that were also stored in workingInstruction.
-			bool vertexCountIncreased = ArraysMeshGenerator.EnsureSize(vertexCount, ref this.vertices, ref this.uvs, ref this.colors);
 			#if SPINE_OPTIONAL_NORMALS
+			bool vertexCountIncreased = ArraysMeshGenerator.EnsureSize(vertexCount, ref this.vertices, ref this.uvs, ref this.colors);
 			if (vertexCountIncreased && calculateNormals) {
 				Vector3[] localNormals = this.normals = new Vector3[vertexCount];
 				Vector3 normal = new Vector3(0, 0, -1);
 				for (int i = 0; i < vertexCount; i++)
 					localNormals[i] = normal;
 			}
+			#else
+			ArraysMeshGenerator.EnsureSize(vertexCount, ref this.vertices, ref this.uvs, ref this.colors);
 			#endif
 
 			Vector3 meshBoundsMin;
@@ -534,11 +546,20 @@ namespace Spine.Unity {
 				bool mustUpdateRendererMaterials = mustUpdateMeshStructure ||
 					(lastPushedMaterials.Length != submeshCount);
 
+				// Assumption at this point: (lastPushedMaterials.Count == workingSubmeshInstructions.Count == thisSubmeshMaterials.Count == submeshCount)
+
+				// Case: mesh structure or submesh count did not change but materials changed.
 				if (!mustUpdateRendererMaterials) {
 					var workingSubmeshInstructionsItems = workingSubmeshInstructions.Items;
-					for (int i = 0, n = lastPushedMaterials.Length; i < n; i++) {
-						if (lastPushedMaterials[i].GetInstanceID() != workingSubmeshInstructionsItems[i].material.GetInstanceID()) {   // Bounds check is implied above.
+					for (int i = 0; i < submeshCount; i++) {
+						if (lastPushedMaterials[i].GetInstanceID() != workingSubmeshInstructionsItems[i].material.GetInstanceID()) {   // Bounds check is implied by submeshCount above.
 							mustUpdateRendererMaterials = true;
+							{
+								var thisSubmeshMaterials = this.submeshMaterials.Items;
+								if (mustUpdateRendererMaterials)
+									for (int j = 0; j < submeshCount; j++)
+										thisSubmeshMaterials[j] = workingSubmeshInstructionsItems[j].material;
+							}
 							break;
 						}
 					}
@@ -725,9 +746,23 @@ namespace Spine.Unity {
 		#endif
 
 		///<summary>This is a Mesh that also stores the instructions SkeletonRenderer generated for it.</summary>
-		public class SmartMesh {
+		public class SmartMesh : System.IDisposable {
 			public Mesh mesh = Spine.Unity.SpineMesh.NewMesh();
 			public SmartMesh.Instruction instructionUsed = new SmartMesh.Instruction();		
+
+			public void Dispose () {
+				if (mesh != null) {
+					#if UNITY_EDITOR
+					if (Application.isEditor && !Application.isPlaying)
+						UnityEngine.Object.DestroyImmediate(mesh);
+					else
+						UnityEngine.Object.Destroy(mesh);
+					#else
+					UnityEngine.Object.Destroy(mesh);
+					#endif
+				}
+				mesh = null;
+			}
 
 			public class Instruction {
 				public bool immutableTriangles;

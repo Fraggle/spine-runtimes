@@ -69,7 +69,7 @@ public class SkeletonSprite extends DisplayObject {
 	}
 
 	override public function render (painter:Painter) : void {
-		alpha *= this.alpha * skeleton.a;
+		painter.state.alpha *= skeleton.a;
 		var originalBlendMode:String = painter.state.blendMode;
 		var r:Number = skeleton.r * 255;
 		var g:Number = skeleton.g * 255;
@@ -167,6 +167,7 @@ public class SkeletonSprite extends DisplayObject {
 					mesh.setTexCoords(ii, uvs[iii], uvs[iii+1]);
 				}
 				vertexData.numVertices = verticesCount;
+				painter.state.blendMode = blendModes[slot.data.blendMode.ordinal];
 				// FIXME set smoothing/filter
 				painter.batchMesh(mesh);
 			}
@@ -183,6 +184,7 @@ public class SkeletonSprite extends DisplayObject {
 		var maxX:Number = -Number.MAX_VALUE, maxY:Number = -Number.MAX_VALUE;
 		var slots:Vector.<Slot> = skeleton.slots;
 		var worldVertices:Vector.<Number> = _tempVertices;
+		var empty:Boolean = true;
 		for (var i:int = 0, n:int = slots.length; i < n; ++i) {
 			var slot:Slot = slots[i];
 			var attachment:Attachment = slot.attachment;
@@ -199,6 +201,10 @@ public class SkeletonSprite extends DisplayObject {
 				mesh.computeWorldVertices(slot, worldVertices);
 			} else
 				continue;
+				
+			if (verticesLength != 0)
+				empty = false;
+			  
 			for (var ii:int = 0; ii < verticesLength; ii += 2) {
 				var x:Number = worldVertices[ii], y:Number = worldVertices[ii + 1];
 				minX = minX < x ? minX : x;
@@ -207,6 +213,9 @@ public class SkeletonSprite extends DisplayObject {
 				maxY = maxY > y ? maxY : y;
 			}
 		}
+		
+		if (empty)
+			return null;
 
 		var temp:Number;
 		if (maxX < minX) {

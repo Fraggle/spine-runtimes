@@ -55,7 +55,10 @@ namespace Spine.Unity {
 		public bool followBoneRotation = true;
 
 		[Tooltip("Follows the skeleton's flip state by controlling this Transform's local scale.")]
-		public bool followSkeletonFlip = false;
+		public bool followSkeletonFlip = true;
+
+		[Tooltip("Follows the target bone's local scale. BoneFollower cannot inherit world/skewed scale because of UnityEngine.Transform property limitations.")]
+		public bool followLocalScale = false;
 
 		[UnityEngine.Serialization.FormerlySerializedAs("resetOnAwake")]
 		public bool initializeOnAwake = true;
@@ -82,6 +85,9 @@ namespace Spine.Unity {
 			skeletonRenderer.OnRebuild -= HandleRebuildRenderer;
 			skeletonRenderer.OnRebuild += HandleRebuildRenderer;
 
+			if (!string.IsNullOrEmpty(boneName))
+				bone = skeletonRenderer.skeleton.FindBone(boneName);
+
 			#if UNITY_EDITOR
 			if (Application.isEditor)
 				LateUpdate();
@@ -101,7 +107,6 @@ namespace Spine.Unity {
 
 			if (bone == null) {
 				if (string.IsNullOrEmpty(boneName)) return;
-				
 				bone = skeletonRenderer.skeleton.FindBone(boneName);
 				if (bone == null) {
 					Debug.LogError("Bone not found: " + boneName, this);
@@ -114,7 +119,6 @@ namespace Spine.Unity {
 				// Recommended setup: Use local transform properties if Spine GameObject is the immediate parent
 				thisTransform.localPosition = new Vector3(bone.worldX, bone.worldY, followZPosition ? 0f : thisTransform.localPosition.z);
 				if (followBoneRotation) thisTransform.localRotation = Quaternion.Euler(0f, 0f, bone.WorldRotationX);
-			
 			} else {
 				// For special cases: Use transform world properties if transform relationship is complicated
 				Vector3 targetWorldPosition = skeletonTransform.TransformPoint(new Vector3(bone.worldX, bone.worldY, 0f));
@@ -126,11 +130,10 @@ namespace Spine.Unity {
 					thisTransform.rotation = Quaternion.Euler(worldRotation.x, worldRotation.y, skeletonTransform.rotation.eulerAngles.z + bone.WorldRotationX);
 				}
 			}
-
-			if (followSkeletonFlip) {
-				float flipScaleY = bone.skeleton.flipX ^ bone.skeleton.flipY ? -1f : 1f;
-				thisTransform.localScale = new Vector3(1f, flipScaleY, 1f);
-			}
+				
+			Vector3 localScale = followLocalScale ? new Vector3(bone.scaleX, bone.scaleY, 1f) : Vector3.one;
+			if (followSkeletonFlip) localScale.y *= bone.skeleton.flipX ^ bone.skeleton.flipY ? -1f : 1f;
+			thisTransform.localScale = localScale;
 		}
 	}
 

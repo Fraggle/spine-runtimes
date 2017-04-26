@@ -38,6 +38,7 @@ local math_abs = math.abs
 local math_signum = utils.signum
 local math_floor = math.floor
 local math_ceil = math.ceil
+local math_mod = utils.mod
 
 local function zlen(array)
 	return #array + 1
@@ -442,7 +443,7 @@ function AnimationState:applyRotateTimeline (timeline, skeleton, time, alpha, se
       if math_abs(lastTotal) > 180 then lastTotal = lastTotal + 360 * math_signum(lastTotal) end
       dir = current
     end
-    total = diff + lastTotal - math_ceil(lastTotal / 360 - 0.5) * 360 -- FIXME used to be %360, store loops as part of lastTotal.
+    total = diff + lastTotal - math_mod(lastTotal, 360) -- FIXME used to be %360, store loops as part of lastTotal.
     if dir ~= current then total = total + 360 * math_signum(lastTotal) end
     timelinesRotation[i] = total
   end
@@ -495,12 +496,13 @@ end
 function AnimationState:clearTracks ()
   local queue = self.queue
   local tracks = self.tracks
+	local oldDrainDisabled = queue.drainDisabled
   queue.drainDisabled = true;
   for i,track in pairs(tracks) do
     self:clearTrack(i)
   end
   tracks = {}
-  queue.drainDisabled = false;
+  queue.drainDisabled = oldDrainDisabled
   queue:drain();
 end
 
@@ -559,6 +561,7 @@ function AnimationState:setAnimation (trackIndex, animation, loop)
   local interrupt = true;
   local current = self:expandToIndex(trackIndex)
   local queue = self.queue
+  local tracks = self.tracks
   if current then
     if current.nextTrackLast == -1 then
       -- Don't mix from an entry that was never applied.
@@ -634,11 +637,12 @@ end
 
 function AnimationState:setEmptyAnimations (mixDuration)
   local queue = self.queue
+	local oldDrainDisabled = queue.drainDisabled
   queue.drainDisabled = true
   for i,current in pairs(self.tracks) do
     if current then self:setEmptyAnimation(current.trackIndex, mixDuration) end
   end
-  queue.drainDisabled = false
+  queue.drainDisabled = oldDrainDisabled
   queue:drain()
 end
 
@@ -742,7 +746,7 @@ function AnimationState:setTimelinesFirst (entry)
   end
 end
 
-function AnimationState:checkTimlinesFirst (entry)
+function AnimationState:checkTimelinesFirst (entry)
   if entry.mixingFrom then self:checkTimelinesFirst(entry.mixingFrom) end
   self:checkTimelinesUsage(entry, entry.timelinesFirst)
 end

@@ -75,6 +75,16 @@ namespace Spine.Unity {
 
 		public static PolygonCollider2D AddBoundingBoxAsComponent (BoundingBoxAttachment box, Slot slot, GameObject gameObject, bool isTrigger = true) {
 			if (box == null) return null;
+
+			if (slot.bone != slot.Skeleton.RootBone) {
+				var rb = gameObject.GetComponent<Rigidbody2D>();
+				if (rb == null) {
+					rb = gameObject.AddComponent<Rigidbody2D>();
+					rb.isKinematic = true;
+					rb.gravityScale = 0;
+				}
+			}
+
 			var collider = gameObject.AddComponent<PolygonCollider2D>();
 			collider.isTrigger = isTrigger;
 			SetColliderPointsLocal(collider, slot, box);
@@ -194,7 +204,6 @@ namespace Spine.Unity {
 		}
 
 		public void RegisterConstraint (SkeletonUtilityConstraint constraint) {
-
 			if (utilityConstraints.Contains(constraint))
 				return;
 			else {
@@ -224,7 +233,7 @@ namespace Spine.Unity {
 				var utilityBones = this.utilityBones;
 				for (int i = 0, n = utilityBones.Count; i < n; i++) {
 					var b = utilityBones[i];
-					if (b.bone == null) return;
+					if (b.bone == null) continue;
 					hasTransformBones |= (b.mode == SkeletonUtilityBone.Mode.Override);
 					hasUtilityConstraints |= constraintTargets.Contains(b.bone);
 				}

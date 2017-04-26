@@ -213,6 +213,7 @@ var spine;
 			function SkeletonRenderer(context) {
 				this.triangleRendering = false;
 				this.debugRendering = false;
+				this.tempColor = new spine.Color(0, 0, 0, 1);
 				this.ctx = context;
 			}
 			SkeletonRenderer.prototype.draw = function (skeleton) {
@@ -226,45 +227,48 @@ var spine;
 				var drawOrder = skeleton.drawOrder;
 				if (this.debugRendering)
 					ctx.strokeStyle = "green";
+				ctx.save();
 				for (var i = 0, n = drawOrder.length; i < n; i++) {
 					var slot = drawOrder[i];
 					var attachment = slot.getAttachment();
+					var regionAttachment = null;
 					var region = null;
 					var image = null;
-					var vertices = null;
 					if (attachment instanceof spine.RegionAttachment) {
-						var regionAttachment = attachment;
-						vertices = regionAttachment.updateWorldVertices(slot, false);
+						regionAttachment = attachment;
 						region = regionAttachment.region;
-						image = (region).texture.getImage();
+						image = region.texture.getImage();
 					}
 					else
 						continue;
+					var skeleton_1 = slot.bone.skeleton;
+					var skeletonColor = skeleton_1.color;
+					var slotColor = slot.color;
+					var regionColor = regionAttachment.color;
+					var alpha = skeletonColor.a * slotColor.a * regionColor.a;
+					var color = this.tempColor;
+					color.set(skeletonColor.r * slotColor.r * regionColor.r, skeletonColor.g * slotColor.g * regionColor.g, skeletonColor.b * slotColor.b * regionColor.b, alpha);
 					var att = attachment;
 					var bone = slot.bone;
-					var x = vertices[0];
-					var y = vertices[1];
-					var rotation = (bone.getWorldRotationX() - att.rotation) * Math.PI / 180;
-					var xx = vertices[24] - vertices[0];
-					var xy = vertices[25] - vertices[1];
-					var yx = vertices[8] - vertices[0];
-					var yy = vertices[9] - vertices[1];
-					var w = Math.sqrt(xx * xx + xy * xy), h = -Math.sqrt(yx * yx + yy * yy);
-					ctx.translate(x, y);
-					ctx.rotate(rotation);
-					if (region.rotate) {
-						ctx.rotate(Math.PI / 2);
-						ctx.drawImage(image, region.x, region.y, region.height, region.width, 0, 0, h, -w);
-						ctx.rotate(-Math.PI / 2);
+					var w = region.width;
+					var h = region.height;
+					ctx.save();
+					ctx.transform(bone.a, bone.c, bone.b, bone.d, bone.worldX, bone.worldY);
+					ctx.translate(attachment.offset[0], attachment.offset[1]);
+					ctx.rotate(attachment.rotation * Math.PI / 180);
+					ctx.scale(attachment.scaleX, attachment.scaleY);
+					ctx.translate(w / 2, h / 2);
+					ctx.scale(1, -1);
+					ctx.translate(-w / 2, -h / 2);
+					if (color.r != 1 || color.g != 1 || color.b != 1 || color.a != 1) {
+						ctx.globalAlpha = color.a;
 					}
-					else {
-						ctx.drawImage(image, region.x, region.y, region.width, region.height, 0, 0, w, h);
-					}
+					ctx.drawImage(image, region.x, region.y, w, h, 0, 0, w, h);
 					if (this.debugRendering)
 						ctx.strokeRect(0, 0, w, h);
-					ctx.rotate(-rotation);
-					ctx.translate(-x, -y);
+					ctx.restore();
 				}
+				ctx.restore();
 			};
 			SkeletonRenderer.prototype.drawTriangles = function (skeleton) {
 				var blendMode = null;
@@ -1534,11 +1538,12 @@ var spine;
 			}
 		};
 		AnimationState.prototype.clearTracks = function () {
+			var oldDrainDisabled = this.queue.drainDisabled;
 			this.queue.drainDisabled = true;
 			for (var i = 0, n = this.tracks.length; i < n; i++)
 				this.clearTrack(i);
 			this.tracks.length = 0;
-			this.queue.drainDisabled = false;
+			this.queue.drainDisabled = oldDrainDisabled;
 			this.queue.drain();
 		};
 		AnimationState.prototype.clearTrack = function (trackIndex) {
@@ -1650,13 +1655,14 @@ var spine;
 			return entry;
 		};
 		AnimationState.prototype.setEmptyAnimations = function (mixDuration) {
+			var oldDrainDisabled = this.queue.drainDisabled;
 			this.queue.drainDisabled = true;
 			for (var i = 0, n = this.tracks.length; i < n; i++) {
 				var current = this.tracks[i];
 				if (current != null)
 					this.setEmptyAnimation(current.trackIndex, mixDuration);
 			}
-			this.queue.drainDisabled = false;
+			this.queue.drainDisabled = oldDrainDisabled;
 			this.queue.drain();
 		};
 		AnimationState.prototype.expandToIndex = function (index) {
@@ -2232,6 +2238,7 @@ var spine;
 				this.regionUVs = parentMesh.regionUVs;
 				this.triangles = parentMesh.triangles;
 				this.hullLength = parentMesh.hullLength;
+				this.worldVerticesLength = parentMesh.worldVerticesLength;
 			}
 		};
 		return MeshAttachment;
@@ -3554,6 +3561,7 @@ var spine;
 		Skeleton.prototype.updateCache = function () {
 			var updateCache = this._updateCache;
 			updateCache.length = 0;
+			this.updateCacheReset.length = 0;
 			var bones = this.bones;
 			for (var i = 0, n = bones.length; i < n; i++)
 				bones[i].sorted = false;

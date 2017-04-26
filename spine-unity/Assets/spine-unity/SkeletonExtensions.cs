@@ -100,28 +100,41 @@ namespace Spine.Unity {
 		#endregion
 
 		#region Bone
+		/// <summary>Sets the bone's (local) X and Y according to a Vector2</summary>
 		public static void SetPosition (this Bone bone, Vector2 position) {
 			bone.X = position.x;
 			bone.Y = position.y;
 		}
 
+		/// <summary>Sets the bone's (local) X and Y according to a Vector3. The z component is ignored.</summary>
 		public static void SetPosition (this Bone bone, Vector3 position) {
 			bone.X = position.x;
 			bone.Y = position.y;
 		}
 
+		/// <summary>Gets the bone's local X and Y as a Vector2.</summary>
 		public static Vector2 GetLocalPosition (this Bone bone) {
 			return new Vector2(bone.x, bone.y);
 		}
 
+		/// <summary>Gets the position of the bone in Skeleton-space.</summary>
 		public static Vector2 GetSkeletonSpacePosition (this Bone bone) {
 			return new Vector2(bone.worldX, bone.worldY);
 		}
 
-		public static Vector3 GetWorldPosition (this Bone bone, UnityEngine.Transform parentTransform) {		
-			return parentTransform.TransformPoint(new Vector3(bone.worldX, bone.worldY));
+		/// <summary>Gets a local offset from the bone and converts it into Skeleton-space.</summary>
+		public static Vector2 GetSkeletonSpacePosition (this Bone bone, Vector2 boneLocal) {
+			Vector2 o;
+			bone.LocalToWorld(boneLocal.x, boneLocal.y, out o.x, out o.y);
+			return o;
 		}
 
+		/// <summary>Gets the bone's Unity World position using its Spine GameObject Transform. UpdateWorldTransform needs to have been called for this to return the correct, updated value.</summary>
+		public static Vector3 GetWorldPosition (this Bone bone, UnityEngine.Transform spineGameObjectTransform) {		
+			return spineGameObjectTransform.TransformPoint(new Vector3(bone.worldX, bone.worldY));
+		}
+
+		/// <summary>Gets the internal bone matrix as a Unity bonespace-to-skeletonspace transformation matrix.</summary>
 		public static Matrix4x4 GetMatrix4x4 (this Bone bone) {
 			return new Matrix4x4 {
 				m00 = bone.a, m01 = bone.b, m03 = bone.worldX,
@@ -130,6 +143,7 @@ namespace Spine.Unity {
 			};
 		}
 
+		/// <summary>Calculates a 2x2 Transformation Matrix that can convert a skeleton-space position to a bone-local position.</summary>
 		public static void GetWorldToLocalMatrix (this Bone bone, out float ia, out float ib, out float ic, out float id) {
 			float a = bone.a, b = bone.b, c = bone.c, d = bone.d;
 			float invDet = 1 / (a * d - b * c);
@@ -138,19 +152,34 @@ namespace Spine.Unity {
 			ic = invDet * -c;
 			id = invDet * a;
 		}
+
+		/// <summary>UnityEngine.Vector2 override of Bone.WorldToLocal. This converts a skeleton-space position into a bone local position.</summary>
+		public static Vector2 WorldToLocal (this Bone bone, Vector2 worldPosition) {
+			Vector2 o;
+			bone.WorldToLocal(worldPosition.x, worldPosition.y, out o.x, out o.y);
+			return o;
+		}
 		#endregion
 
 		#region Attachments
 		public static Material GetMaterial (this Attachment a) {
+			object rendererObject = null;
 			var regionAttachment = a as RegionAttachment;
 			if (regionAttachment != null)
-				return (Material)((AtlasRegion)regionAttachment.RendererObject).page.rendererObject;
+				rendererObject = regionAttachment.RendererObject;
 
 			var meshAttachment = a as MeshAttachment;
 			if (meshAttachment != null)
-				return (Material)((AtlasRegion)meshAttachment.RendererObject).page.rendererObject;			
+				rendererObject = meshAttachment.RendererObject;
 
-			return null;
+			if (rendererObject == null)
+				return null;
+			
+			#if SPINE_TK2D
+			return (rendererObject.GetType() == typeof(Material)) ? (Material)rendererObject : (Material)((AtlasRegion)rendererObject).page.rendererObject;
+			#else
+			return (Material)((AtlasRegion)rendererObject).page.rendererObject;
+			#endif
 		}
 
 		/// <summary>Fills a Vector2 buffer with local vertices.</summary>
@@ -212,6 +241,8 @@ namespace Spine.Unity {
 }
 
 namespace Spine {
+	using System.Collections.Generic;
+
 	public static class SkeletonExtensions {
 		public static bool IsWeighted (this VertexAttachment va) {
 			return va.bones != null && va.bones.Length > 0;
@@ -233,6 +264,85 @@ namespace Spine {
 		[System.Obsolete("Old Animation.Apply method signature. Please use the 8 parameter signature. See summary to learn about the extra arguments.")]
 		public static void Apply (this Spine.Animation animation, Skeleton skeleton, float lastTime, float time, bool loop, ExposedList<Event> events) {
 			animation.Apply(skeleton, lastTime, time, loop, events, 1f, false, false);
+		}
+
+		internal static void SetPropertyToSetupPose (this Skeleton skeleton, int propertyID) {
+			int tt = propertyID >> 24;
+			var timelineType = (TimelineType)tt;
+			int i = propertyID - (tt << 24);
+
+			Bone bone;
+			IkConstraint ikc;
+			PathConstraint pc;
+
+			switch (timelineType) {
+			// Bone
+			case TimelineType.Rotate:
+				bone = skeleton.bones.Items[i];
+				bone.rotation = bone.data.rotation;
+				break;
+			case TimelineType.Translate:
+				bone = skeleton.bones.Items[i];
+				bone.x = bone.data.x;
+				bone.y = bone.data.y;
+				break;
+			case TimelineType.Scale:
+				bone = skeleton.bones.Items[i];
+				bone.scaleX = bone.data.scaleX;
+				bone.scaleY = bone.data.scaleY;
+				break;
+			case TimelineType.Shear:
+				bone = skeleton.bones.Items[i];
+				bone.shearX = bone.data.shearX;
+				bone.shearY = bone.data.shearY;
+				break;
+			
+			// Slot
+			case TimelineType.Attachment:
+				skeleton.SetSlotAttachmentToSetupPose(i);
+				break;
+			case TimelineType.Color:
+				skeleton.slots.Items[i].SetColorToSetupPose();
+				break;
+			case TimelineType.Deform:
+				skeleton.slots.Items[i].attachmentVertices.Clear();
+				break;
+			
+			// Skeleton
+			case TimelineType.DrawOrder:
+				skeleton.SetDrawOrderToSetupPose();
+				break;
+
+			// IK Constraint
+			case TimelineType.IkConstraint:
+				ikc = skeleton.ikConstraints.Items[i];
+				ikc.mix = ikc.data.mix;
+				ikc.bendDirection = ikc.data.bendDirection;
+				break;
+			case TimelineType.TransformConstraint:
+				var tc = skeleton.transformConstraints.Items[i];
+				var tcData = tc.data;
+				tc.rotateMix = tcData.rotateMix;
+				tc.translateMix = tcData.translateMix;
+				tc.scaleMix = tcData.scaleMix;
+				tc.shearMix = tcData.shearMix;
+				break;
+
+			// Path Constraint
+			case TimelineType.PathConstraintPosition:
+				pc = skeleton.pathConstraints.Items[i];
+				pc.position = pc.data.position;
+				break;
+			case TimelineType.PathConstraintSpacing:
+				pc = skeleton.pathConstraints.Items[i];
+				pc.spacing = pc.data.spacing;
+				break;
+			case TimelineType.PathConstraintMix:
+				pc = skeleton.pathConstraints.Items[i];
+				pc.rotateMix = pc.data.rotateMix;
+				pc.translateMix = pc.data.translateMix;
+				break;
+			}
 		}
 
 		/// <summary>Resets the DrawOrder to the Setup Pose's draw order</summary>
@@ -289,6 +399,20 @@ namespace Spine {
 		/// <summary>Resets Skeleton parts to Setup Pose according to a Spine.Animation's keyed items.</summary>
 		public static void SetKeyedItemsToSetupPose (this Animation animation, Skeleton skeleton) {
 			animation.Apply(skeleton, 0, 0, false, null, 0, true, true);
+		}
+		#endregion
+
+		#region Skins
+		/// <summary><see cref="Spine.Skin.FindNamesForSlot(int,List)"/></summary>
+		public static void FindNamesForSlot (this Skin skin, string slotName, SkeletonData skeletonData, List<string> results) {
+			int slotIndex = skeletonData.FindSlotIndex(slotName);
+			skin.FindNamesForSlot(slotIndex, results);
+		}
+
+		/// <summary><see cref="Spine.Skin.FindAttachmentsForSlot(int,List)"/></summary>
+		public static void FindAttachmentsForSlot (this Skin skin, string slotName, SkeletonData skeletonData, List<Attachment> results) {
+			int slotIndex = skeletonData.FindSlotIndex(slotName);
+			skin.FindAttachmentsForSlot(slotIndex, results);
 		}
 		#endregion
 	}
