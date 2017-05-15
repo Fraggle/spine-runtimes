@@ -19,15 +19,10 @@ target_include_directories(spineruntime PUBLIC
     spine-c/spine-c/src
     ../cocos2d-x/cocos)
 
-#set_target_properties(spineruntime
-#                      PROPERTIES
-#                      ARCHIVE_OUTPUT_DIRECTORY
-#                      "${CMAKE_CURRENT_SOURCE_DIR}/prebuilt/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}")
-
-#set (LIB_BUILD_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../../../../../../.externalNativeBuild/cmake/${CMAKE_BUILD_TYPE}/${ANDROID_ABI})
-
 # Create target which consume the command via DEPENDS.
-set (LIB_PUBLISH_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../../../../../../../prebuilt_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI})
+get_filename_component(LIB_PUBLISH_DIRECTORY
+                       "../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
+                       ABSOLUTE)
 file(MAKE_DIRECTORY ${LIB_PUBLISH_DIRECTORY})
 add_custom_command(TARGET spineruntime POST_BUILD
                    COMMAND "${CMAKE_COMMAND}" -E
