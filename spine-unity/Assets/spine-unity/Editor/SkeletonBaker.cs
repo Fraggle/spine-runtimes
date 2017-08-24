@@ -42,36 +42,35 @@ using System.Reflection;
 using System.IO;
 using Spine;
 
-
-/// <summary>
-/// [SUPPORTS]
-/// Linear, Constant, and Bezier Curves* 
-/// Inverse Kinematics*
-/// Inherit Rotation
-/// Translate Timeline
-/// Rotate Timeline
-/// Scale Timeline**
-/// Event Timeline***
-/// Attachment Timeline
-/// 
-/// RegionAttachment
-/// MeshAttachment
-/// SkinnedMeshAttachment
-/// 
-/// [LIMITATIONS]
-/// *Inverse Kinematics & Bezier Curves are baked into the animation at 60fps and are not realtime. Use bakeIncrement constant to adjust key density if desired.
-/// **Non-uniform Scale Keys  (ie:  if ScaleX and ScaleY are not equal to eachother, it will not be accurate to Spine source)
-/// ***Events may only fire 1 type of data per event in Unity safely so priority to String data if present in Spine key, otherwise a Float is sent whether the Spine key was Int or Float with priority given to Int.
-/// 
-/// [DOES NOT SUPPORT]
-/// FlipX or FlipY (Maybe one day)
-/// FFD (Unity does not provide access to BlendShapes with code)
-/// Color Keys (Maybe one day when Unity supports full FBX standard and provides access with code)
-/// InheritScale (Never.  Unity and Spine do scaling very differently)
-/// Draw Order Keyframes
-/// </summary>
-/// 
 namespace Spine.Unity.Editor {
+
+	/// <summary>
+	/// [SUPPORTS]
+	/// Linear, Constant, and Bezier Curves* 
+	/// Inverse Kinematics*
+	/// Inherit Rotation
+	/// Translate Timeline
+	/// Rotate Timeline
+	/// Scale Timeline**
+	/// Event Timeline***
+	/// Attachment Timeline
+	/// 
+	/// RegionAttachment
+	/// MeshAttachment
+	/// SkinnedMeshAttachment
+	/// 
+	/// [LIMITATIONS]
+	/// *Inverse Kinematics & Bezier Curves are baked into the animation at 60fps and are not realtime. Use bakeIncrement constant to adjust key density if desired.
+	/// **Non-uniform Scale Keys  (ie:  if ScaleX and ScaleY are not equal to eachother, it will not be accurate to Spine source)
+	/// ***Events may only fire 1 type of data per event in Unity safely so priority to String data if present in Spine key, otherwise a Float is sent whether the Spine key was Int or Float with priority given to Int.
+	/// 
+	/// [DOES NOT SUPPORT]
+	/// FlipX or FlipY (Maybe one day)
+	/// FFD (Unity does not provide access to BlendShapes with code)
+	/// Color Keys (Maybe one day when Unity supports full FBX standard and provides access with code)
+	/// InheritScale (Never.  Unity and Spine do scaling very differently)
+	/// Draw Order Keyframes
+	/// </summary>
 	public static class SkeletonBaker {
 
 		#region SkeletonAnimator's Mecanim Clips
@@ -135,9 +134,6 @@ namespace Spine.Unity.Editor {
 					//generate new dummy clip
 					AnimationClip newClip = new AnimationClip();
 					newClip.name = name;
-					#if !(UNITY_5)
-					AnimationUtility.SetAnimationType(newClip, ModelImporterAnimationType.Generic);
-					#endif
 					AssetDatabase.AddObjectToAsset(newClip, controller);
 					unityAnimationClipTable.Add(name, newClip);
 				}
@@ -504,7 +500,7 @@ namespace Spine.Unity.Editor {
 
 			Vector2[] uvs = ExtractUV(attachment.UVs);
 			float[] floatVerts = new float[8];
-			attachment.ComputeWorldVertices(bone, floatVerts);
+			attachment.ComputeWorldVertices(bone, floatVerts, 0);
 			Vector3[] verts = ExtractVerts(floatVerts);
 
 			//unrotate verts now that they're centered
@@ -932,7 +928,7 @@ namespace Spine.Unity.Editor {
 			Skeleton skeleton = bone.Skeleton;
 			bool inheritRotation = bone.Data.TransformMode.InheritsRotation();
 
-			animation.Apply(skeleton, 0, 0, true, null, 1f, true, false);
+			animation.PoseSkeleton(skeleton, 0);
 			skeleton.UpdateWorldTransform();
 			float duration = animation.Duration;
 
@@ -953,7 +949,6 @@ namespace Spine.Unity.Editor {
 			int steps = Mathf.CeilToInt(duration / bakeIncrement);
 
 			float currentTime = 0;
-			float lastTime = 0;
 			float angle = rotation;
 
 			for (int i = 1; i <= steps; i++) {
@@ -961,7 +956,7 @@ namespace Spine.Unity.Editor {
 				if (i == steps)
 					currentTime = duration;
 
-				animation.Apply(skeleton, lastTime, currentTime, true, null, 1f, true, false);
+				animation.PoseSkeleton(skeleton, currentTime, true);
 				skeleton.UpdateWorldTransform();
 
 				int pIndex = listIndex - 1;
@@ -970,11 +965,7 @@ namespace Spine.Unity.Editor {
 
 				pk = keys[pIndex];
 
-				if (inheritRotation)
-					rotation = bone.AppliedRotation;
-				else {
-					rotation = GetUninheritedRotation(bone);
-				}
+				rotation = inheritRotation ? bone.AppliedRotation : GetUninheritedRotation(bone);
 
 				angle += Mathf.DeltaAngle(angle, rotation);
 
@@ -989,7 +980,6 @@ namespace Spine.Unity.Editor {
 				keys[pIndex] = pk;
 
 				listIndex++;
-				lastTime = currentTime;
 			}
 
 			curve = EnsureCurveKeyCount(new AnimationCurve(keys.ToArray()));
@@ -1059,7 +1049,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1086,7 +1076,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1105,7 +1095,7 @@ namespace Spine.Unity.Editor {
 						if (i == steps)
 							currentTime = time;
 
-						timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+						timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 						px = xKeys[listIndex - 1];
 						py = yKeys[listIndex - 1];
@@ -1202,7 +1192,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1229,7 +1219,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1247,7 +1237,7 @@ namespace Spine.Unity.Editor {
 						if (i == steps)
 							currentTime = time;
 
-						timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+						timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 						px = xKeys[listIndex - 1];
 						py = yKeys[listIndex - 1];
@@ -1331,7 +1321,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1356,7 +1346,7 @@ namespace Spine.Unity.Editor {
 
 					currentTime = time;
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 
 					lastTime = time;
 					listIndex++;
@@ -1366,7 +1356,7 @@ namespace Spine.Unity.Editor {
 
 					float time = frames[f];
 
-					timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+					timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 					skeleton.UpdateWorldTransform();
 
 					rotation = frames[f + 1] + boneData.Rotation;
@@ -1380,7 +1370,7 @@ namespace Spine.Unity.Editor {
 						if (i == steps)
 							currentTime = time;
 
-						timeline.Apply(skeleton, lastTime, currentTime, null, 1, false, false);
+						timeline.Apply(skeleton, lastTime, currentTime, null, 1, MixPose.Setup, MixDirection.In);
 						skeleton.UpdateWorldTransform();
 						pk = keys[listIndex - 1];
 
@@ -1408,7 +1398,7 @@ namespace Spine.Unity.Editor {
 			curve = EnsureCurveKeyCount(new AnimationCurve(keys.ToArray()));
 
 			string path = GetPath(boneData);
-			string propertyName = "localEulerAnglesBaked";
+			const string propertyName = "localEulerAnglesBaked";
 
 			EditorCurveBinding xBind = EditorCurveBinding.FloatCurve(path, typeof(Transform), propertyName + ".x");
 			AnimationUtility.SetEditorCurve(clip, xBind, new AnimationCurve());

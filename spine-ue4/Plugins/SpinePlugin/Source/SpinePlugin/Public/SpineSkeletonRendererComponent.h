@@ -31,13 +31,13 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "ProceduralMeshComponent.h"
+#include "RuntimeMeshComponent.h"
 #include "SpineSkeletonAnimationComponent.h"
 #include "SpineSkeletonRendererComponent.generated.h"
 
 
 UCLASS(ClassGroup=(Spine), meta=(BlueprintSpawnableComponent))
-class SPINEPLUGIN_API USpineSkeletonRendererComponent: public UProceduralMeshComponent {
+class SPINEPLUGIN_API USpineSkeletonRendererComponent: public URuntimeMeshComponent {
 	GENERATED_BODY()
 
 public: 
@@ -64,11 +64,16 @@ public:
 	
 	UPROPERTY(Category = Spine, EditAnywhere, BlueprintReadWrite)
 	FName TextureParameterName;
+
+	UPROPERTY(Category = Spine, EditAnywhere, BlueprintReadWrite)
+	FLinearColor Color = FLinearColor(1, 1, 1, 1);
+
+	virtual void FinishDestroy() override;
 	
 protected:
 	void UpdateMesh (spSkeleton* Skeleton);
 
-	void Flush (int &Idx, TArray<FVector> &Vertices, TArray<int32> &Indices, TArray<FVector2D> &Uvs, TArray<FColor> &Colors, UMaterialInstanceDynamic* Material);
+	void Flush (int &Idx, TArray<FVector> &Vertices, TArray<int32> &Indices, TArray<FVector2D> &Uvs, TArray<FColor> &Colors, TArray<FVector> &Colors2, UMaterialInstanceDynamic* Material);
 	
 	// Need to hold on to the dynamic instances, or the GC will kill us while updating them
 	UPROPERTY()
@@ -86,4 +91,7 @@ protected:
 	UPROPERTY()
 	TArray<UMaterialInstanceDynamic*> atlasScreenBlendMaterials;
 	TMap<spAtlasPage*, UMaterialInstanceDynamic*> pageToScreenBlendMaterial;
+
+	spFloatArray* worldVertices;
+	spSkeletonClipping* clipper;
 };

@@ -59,6 +59,10 @@ module spine {
 		dispose (): void;
 	}
 
+	export interface Restorable {
+		restore (): void;
+	}
+
 	export class Color {
 		public static WHITE = new Color(1, 1, 1, 1);
 		public static RED = new Color(1, 0, 0, 1);
@@ -196,6 +200,16 @@ module spine {
 			}
 		}
 
+		static newShortArray (size: number): ArrayLike<number> {
+			if (Utils.SUPPORTS_TYPED_ARRAYS) {
+				return new Int16Array(size)
+			} else {
+				 let array = new Array<number>(size);
+				 for (let i = 0; i < array.length; i++) array[i] = 0;
+				 return array;
+			}
+		}
+
 		static toFloatArray (array: Array<number>) {
 			return Utils.SUPPORTS_TYPED_ARRAYS ? new Float32Array(array) : array;
 		}
@@ -295,5 +309,45 @@ module spine {
 	export interface ArrayLike<T> {
 		length: number;
 		[n: number]: T;
+	}
+
+	export class WindowedMean {
+		values: Array<number>;
+		addedValues = 0;
+		lastValue = 0;
+		mean = 0;
+		dirty = true;
+
+		constructor (windowSize: number = 32) {
+			this.values = new Array<number>(windowSize);
+		}
+
+		hasEnoughData () {
+			return this.addedValues >= this.values.length;
+		}
+
+		addValue (value: number) {
+			if (this.addedValues < this.values.length)
+				this.addedValues++;
+			this.values[this.lastValue++] = value;
+			if (this.lastValue > this.values.length - 1) this.lastValue = 0;
+			this.dirty = true;
+		}
+
+		getMean () {
+			if (this.hasEnoughData()) {
+				if (this.dirty) {
+					let mean = 0;
+					for (let i = 0; i < this.values.length; i++) {
+						mean += this.values[i];
+					}
+					this.mean = mean / this.values.length;
+					this.dirty = false;
+				}
+				return this.mean;
+			} else {
+				return 0;
+			}
+		}
 	}
 }

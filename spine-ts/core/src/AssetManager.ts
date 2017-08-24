@@ -74,7 +74,6 @@ module spine {
 			this.toLoad++;
 			let img = new Image();
 			img.crossOrigin = "anonymous";
-			img.src = path;
 			img.onload = (ev) => {
 				let texture = this.textureLoader(img);
 				this.assets[path] = texture;
@@ -88,6 +87,30 @@ module spine {
 				this.loaded++;
 				if (error) error(path, `Couldn't load image ${path}`);
 			}
+			img.src = path;
+		}
+
+		loadTextureData(path: string, data: string,
+			success: (path: string, image: HTMLImageElement) => void = null,
+			error: (path: string, error: string) => void = null
+		) {
+			path = this.pathPrefix + path;
+			this.toLoad++;
+			let img = new Image();
+			img.onload = (ev) => {
+				let texture = this.textureLoader(img);
+				this.assets[path] = texture;
+				this.toLoad--;
+				this.loaded++;
+				if (success) success(path, img);
+			}
+			img.onerror = (ev) => {
+				this.errors[path] = `Couldn't load image ${path}`;
+				this.toLoad--;
+				this.loaded++;
+				if (error) error(path, `Couldn't load image ${path}`);
+			}
+			img.src = data;
 		}
 
 		get (path: string) {

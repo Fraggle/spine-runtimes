@@ -38,6 +38,7 @@
 	bool _debugSlots;
 	bool _debugBones;
 	bool _premultipliedAlpha;
+	bool _twoColorTint;
     bool _skipVisibilityCheck;
 	ccBlendFunc _blendFunc;
 	CCDrawNode* _drawNode;
@@ -45,6 +46,7 @@
 	spAtlas* _atlas;
 	float* _worldVertices;
 	CCBlendMode* screenMode;
+	spSkeletonClipping* _clipper;
 }
 
 + (id) skeletonWithData:(spSkeletonData*)skeletonData ownsSkeletonData:(bool)ownsSkeletonData;
@@ -83,6 +85,7 @@
 - (bool) setAttachment:(NSString*)slotName attachmentName:(NSString*)attachmentName;
 
 @property (nonatomic, readonly) spSkeleton* skeleton;
+@property (nonatomic) bool twoColorTint;
 @property (nonatomic) bool debugSlots;
 @property (nonatomic) bool debugBones;
 @property (nonatomic) bool skipVisibilityCheck;

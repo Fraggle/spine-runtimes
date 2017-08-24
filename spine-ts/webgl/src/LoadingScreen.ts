@@ -32,7 +32,7 @@ module spine.webgl {
 	export class LoadingScreen {
 		static FADE_SECONDS = 1;
 
-		private static loaded = 0; 
+		private static loaded = 0;
 		private static spinnerImg: HTMLImageElement = null;
 		private static logoImg: HTMLImageElement = null;
 
@@ -84,7 +84,7 @@ module spine.webgl {
 
 			let renderer = this.renderer;
 			let canvas = renderer.canvas;
-			let gl = renderer.gl;
+			let gl = renderer.context.gl;
 
 			let oldX = renderer.camera.position.x, oldY = renderer.camera.position.y;
 			renderer.camera.position.set(canvas.width / 2, canvas.height / 2, 0);
@@ -114,8 +114,8 @@ module spine.webgl {
 
 			if (LoadingScreen.loaded != 2) return;
 			if (this.logo === null) {
-				this.logo = new GLTexture(renderer.gl, LoadingScreen.logoImg);
-				this.spinner = new GLTexture(renderer.gl, LoadingScreen.spinnerImg);
+				this.logo = new GLTexture(renderer.context, LoadingScreen.logoImg);
+				this.spinner = new GLTexture(renderer.context, LoadingScreen.spinnerImg);
 			}
 			this.logo.update(false);
 			this.spinner.update(false);
@@ -125,7 +125,7 @@ module spine.webgl {
 			let spinnerWidth = this.spinner.getImage().width;
 			let spinnerHeight = this.spinner.getImage().height;
 
-			renderer.batcher.setBlendMode(WebGLRenderingContext.SRC_ALPHA, WebGLRenderingContext.ONE_MINUS_SRC_ALPHA);
+			renderer.batcher.setBlendMode(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 			renderer.begin();
 			renderer.drawTexture(this.logo, (canvas.width - logoWidth) / 2, (canvas.height - logoHeight) / 2, logoWidth, logoHeight, this.tempColor);
 			renderer.drawTextureRotated(this.spinner, (canvas.width - spinnerWidth) / 2, (canvas.height - spinnerHeight) / 2, spinnerWidth, spinnerHeight, spinnerWidth / 2, spinnerHeight / 2, this.angle, this.tempColor);

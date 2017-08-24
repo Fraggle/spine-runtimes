@@ -148,11 +148,11 @@ void spineboy (SkeletonData* skeletonData, Atlas* atlas) {
 		SkeletonBounds_update(bounds, skeleton, true);
 		sf::Vector2i position = sf::Mouse::getPosition(window);
 		if (SkeletonBounds_containsPoint(bounds, position.x, position.y)) {
-			headSlot->g = 0;
-			headSlot->b = 0;
+			headSlot->color.g = 0;
+			headSlot->color.b = 0;
 		} else {
-			headSlot->g = 1;
-			headSlot->b = 1;
+			headSlot->color.g = 1;
+			headSlot->color.b = 1;
 		}
 
 		drawable->update(delta);
@@ -324,6 +324,36 @@ void stretchyman (SkeletonData* skeletonData, Atlas* atlas) {
 	}
 }
 
+void coin (SkeletonData* skeletonData, Atlas* atlas) {
+	SkeletonDrawable* drawable = new SkeletonDrawable(skeletonData);
+	drawable->timeScale = 1;
+
+	Skeleton* skeleton = drawable->skeleton;
+	skeleton->x = 320;
+	skeleton->y = 590;
+	Skeleton_updateWorldTransform(skeleton);
+
+	AnimationState_setAnimationByName(drawable->state, 0, "rotate", true);
+
+	sf::RenderWindow window(sf::VideoMode(640, 640), "Spine SFML - vine");
+	window.setFramerateLimit(60);
+	sf::Event event;
+	sf::Clock deltaClock;
+	while (window.isOpen()) {
+		while (window.pollEvent(event))
+			if (event.type == sf::Event::Closed) window.close();
+
+		float delta = deltaClock.getElapsedTime().asSeconds();
+		deltaClock.restart();
+
+		drawable->update(delta);
+
+		window.clear();
+		window.draw(*drawable);
+		window.display();
+	}
+}
+
 /**
  * Used for debugging purposes during runtime development
  */
@@ -353,6 +383,7 @@ void test (SkeletonData* skeletonData, Atlas* atlas) {
 
 int main () {
 	testcase(test, "data/tank.json", "data/tank.skel", "data/tank.atlas", 1.0f);
+	testcase(coin, "data/coin.json", "data/coin.skel", "data/coin.atlas", 0.5f);
 	testcase(vine, "data/vine.json", "data/vine.skel", "data/vine.atlas", 0.5f);
 	testcase(tank, "data/tank.json", "data/tank.skel", "data/tank.atlas", 0.2f);
 	testcase(raptor, "data/raptor.json", "data/raptor.skel", "data/raptor.atlas", 0.5f);

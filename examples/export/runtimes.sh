@@ -34,6 +34,11 @@ cp -f ../spineboy/export/spineboy.png ../../spine-as3/spine-as3-example/src/
 
 echo "spine-cocos2d-objc"
 rm -f ../../spine-cocos2d-objc/Resources/*
+
+cp -f ../coin/export/coin.json ../../spine-cocos2d-objc/Resources/
+cp -f ../coin/export/coin.atlas ../../spine-cocos2d-objc/Resources/
+cp -f ../coin/export/coin.png ../../spine-cocos2d-objc/Resources/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-cocos2d-objc/Resources/
 cp -f ../goblins/export/goblins.atlas ../../spine-cocos2d-objc/Resources/
 cp -f ../goblins/export/goblins.png ../../spine-cocos2d-objc/Resources/
@@ -52,6 +57,11 @@ cp -f ../tank/export/tank.png ../../spine-cocos2d-objc/Resources/
 
 echo "spine-cocos2dx"
 rm -f ../../spine-cocos2dx/example/Resources/common/*
+
+cp -f ../coin/export/coin.json ../../spine-cocos2dx/example/Resources/common/
+cp -f ../coin/export/coin.atlas ../../spine-cocos2dx/example/Resources/common/
+cp -f ../coin/export/coin.png ../../spine-cocos2dx/example/Resources/common/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-cocos2dx/example/Resources/common/
 cp -f ../goblins/export/goblins.atlas ../../spine-cocos2dx/example/Resources/common/
 cp -f ../goblins/export/goblins.png ../../spine-cocos2dx/example/Resources/common/
@@ -70,6 +80,10 @@ cp -f ../tank/export/tank.png ../../spine-cocos2dx/example/Resources/common/
 
 echo "spine-corona"
 rm -f ../../spine-corona/data/*
+cp -f ../coin/export/coin.json ../../spine-corona/data
+cp -f ../coin/export/coin.atlas ../../spine-corona/data
+cp -f ../coin/export/coin.png ../../spine-corona/data
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-corona/data
 cp -f ../goblins/export/goblins.atlas ../../spine-corona/data
 cp -f ../goblins/export/goblins.png ../../spine-corona/data
@@ -94,12 +108,12 @@ cp -f ../stretchyman/export/stretchyman.json ../../spine-corona/data
 cp -f ../stretchyman/export/stretchyman.atlas ../../spine-corona/data
 cp -f ../stretchyman/export/stretchyman.png ../../spine-corona/data
 
-cp -f ../test/export/test.json ../../spine-corona/data
-cp -f ../test/export/test.atlas ../../spine-corona/data
-cp -f ../test/export/test.png ../../spine-corona/data
-
 echo "spine-love"
 rm -f ../../spine-love/data/*
+cp -f ../coin/export/coin.json ../../spine-love/data
+cp -f ../coin/export/coin.atlas ../../spine-love/data
+cp -f ../coin/export/coin.png ../../spine-love/data
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-love/data
 cp -f ../goblins/export/goblins.atlas ../../spine-love/data
 cp -f ../goblins/export/goblins.png ../../spine-love/data
@@ -124,12 +138,13 @@ cp -f ../stretchyman/export/stretchyman.json ../../spine-love/data
 cp -f ../stretchyman/export/stretchyman.atlas ../../spine-love/data
 cp -f ../stretchyman/export/stretchyman.png ../../spine-love/data
 
-cp -f ../test/export/test.json ../../spine-love/data
-cp -f ../test/export/test.atlas ../../spine-love/data
-cp -f ../test/export/test.png ../../spine-love/data
-
 echo "spine-sfml"
 rm -f ../../spine-sfml/data/*
+cp -f ../coin/export/coin.json ../../spine-sfml/data/
+cp -f ../coin/export/coin.skel ../../spine-sfml/data/
+cp -f ../coin/export/coin.atlas ../../spine-sfml/data/
+cp -f ../coin/export/coin.png ../../spine-sfml/data/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-sfml/data/
 cp -f ../goblins/export/goblins-mesh.skel ../../spine-sfml/data/
 cp -f ../goblins/export/goblins.atlas ../../spine-sfml/data/
@@ -162,6 +177,10 @@ cp -f ../stretchyman/export/stretchyman.png ../../spine-sfml/data/
 
 echo "spine-starling"
 # DO NOT DELETE EVERYTHING IN SOURCE, ESPECIALLY goblins-mesh-starling.png/.xml
+cp -f ../coin/export/coin.json ../../spine-starling/spine-starling-example/src/
+cp -f ../coin/export/coin.atlas ../../spine-starling/spine-starling-example/src/
+cp -f ../coin/export/coin.png ../../spine-starling/spine-starling-example/src/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-starling/spine-starling-example/src/
 cp -f ../goblins/export/goblins.atlas ../../spine-starling/spine-starling-example/src/
 cp -f ../goblins/export/goblins.png ../../spine-starling/spine-starling-example/src/
@@ -189,6 +208,10 @@ cp -f ../stretchyman/export/stretchyman.png ../../spine-starling/spine-starling-
 
 echo "spine-ts"
 rm -f ../../spine-ts/webgl/example/assets/*
+cp -f ../coin/export/coin.json ../../spine-ts/webgl/example/assets/
+cp -f ../coin/export/coin.atlas ../../spine-ts/webgl/example/assets/
+cp -f ../coin/export/coin.png ../../spine-ts/webgl/example/assets/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-ts/webgl/example/assets/
 cp -f ../goblins/export/goblins.atlas ../../spine-ts/webgl/example/assets/goblins-mesh.atlas
 cp -f ../goblins/export/goblins.png ../../spine-ts/webgl/example/assets/goblins.png
@@ -234,6 +257,11 @@ cp -f ../spineboy/export/spineboy.png ../../spine-ts/widget/example/assets/
 
 echo "spine-xna"
 rm -f ../../spine-xna/example/data/*
+cp -f ../coin/export/coin.json ../../spine-xna/example/data/
+cp -f ../coin/export/coin.skel ../../spine-xna/example/data/
+cp -f ../coin/export/coin.atlas ../../spine-xna/example/data/
+cp -f ../coin/export/coin.png ../../spine-xna/example/data/
+
 cp -f ../goblins/export/goblins-mesh.json ../../spine-xna/example/data/
 cp -f ../goblins/export/goblins-mesh.skel ../../spine-xna/example/data/
 cp -f ../goblins/export/goblins.atlas ../../spine-xna/example/data/goblins-mesh.atlas

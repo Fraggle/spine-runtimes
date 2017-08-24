@@ -43,6 +43,8 @@ spine.RegionAttachment = require "spine-lua.attachments.RegionAttachment"
 spine.MeshAttachment = require "spine-lua.attachments.MeshAttachment"
 spine.VertexAttachment = require "spine-lua.attachments.VertexAttachment"
 spine.PathAttachment = require "spine-lua.attachments.PathAttachment"
+spine.PointAttachment = require "spine-lua.attachments.PointAttachment"
+spine.ClippingAttachment = require "spine-lua.attachments.ClippingAttachment"
 spine.Skeleton = require "spine-lua.Skeleton"
 spine.Bone = require "spine-lua.Bone"
 spine.Slot = require "spine-lua.Slot"
@@ -61,6 +63,8 @@ spine.TextureRegion = require "spine-lua.TextureRegion"
 spine.TextureAtlasRegion = require "spine-lua.TextureAtlasRegion"
 spine.AtlasAttachmentLoader = require "spine-lua.AtlasAttachmentLoader"
 spine.Color = require "spine-lua.Color"
+spine.Triangulator = require "spine-lua.Triangulator"
+spine.SkeletonClipping = require "spine-lua.SkeletonClipping"
 
 spine.utils.readFile = function (fileName, base)
 	if not base then base = system.ResourceDirectory end
@@ -86,6 +90,9 @@ spine.Skeleton.new = function(skeletonData, group)
 	self.drawingGroup = nil
 	self.premultipliedAlpha = false
 	self.batches = 0
+	self.tempColor = spine.Color.newWith(1, 1, 1, 1)
+	self.tempColor2 = spine.Color.newWith(-1, 1, 1, 1)
+	self.clipper = spine.SkeletonClipping.new()
 	return self
 end
 
@@ -108,6 +115,8 @@ local function toCoronaBlendMode(blendMode)
 	end
 end
 
+local worldVertices = spine.utils.newNumberArray(10000 * 8)
+
 function spine.Skeleton:updateWorldTransform()
 	spine.Skeleton.updateWorldTransform_super(self)
 	local premultipliedAlpha = self.premultipliedAlpha
@@ -125,34 +134,60 @@ function spine.Skeleton:updateWorldTransform()
 	local groupVertices = {}
 	local groupIndices = {}
 	local groupUvs = {}
-	local color = nil
-	local lastColor = nil
+	local color = self.tempColor
+	local lastColor = self.tempColor2
+	lastColor.r = -1
 	local texture = nil
 	local lastTexture = nil
 	local blendMode = nil
 	local lastBlendMode = nil
+	local renderable = {
+		vertices = nil,
+		uvs = nil
+	}
+	
 	for i,slot in ipairs(drawOrder) do
 		local attachment = slot.attachment
 		local vertices = nil
+		local uvs = nil
+		local numVertices = 0
 		local indices = nil
 		if attachment then
 			if attachment.type == spine.AttachmentType.region then
-				vertices = attachment:updateWorldVertices(slot, premultipliedAlpha)
+				numVertices = 4
+				vertices = worldVertices
+				attachment:computeWorldVertices(slot.bone, vertices, 0, 2)
+				uvs = attachment.uvs
 				indices = QUAD_TRIANGLES
-				texture = attachment.region.renderObject.texture
-				color = { vertices[5], vertices[6], vertices[7], vertices[8]}
+				texture = attachment.region.renderObject.texture				
 				blendMode = toCoronaBlendMode(slot.data.blendMode)
 			elseif attachment.type == spine.AttachmentType.mesh then
-				vertices = attachment:updateWorldVertices(slot, premultipliedAlpha)
+				numVertices = attachment.worldVerticesLength / 2
+				vertices = worldVertices
+				attachment:computeWorldVertices(slot, 0, attachment.worldVerticesLength, vertices, 0, 2)
+				uvs = attachment.uvs
 				indices = attachment.triangles
 				texture = attachment.region.renderObject.texture
-				color = { vertices[5], vertices[6], vertices[7], vertices[8] }
 				blendMode = toCoronaBlendMode(slot.data.blendMode)
+			elseif attachment.type == spine.AttachmentType.clipping then
+				self.clipper:clipStart(slot, attachment)
 			end
+			
+			local skeleton = slot.bone.skeleton
+			local skeletonColor = skeleton.color
+			local slotColor = slot.color
+			local attachmentColor = attachment.color
+			local alpha = skeletonColor.a * slotColor.a * attachmentColor.a
+			local multiplier = alpha
+			if premultipliedAlpha then multiplier = 1 end
+			color:set(skeletonColor.r * slotColor.r * attachmentColor.r * multiplier,
+								skeletonColor.g * slotColor.g * attachmentColor.g * multiplier,
+								skeletonColor.b * slotColor.b * attachmentColor.b * multiplier,
+								alpha)
 
 			if texture and vertices and indices then
 				if not lastTexture then lastTexture = texture end
-				if not lastColor then lastColor = color end
+				if lastColor.r == -1 then lastColor:setFrom(color) end
 				if not lastBlendMode then lastBlendMode = blendMode end
 
 				if (texture ~= lastTexture or not colorEquals(color, lastColor) or blendMode ~= lastBlendMode) then
@@ -164,33 +199,45 @@ function spine.Skeleton:updateWorldTransform()
 					groupUvs = {}
 					groupIndices = {}
 				end
+				
+				if self.clipper:isClipping() then
+					self.clipper:clipTriangles(vertices, uvs, indices, #indices)
+					vertices = self.clipper.clippedVertices
+					numVertices = #vertices / 2
+					uvs = self.clipper.clippedUVs
+					indices = self.clipper.clippedTriangles
+				end
 
-				self:batch(vertices, indices, groupVertices, groupUvs, groupIndices)
+				self:batch(vertices, uvs, numVertices, indices, groupVertices, groupUvs, groupIndices)
 			end
+			
+			self.clipper:clipEnd(slot)
 		end
 	end
 
 	if #groupVertices > 0 then
 		self:flush(groupVertices, groupUvs, groupIndices, texture, color, blendMode, drawingGroup)
 	end
+	
+	self.clipper:clipEnd2()
 end
 
 function spine.Skeleton:flush(groupVertices, groupUvs, groupIndices, texture, color, blendMode, drawingGroup)
-	mesh = display.newMesh(drawingGroup, 0, 0, {
+	local mesh = display.newMesh(drawingGroup, 0, 0, {
 			mode = "indexed",
 			vertices = groupVertices,
 			uvs = groupUvs,
 			indices = groupIndices
 	})
 	mesh.fill = texture
-	mesh:setFillColor(color[1], color[2], color[3])
-	mesh.alpha = color[4]
+	mesh:setFillColor(color.r, color.g, color.b)
+	mesh.alpha = color.a
 	mesh.blendMode = blendMode
 	mesh:translate(mesh.path:getVertexOffset())
 	self.batches = self.batches + 1
 end
 
-function spine.Skeleton:batch(vertices, indices, groupVertices, groupUvs, groupIndices)
+function spine.Skeleton:batch(vertices, uvs, numVertices, indices, groupVertices, groupUvs, groupIndices)
 	local numIndices = #indices
 	local i = 1
 	local indexStart = #groupIndices + 1
@@ -204,16 +251,15 @@ function spine.Skeleton:batch(vertices, indices, groupVertices, groupUvs, groupI
 	end
 
 	i = 1
-	local numVertices = #vertices
 	local vertexStart = #groupVertices + 1
-	local vertexEnd = vertexStart + numVertices / 4
+	local vertexEnd = vertexStart + numVertices * 2
 	while vertexStart < vertexEnd do
 		groupVertices[vertexStart] = vertices[i]
 		groupVertices[vertexStart+1] = vertices[i+1]
-		groupUvs[vertexStart] = vertices[i+2]
-		groupUvs[vertexStart+1] = vertices[i+3]
+		groupUvs[vertexStart] = uvs[i]
+		groupUvs[vertexStart+1] = uvs[i+1]
 		vertexStart = vertexStart + 2
-		i = i + 8
+		i = i + 2
 	end
 end
 

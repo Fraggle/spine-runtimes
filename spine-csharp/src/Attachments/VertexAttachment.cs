@@ -29,21 +29,30 @@
  *****************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
 namespace Spine {
 	/// <summary>>An attachment with vertices that are transformed by one or more bones and can be deformed by a slot's vertices.</summary> 
 	public class VertexAttachment : Attachment {
+		static int nextID = 0;
+		static readonly Object nextIdLock = new Object();
+
+		internal readonly int id;
 		internal int[] bones;
 		internal float[] vertices;
 		internal int worldVerticesLength;
 
+		/// <summary>Gets a unique ID for this attachment.</summary>
+		public int Id { get { return id; } }
 		public int[] Bones { get { return bones; } set { bones = value; } }
 		public float[] Vertices { get { return vertices; } set { vertices = value; } }
 		public int WorldVerticesLength { get { return worldVerticesLength; } set { worldVerticesLength = value; } }
 
-		public VertexAttachment (String name)
+		public VertexAttachment (string name)
 			: base(name) {
+
+			lock (VertexAttachment.nextIdLock) {
+				id = (VertexAttachment.nextID++ & 65535) << 11;
+			}
 		}
 
 		public void ComputeWorldVertices (Slot slot, float[] worldVertices) {
@@ -55,9 +64,10 @@ namespace Spine {
 		/// <param name="count">The number of world vertex values to output. Must be less than or equal to <see cref="WorldVerticesLength"/> - start.</param>
 		/// <param name="worldVertices">The output world vertices. Must have a length greater than or equal to <paramref name="offset"/> + <paramref name="count"/>.</param>
 		/// <param name="offset">The <paramref name="worldVertices"/> index to begin writing values.</param>
-		public void ComputeWorldVertices (Slot slot, int start, int count, float[] worldVertices, int offset) {
-			count += offset;
-			Skeleton skeleton = slot.Skeleton;
+		/// <param name="stride">The number of <paramref name="worldVertices"/> entries between the value pairs written.</param>
+		public void ComputeWorldVertices (Slot slot, int start, int count, float[] worldVertices, int offset, int stride = 2) {
+			count = offset + (count >> 1) * stride;
+			Skeleton skeleton = slot.bone.skeleton;
 			var deformArray = slot.attachmentVertices;
 			float[] vertices = this.vertices;
 			int[] bones = this.bones;
@@ -66,7 +76,7 @@ namespace Spine {
 				Bone bone = slot.bone;
 				float x = bone.worldX, y = bone.worldY;
 				float a = bone.a, b = bone.b, c = bone.c, d = bone.d;
-				for (int vv = start, w = offset; w < count; vv += 2, w += 2) {
+				for (int vv = start, w = offset; w < count; vv += 2, w += stride) {
 					float vx = vertices[vv], vy = vertices[vv + 1];
 					worldVertices[w] = vx * a + vy * b + x;
 					worldVertices[w + 1] = vx * c + vy * d + y;
@@ -79,9 +89,9 @@ namespace Spine {
 				v += n + 1;
 				skip += n;
 			}
-			Bone[] skeletonBones = skeleton.Bones.Items;
+			var skeletonBones = skeleton.bones.Items;
 			if (deformArray.Count == 0) {
-				for (int w = offset, b = skip * 3; w < count; w += 2) {
+				for (int w = offset, b = skip * 3; w < count; w += stride) {
 					float wx = 0, wy = 0;
 					int n = bones[v++];
 					n += v;
@@ -96,7 +106,7 @@ namespace Spine {
 				}
 			} else {
 				float[] deform = deformArray.Items;
-				for (int w = offset, b = skip * 3, f = skip << 1; w < count; w += 2) {
+				for (int w = offset, b = skip * 3, f = skip << 1; w < count; w += stride) {
 					float wx = 0, wy = 0;
 					int n = bones[v++];
 					n += v;

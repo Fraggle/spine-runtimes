@@ -32,7 +32,7 @@ module spine {
 	export class SpineWidget {
 		skeleton: Skeleton;
 		state: AnimationState;
-		gl: WebGLRenderingContext;
+		context: spine.webgl.ManagedWebGLRenderingContext;
 		canvas: HTMLCanvasElement;
 		debugRenderer: spine.webgl.SkeletonDebugRenderer;
 
@@ -50,6 +50,7 @@ module spine {
 		private loaded = false;
 		private bounds = { offset: new Vector2(), size: new Vector2() };
 
+
 		constructor (element: HTMLElement | string, config: SpineWidgetConfig) {
 			if (!element) throw new Error("Please provide a DOM element, e.g. document.getElementById('myelement')");
 			if (!config) throw new Error("Please provide a configuration, specifying at least the json file, atlas file and animation name");
@@ -60,24 +61,27 @@ module spine {
 
 			this.validateConfig(config);
 
-			let canvas = this.canvas = document.createElement("canvas");
+			let existingCanvas = <HTMLCanvasElement>element.children[0];
+			let canvas = this.canvas = existingCanvas || document.createElement("canvas");
 			canvas.style.width = "100%";
 			canvas.style.height = "100%";
-			(<HTMLElement> element).appendChild(canvas);
+			if (!existingCanvas) {
+				(<HTMLElement> element).appendChild(canvas);
+			}
 			canvas.width = (<HTMLElement>element).clientWidth;
 			canvas.height = (<HTMLElement>element).clientHeight;
 			var webglConfig = { alpha: config.alpha };
-			let gl = this.gl = <WebGLRenderingContext> (canvas.getContext("webgl", webglConfig) || canvas.getContext("experimental-webgl", webglConfig));
+			this.context = new spine.webgl.ManagedWebGLRenderingContext(canvas, webglConfig);
 
-			this.shader = spine.webgl.Shader.newColoredTextured(gl);
-			this.batcher = new spine.webgl.PolygonBatcher(gl);
+			this.shader = spine.webgl.Shader.newTwoColoredTextured(this.context);
+			this.batcher = new spine.webgl.PolygonBatcher(this.context);
 			this.mvp.ortho2d(0, 0, canvas.width - 1, canvas.height - 1);
-			this.skeletonRenderer = new spine.webgl.SkeletonRenderer(gl);
-			this.debugShader = spine.webgl.Shader.newColored(gl);
-			this.debugRenderer = new spine.webgl.SkeletonDebugRenderer(gl);
-			this.shapes = new spine.webgl.ShapeRenderer(gl);
+			this.skeletonRenderer = new spine.webgl.SkeletonRenderer(this.context);
+			this.debugShader = spine.webgl.Shader.newColored(this.context);
+			this.debugRenderer = new spine.webgl.SkeletonDebugRenderer(this.context);
+			this.shapes = new spine.webgl.ShapeRenderer(this.context);
 
-			let assets = this.assetManager = new spine.webgl.AssetManager(gl, config.imagesPath ? config.imagesPath : "");
+			let assets = this.assetManager = new spine.webgl.AssetManager(this.context, config.imagesPath ? config.imagesPath : "");
 			if (!config.atlasContent) {
 				assets.loadText(config.atlas);
 			}
@@ -97,7 +101,11 @@ module spine {
 				}
 			} else {
 				for (let i = 0; i < config.atlasPages.length; i++) {
-					assets.loadTexture(config.atlasPages[i]);
+					if (config.atlasPagesContent && config.atlasPagesContent[i]) {
+						assets.loadTextureData(config.atlasPages[i], config.atlasPagesContent[0]);
+					} else {
+						assets.loadTexture(config.atlasPages[i]);
+					}
 				}
 			}
 			requestAnimationFrame(() => { this.load(); });
@@ -168,7 +176,7 @@ module spine {
 				skeleton.setSkinByName(config.skin);
 				skeleton.setToSetupPose();
 				skeleton.updateWorldTransform();
-				skeleton.getBounds(bounds.offset, bounds.size);
+				skeleton.getBounds(bounds.offset, bounds.size, []);
 				if (!config.fitToCanvas) {
 					skeleton.x = config.x;
 					skeleton.y = config.y;
@@ -176,8 +184,8 @@ module spine {
 
 				var animationState = this.state = new spine.AnimationState(new spine.AnimationStateData(skeleton.data));
 				animationState.setAnimation(0, config.animation, config.loop);
-				if (config.success) config.success(this);
 				this.loaded = true;
+				if (config.success) config.success(this);
 				requestAnimationFrame(() => { this.render(); });
 			} else
 				requestAnimationFrame(() => { this.load(); });
@@ -189,7 +197,7 @@ module spine {
 			if (delta > 0.1) delta = 0;
 			this.lastFrameTime = now;
 
-			let gl = this.gl;
+			let gl = this.context.gl;
 			let color = this.backgroundColor;
 			this.resize();
 			gl.clearColor(color.r, color.g, color.b, color.a);
@@ -238,28 +246,30 @@ module spine {
 			let w = canvas.clientWidth;
 			let h = canvas.clientHeight;
 			let bounds = this.bounds;
-			if (canvas.width != w || canvas.height != h) {
-				canvas.width = w;
-				canvas.height = h;
+
+			var devicePixelRatio = window.devicePixelRatio || 1;
+			if (canvas.width != Math.floor(w * devicePixelRatio) || canvas.height != Math.floor(h * devicePixelRatio)) {
+				canvas.width = Math.floor(w * devicePixelRatio);
+				canvas.height = Math.floor(h * devicePixelRatio);
 			}
 
 			// magic
 			if (this.config.fitToCanvas) {
 				var centerX = bounds.offset.x + bounds.size.x / 2;
 				var centerY = bounds.offset.y + bounds.size.y / 2;
-				var scaleX = bounds.size.x / canvas.width;
-				var scaleY = bounds.size.y / canvas.height;
+				var scaleX = bounds.size.x / w;
+				var scaleY = bounds.size.y / h;
 				var scale = Math.max(scaleX, scaleY) * 1.2;
 				if (scale < 1) scale = 1;
-				var width = canvas.width * scale;
-				var height = canvas.height * scale;
+				var width = w * scale;
+				var height = h * scale;
 				this.skeleton.x = this.skeleton.y = 0;
 				this.mvp.ortho2d(centerX - width / 2, centerY - height / 2, width, height);
 			} else {
-				this.mvp.ortho2d(0, 0, canvas.width - 1, canvas.height - 1);
+				this.mvp.ortho2d(0, 0, w - 1, h - 1);
 			}
 
-			this.gl.viewport(0, 0, canvas.width, canvas.height);
+			this.context.gl.viewport(0, 0, canvas.width, canvas.height);
 		}
 
 		pause () {
@@ -275,12 +285,12 @@ module spine {
 			return !this.paused;
 		}
 
-		setAnimation (animationName: string) {
+		setAnimation (animationName: string, animationStateListener: AnimationStateListener2 = null) {
 			if (!this.loaded) throw new Error("Widget isn't loaded yet");
 			this.skeleton.setToSetupPose();
-			this.state.setAnimation(0, animationName, this.config.loop);
+			let entry = this.state.setAnimation(0, animationName, this.config.loop);
+			entry.listener = animationStateListener
 		}
-
 
 		static loadWidgets() {
 			let widgets = document.getElementsByClassName("spine-widget");

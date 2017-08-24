@@ -58,9 +58,9 @@ namespace Spine.Unity.Modules {
 		}
 
 		MeshRenderer mainMeshRenderer;
-		public bool copyPropertyBlock = false;
+		public bool copyPropertyBlock = true;
 		[Tooltip("Copies MeshRenderer flags into each parts renderer")]
-		public bool copyMeshRendererFlags = false;
+		public bool copyMeshRendererFlags = true;
 		public List<Spine.Unity.Modules.SkeletonPartsRenderer> partsRenderers = new List<SkeletonPartsRenderer>();
 
 		#if UNITY_EDITOR
@@ -69,6 +69,36 @@ namespace Spine.Unity.Modules {
 				skeletonRenderer = GetComponent<SkeletonRenderer>();
 		}
 		#endif
+		#endregion
+
+		#region Runtime Instantiation
+		public static SkeletonRenderSeparator AddToSkeletonRenderer (SkeletonRenderer skeletonRenderer, int sortingLayerID = 0, int extraPartsRenderers = 0, int sortingOrderIncrement = DefaultSortingOrderIncrement, int baseSortingOrder = 0, bool addMinimumPartsRenderers = true) {
+			if (skeletonRenderer == null) {
+				Debug.Log("Tried to add SkeletonRenderSeparator to a null SkeletonRenderer reference.");
+				return null;
+			}
+
+			var srs = skeletonRenderer.gameObject.AddComponent<SkeletonRenderSeparator>();
+			srs.skeletonRenderer = skeletonRenderer;
+
+			skeletonRenderer.Initialize(false);
+			int count = extraPartsRenderers;
+			if (addMinimumPartsRenderers)
+				count = extraPartsRenderers + skeletonRenderer.separatorSlots.Count + 1;
+
+			var skeletonRendererTransform = skeletonRenderer.transform;
+			var componentRenderers = srs.partsRenderers;
+
+			for (int i = 0; i < count; i++) {
+				var smr = SkeletonPartsRenderer.NewPartsRendererGameObject(skeletonRendererTransform, i.ToString());
+				var mr = smr.MeshRenderer;
+				mr.sortingLayerID = sortingLayerID;
+				mr.sortingOrder = baseSortingOrder + (i * sortingOrderIncrement);
+				componentRenderers.Add(smr);
+			}
+
+			return srs;
+		}
 		#endregion
 
 		void OnEnable () {
@@ -87,6 +117,13 @@ namespace Spine.Unity.Modules {
 				var lightProbeUsage = mainMeshRenderer.lightProbeUsage;
 				bool receiveShadows = mainMeshRenderer.receiveShadows;
 
+				#if UNITY_5_5_OR_NEWER
+				var reflectionProbeUsage = mainMeshRenderer.reflectionProbeUsage;
+				var shadowCastingMode = mainMeshRenderer.shadowCastingMode;
+				var motionVectorGenerationMode = mainMeshRenderer.motionVectorGenerationMode;
+				var probeAnchor = mainMeshRenderer.probeAnchor;
+				#endif
+
 				for (int i = 0; i < partsRenderers.Count; i++) {
 					var currentRenderer = partsRenderers[i];
 					if (currentRenderer == null) continue; // skip null items.
@@ -94,6 +131,13 @@ namespace Spine.Unity.Modules {
 					var mr = currentRenderer.MeshRenderer;
 					mr.lightProbeUsage = lightProbeUsage;
 					mr.receiveShadows = receiveShadows;
+
+					#if UNITY_5_5_OR_NEWER
+					mr.reflectionProbeUsage = reflectionProbeUsage;
+					mr.shadowCastingMode = shadowCastingMode;
+					mr.motionVectorGenerationMode = motionVectorGenerationMode;
+					mr.probeAnchor = probeAnchor;
+					#endif
 				}
 			}
 			#else
@@ -130,28 +174,27 @@ namespace Spine.Unity.Modules {
 
 		MaterialPropertyBlock copiedBlock;
 
-		void HandleRender (SkeletonRenderer.SmartMesh.Instruction instruction) {
+		void HandleRender (SkeletonRendererInstruction instruction) {
 			int rendererCount = partsRenderers.Count;
 			if (rendererCount <= 0) return;
-
-
 
 			if (copyPropertyBlock)
 				mainMeshRenderer.GetPropertyBlock(copiedBlock);
 
+			var settings = new MeshGenerator.Settings {
+				addNormals = skeletonRenderer.addNormals,
+				calculateTangents = skeletonRenderer.calculateTangents,
+				immutableTriangles = false, // parts cannot do immutable triangles.
+				pmaVertexColors = skeletonRenderer.pmaVertexColors,
+				//renderMeshes = skeletonRenderer.renderMeshes,
+				tintBlack = skeletonRenderer.tintBlack,
+				useClipping = true,
+				zSpacing = skeletonRenderer.zSpacing
+			};
+
 			var submeshInstructions = instruction.submeshInstructions;
 			var submeshInstructionsItems = submeshInstructions.Items;
 			int lastSubmeshInstruction = submeshInstructions.Count - 1;
-
-			#if SPINE_OPTIONAL_NORMALS
-			bool addNormals = skeletonRenderer.calculateNormals;
-			#endif
-
-			#if SPINE_OPTIONAL_SOLVETANGENTS
-			bool addTangents = skeletonRenderer.calculateTangents;
-			#endif
-
-			bool pmaVertexColors = skeletonRenderer.pmaVertexColors;
 
 			int rendererIndex = 0;
 			var currentRenderer = partsRenderers[rendererIndex];
@@ -159,13 +202,8 @@ namespace Spine.Unity.Modules {
 				if (submeshInstructionsItems[si].forceSeparate || si == lastSubmeshInstruction) {
 					// Apply properties
 					var meshGenerator = currentRenderer.MeshGenerator;
-					#if SPINE_OPTIONAL_NORMALS
-					meshGenerator.AddNormals = addNormals;
-					#endif
-					#if SPINE_OPTIONAL_SOLVETANGENTS
-					meshGenerator.AddTangents = addTangents;
-					#endif
-					meshGenerator.PremultiplyVertexColors = pmaVertexColors;
+					meshGenerator.settings = settings;
+
 					if (copyPropertyBlock)
 						currentRenderer.SetPropertyBlock(copiedBlock);
 

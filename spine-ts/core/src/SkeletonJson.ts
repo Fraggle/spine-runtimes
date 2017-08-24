@@ -93,6 +93,12 @@ module spine {
 					let color: string = this.getValue(slotMap, "color", null);
 					if (color != null) data.color.setFromString(color);
 
+					let dark: string = this.getValue(slotMap, "dark", null);
+					if (dark != null) {
+						data.darkColor = new Color(1, 1, 1, 1);
+						data.darkColor.setFromString(dark);
+					}
+
 					data.attachmentName = this.getValue(slotMap, "attachment", null);
 					data.blendMode = SkeletonJson.blendModeFromString(this.getValue(slotMap, "blend", "normal"));
 					skeletonData.slots.push(data);
@@ -142,6 +148,8 @@ module spine {
 					data.target = skeletonData.findBone(targetName);
 					if (data.target == null) throw new Error("Transform constraint target bone not found: " + targetName);
 
+					data.local = this.getValue(constraintMap, "local", false);
+					data.relative = this.getValue(constraintMap, "relative", false);
 					data.offsetRotation = this.getValue(constraintMap, "rotation", 0);
 					data.offsetX = this.getValue(constraintMap, "x", 0) * scale;
 					data.offsetY = this.getValue(constraintMap, "y", 0) * scale;
@@ -201,7 +209,7 @@ module spine {
 						if (slotIndex == -1) throw new Error("Slot not found: " + slotName);
 						let slotMap = skinMap[slotName];
 						for (let entryName in slotMap) {
-							let attachment = this.readAttachment(slotMap[entryName], skin, slotIndex, entryName);
+							let attachment = this.readAttachment(slotMap[entryName], skin, slotIndex, entryName, skeletonData);
 							if (attachment != null) skin.addAttachment(slotIndex, entryName, attachment);
 						}
 					}
@@ -245,7 +253,7 @@ module spine {
 			return skeletonData;
 		}
 
-		readAttachment (map: any, skin: Skin, slotIndex: number, name: string): Attachment {
+		readAttachment (map: any, skin: Skin, slotIndex: number, name: string, skeletonData: SkeletonData): Attachment {
 			let scale = this.scale;
 			name = this.getValue(map, "name", name);
 
@@ -316,12 +324,41 @@ module spine {
 
 					let lengths: Array<number> = Utils.newArray(vertexCount / 3, 0);
 					for (let i = 0; i < map.lengths.length; i++)
-						lengths[i++] = map.lengths[i] * scale;
+						lengths[i] = map.lengths[i] * scale;
 					path.lengths = lengths;
 
 					let color: string = this.getValue(map, "color", null);
 					if (color != null) path.color.setFromString(color);
 					return path;
+				}
+				case "point": {
+					let point = this.attachmentLoader.newPointAttachment(skin, name);
+					if (point == null) return null;
+					point.x = this.getValue(map, "x", 0) * scale;
+					point.y = this.getValue(map, "y", 0) * scale;
+					point.rotation = this.getValue(map, "rotation", 0);
+
+					let color = this.getValue(map, "color", null);
+					if (color != null) point.color.setFromString(color);
+					return point;
+				}
+				case "clipping": {
+					let clip = this.attachmentLoader.newClippingAttachment(skin, name);
+					if (clip == null) return null;
+
+					let end = this.getValue(map, "end", null);
+					if (end != null) {
+						let slot = skeletonData.findSlot(end);
+						if (slot == null) throw new Error("Clipping end slot not found: " + end);
+						clip.endSlot = slot;
+					}
+
+					let vertexCount = map.vertexCount;
+					this.readVertices(map, clip, vertexCount << 1);
+
+					let color: string = this.getValue(map, "color", null);
+					if (color != null) clip.color.setFromString(color);
+					return clip;
 				}
 			}
 			return null;
@@ -332,11 +369,12 @@ module spine {
 			attachment.worldVerticesLength = verticesLength;
 			let vertices: Array<number> = map.vertices;
 			if (verticesLength == vertices.length) {
+				let scaledVertices = Utils.toFloatArray(vertices);
 				if (scale != 1) {
 					for (let i = 0, n = vertices.length; i < n; i++)
-						vertices[i] *= scale;
+						scaledVertices[i] *= scale;
 				}
-				attachment.vertices = Utils.toFloatArray(vertices);
+				attachment.vertices = scaledVertices;
 				return;
 			}
 			let weights = new Array<number>();
@@ -368,7 +406,18 @@ module spine {
 					if (slotIndex == -1) throw new Error("Slot not found: " + slotName);
 					for (let timelineName in slotMap) {
 						let timelineMap = slotMap[timelineName];
-						if (timelineName == "color") {
+						if (timelineName == "attachment") {
+							let timeline = new AttachmentTimeline(timelineMap.length);
+							timeline.slotIndex = slotIndex;
+
+							let frameIndex = 0;
+							for (let i = 0; i < timelineMap.length; i++) {
+								let valueMap = timelineMap[i];
+								timeline.setFrame(frameIndex++, valueMap.time, valueMap.name);
+							}
+							timelines.push(timeline);
+							duration = Math.max(duration, timeline.frames[timeline.getFrameCount() - 1]);
+						} else if (timelineName == "color") {
 							let timeline = new ColorTimeline(timelineMap.length);
 							timeline.slotIndex = slotIndex;
 
@@ -384,17 +433,24 @@ module spine {
 							timelines.push(timeline);
 							duration = Math.max(duration, timeline.frames[(timeline.getFrameCount() - 1) * ColorTimeline.ENTRIES]);
 
-						} else if (timelineName = "attachment") {
-							let timeline = new AttachmentTimeline(timelineMap.length);
+						} else if (timelineName == "twoColor") {
+							let timeline = new TwoColorTimeline(timelineMap.length);
 							timeline.slotIndex = slotIndex;
 
 							let frameIndex = 0;
 							for (let i = 0; i < timelineMap.length; i++) {
 								let valueMap = timelineMap[i];
-								timeline.setFrame(frameIndex++, valueMap.time, valueMap.name);
+								let light = new Color();
+								let dark = new Color();
+								light.setFromString(valueMap.light);
+								dark.setFromString(valueMap.dark);
+								timeline.setFrame(frameIndex, valueMap.time, light.r, light.g, light.b, light.a, dark.r, dark.g, dark.b);
+								this.readCurve(valueMap, timeline, frameIndex);
+								frameIndex++;
 							}
 							timelines.push(timeline);
-							duration = Math.max(duration, timeline.frames[timeline.getFrameCount() - 1]);
+							duration = Math.max(duration, timeline.frames[(timeline.getFrameCount() - 1) * TwoColorTimeline.ENTRIES]);
+
 						} else
 							throw new Error("Invalid timeline type for a slot: " + timelineName + " (" + slotName + ")");
 					}
@@ -707,7 +763,7 @@ module spine {
 		}
 
 		static transformModeFromString(str: string) {
-			str = str.toLowerCase();			
+			str = str.toLowerCase();
 			if (str == "normal") return TransformMode.Normal;
 			if (str == "onlytranslation") return TransformMode.OnlyTranslation;
 			if (str == "norotationorreflection") return TransformMode.NoRotationOrReflection;

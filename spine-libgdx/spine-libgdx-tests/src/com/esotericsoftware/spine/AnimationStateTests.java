@@ -41,8 +41,10 @@ import com.esotericsoftware.spine.AnimationState.AnimationStateListener;
 import com.esotericsoftware.spine.AnimationState.TrackEntry;
 import com.esotericsoftware.spine.attachments.AttachmentLoader;
 import com.esotericsoftware.spine.attachments.BoundingBoxAttachment;
+import com.esotericsoftware.spine.attachments.ClippingAttachment;
 import com.esotericsoftware.spine.attachments.MeshAttachment;
 import com.esotericsoftware.spine.attachments.PathAttachment;
+import com.esotericsoftware.spine.attachments.PointAttachment;
 import com.esotericsoftware.spine.attachments.RegionAttachment;
 
 public class AnimationStateTests {
@@ -59,7 +61,15 @@ public class AnimationStateTests {
 			return null;
 		}
 
+		public ClippingAttachment newClippingAttachment (Skin skin, String name) {
+			return null;
+		}
+
 		public PathAttachment newPathAttachment (Skin skin, String name) {
+			return null;
+		}
+
+		public PointAttachment newPointAttachment (Skin skin, String name) {
 			return null;
 		}
 	});
@@ -90,6 +100,13 @@ public class AnimationStateTests {
 		}
 
 		private void add (Result result) {
+			while (expected.size > actual.size) {
+				Result note = expected.get(actual.size);
+				if (!note.note) break;
+				actual.add(note);
+				log(note.name);
+			}
+
 			String message = result.toString();
 			if (actual.size >= expected.size) {
 				message += "FAIL: <none>";
@@ -141,7 +158,7 @@ public class AnimationStateTests {
 			expect(0, "dispose", 0, 0), //
 			expect(1, "dispose", 0, 0), //
 
-			// First 2 set/addAnimation calls are done.
+			note("First 2 set/addAnimation calls are done."),
 
 			expect(0, "start", 0, 0), //
 			expect(0, "event 0", 0, 0), //
@@ -570,7 +587,7 @@ public class AnimationStateTests {
 			expect(1, "event 0", 0, 0), //
 			expect(1, "event 14", 0.5f, 0.5f), //
 
-			// First 2 setAnimation calls are done.
+			note("First 2 setAnimation calls are done."),
 
 			expect(1, "interrupt", 0.8f, 0.8f), //
 
@@ -602,7 +619,7 @@ public class AnimationStateTests {
 			}
 		});
 
-		setup("setAnimation twice with mix", // 22
+		setup("setAnimation twice with multiple mixing", // 22
 			expect(0, "start", 0, 0), //
 			expect(0, "interrupt", 0, 0), //
 			expect(0, "end", 0, 0), //
@@ -611,7 +628,7 @@ public class AnimationStateTests {
 			expect(1, "start", 0, 0), //
 			expect(1, "event 0", 0, 0), //
 
-			// First 2 setAnimation calls are done.
+			note("First 2 setAnimation calls are done."),
 
 			expect(1, "interrupt", 0.2f, 0.2f), //
 
@@ -623,7 +640,7 @@ public class AnimationStateTests {
 			expect(2, "start", 0, 0.2f), //
 			expect(2, "event 0", 0.1f, 0.3f), //
 
-			// Second 2 setAnimation calls are done.
+			note("Second 2 setAnimation calls are done."),
 
 			expect(2, "interrupt", 0.2f, 0.4f), //
 
@@ -634,14 +651,13 @@ public class AnimationStateTests {
 
 			expect(0, "start", 0, 0.4f), //
 			expect(0, "event 0", 0.1f, 0.5f), //
-
-			expect(1, "end", 0.8f, 0.9f), //
-			expect(1, "dispose", 0.8f, 0.9f), //
-
 			expect(0, "event 14", 0.5f, 0.9f), //
 
 			expect(2, "end", 0.8f, 1.1f), //
 			expect(2, "dispose", 0.8f, 1.1f), //
+
+			expect(1, "end", 0.8f, 1.1f), //
+			expect(1, "dispose", 0.8f, 1.1f), //
 
 			expect(0, "event 30", 1, 1.4f), //
 			expect(0, "complete", 1, 1.4f), //
@@ -775,7 +791,7 @@ public class AnimationStateTests {
 		state.setAnimation(1, "events1", false).setTrackEnd(1);
 		run(0.1f, 10, null);
 		if (counter.get() != 15082016) {
-			log("TEST 26 FAILED! " + counter);
+			log("TEST 28 FAILED! " + counter);
 			System.exit(0);
 		}
 
@@ -883,6 +899,13 @@ public class AnimationStateTests {
 		return result;
 	}
 
+	Result note (String message) {
+		Result result = new Result();
+		result.name = message;
+		result.note = true;
+		return result;
+	}
+
 	void log (String message) {
 		System.out.println(message);
 	}
@@ -891,6 +914,7 @@ public class AnimationStateTests {
 		String name;
 		int animationIndex;
 		float trackTime, totalTime;
+		boolean note;
 
 		public int hashCode () {
 			int result = 31 + animationIndex;

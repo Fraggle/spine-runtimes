@@ -13,6 +13,10 @@ var skinsDemo = function(loadingComplete, bgColor) {
 		canvas = document.getElementById("skins-canvas");
 		canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
 		gl = canvas.getContext("webgl", { alpha: false }) || canvas.getContext("experimental-webgl", { alpha: false });
+		if (!gl) {
+			alert('WebGL is unavailable.');
+			return;
+		}
 
 		renderer = new spine.webgl.SceneRenderer(canvas, gl);
 		assetManager = spineDemos.assetManager;
@@ -47,7 +51,7 @@ var skinsDemo = function(loadingComplete, bgColor) {
 			skeleton.updateWorldTransform();
 			offset = new spine.Vector2();
 			bounds = new spine.Vector2();
-			skeleton.getBounds(offset, bounds);
+			skeleton.getBounds(offset, bounds, []);
 			setupUI();
 			setupInput();
 			loadingComplete(canvas, render);

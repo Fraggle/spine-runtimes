@@ -64,6 +64,9 @@ public:
 
 	void setDebugBonesEnabled(bool enabled);
 	bool getDebugBonesEnabled() const;
+	
+	void setDebugMeshesEnabled(bool enabled);
+	bool getDebugMeshesEnabled() const;
 
 	// --- Convenience methods for common Skeleton_* functions.
 	void updateWorldTransform ();
@@ -91,6 +94,11 @@ public:
 	bool setAttachment (const std::string& slotName, const std::string& attachmentName);
 	/* @param attachmentName May be 0 for no attachment. */
 	bool setAttachment (const std::string& slotName, const char* attachmentName);
+	
+	/* Enables/disables two color tinting for this instance. May break batching */
+	void setTwoColorTint(bool enabled);
+	/* Whether two color tinting is enabled */
+	bool isTwoColorTint();
 
     // --- BlendProtocol
     virtual void setBlendFunc (const cocos2d::BlendFunc& blendFunc)override;
@@ -130,6 +138,8 @@ protected:
 	float _timeScale;
 	bool _debugSlots;
 	bool _debugBones;
+	bool _debugMeshes;
+	spSkeletonClipping* _clipper;
 };
 
 }

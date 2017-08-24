@@ -34,6 +34,7 @@
 #include <spine/Animation.h>
 #include <spine/AnimationStateData.h>
 #include <spine/Event.h>
+#include <spine/Array.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,6 +49,8 @@ typedef struct spTrackEntry spTrackEntry;
 
 typedef void (*spAnimationStateListener) (spAnimationState* state, spEventType type, spTrackEntry* entry, spEvent* event);
 
+_SP_ARRAY_DECLARE_TYPE(spTrackEntryArray, spTrackEntry*)
+
 struct spTrackEntry {
 	spAnimation* animation;
 	spTrackEntry* next;
@@ -58,9 +61,9 @@ struct spTrackEntry {
 	float eventThreshold, attachmentThreshold, drawOrderThreshold;
 	float animationStart, animationEnd, animationLast, nextAnimationLast;
 	float delay, trackTime, trackLast, nextTrackLast, trackEnd, timeScale;
-	float alpha, mixTime, mixDuration, mixAlpha;
-	int* /*boolean*/ timelinesFirst;
-	int timelinesFirstCount;
+	float alpha, mixTime, mixDuration, interruptAlpha, totalAlpha;
+	spIntArray* timelineData;
+	spTrackEntryArray* timelineDipMix;
 	float* timelinesRotation;
 	int timelinesRotationCount;
 	void* rendererObject;
@@ -76,9 +79,9 @@ struct spTrackEntry {
 		eventThreshold(0), attachmentThreshold(0), drawOrderThreshold(0),
 		animationStart(0), animationEnd(0), animationLast(0), nextAnimationLast(0),
 		delay(0), trackTime(0), trackLast(0), nextTrackLast(0), trackEnd(0), timeScale(0),
-		alpha(0), mixTime(0), mixDuration(0), mixAlpha(0),
-		timelinesFirst(0),
-		timelinesFirstCount(0),
+		alpha(0), mixTime(0), mixDuration(0), interruptAlpha(0), totalAlpha(0),
+		timelineData(0),
+		timelineDipMix(0),
 		timelinesRotation(0),
 		timelinesRotationCount(0) {
 	}
@@ -95,6 +98,8 @@ struct spAnimationState {
 
 	float timeScale;
 
+	spTrackEntryArray* mixingTo;
+
 	void* rendererObject;
 
 #ifdef __cplusplus
@@ -103,7 +108,9 @@ struct spAnimationState {
 		tracksCount(0),
 		tracks(0),
 		listener(0),
-		timeScale(0) {
+		timeScale(0),
+		mixingTo(0),
+		rendererObject(0) {
 	}
 #endif
 };
@@ -113,7 +120,7 @@ spAnimationState* spAnimationState_create (spAnimationStateData* data);
 void spAnimationState_dispose (spAnimationState* self);
 
 void spAnimationState_update (spAnimationState* self, float delta);
-void spAnimationState_apply (spAnimationState* self, struct spSkeleton* skeleton);
+int /**bool**/ spAnimationState_apply (spAnimationState* self, struct spSkeleton* skeleton);
 
 void spAnimationState_clearTracks (spAnimationState* self);
 void spAnimationState_clearTrack (spAnimationState* self, int trackIndex);
