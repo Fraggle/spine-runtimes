@@ -106,34 +106,39 @@ static int readBoolean (_dataInput* input) {
 }
 
 static int readInt (_dataInput* input) {
-	int result = readByte(input);
+    uint32_t result = (0x000000FF & readByte(input));
 	result <<= 8;
-	result |= readByte(input);
+	result |= (0x000000FF & readByte(input));
 	result <<= 8;
-	result |= readByte(input);
+	result |= (0x000000FF & readByte(input));
 	result <<= 8;
-	result |= readByte(input);
-	return result;
+	result |= (0x000000FF & readByte(input));
+    return (int32_t)(result);
 }
 
-static int readVarint (_dataInput* input, int/*bool*/optimizePositive) {
-	unsigned char b = readByte(input);
-	int value = b & 0x7F;
-	if (b & 0x80) {
-		b = readByte(input);
-		value |= (b & 0x7F) << 7;
-		if (b & 0x80) {
-				b = readByte(input);
-				value |= (b & 0x7F) << 14;
-				if (b & 0x80) {
-					b = readByte(input);
-					value |= (b & 0x7F) << 21;
-					if (b & 0x80) value |= (readByte(input) & 0x7F) << 28;
-				}
-		}
-	}
-	if (!optimizePositive) value = (((unsigned int)value >> 1) ^ -(value & 1));
-	return value;
+static int readVarint(_dataInput* input, int/*bool*/optimizePositive) {
+    uint32_t b = (0x000000FF & readByte(input));
+    uint32_t value = (0x0000007F & b);
+    if ((0x00000080 & b) != 0) {
+        b = (0x000000FF & readByte(input));
+        value |= ((0x0000007F & b) << 7);
+        if ((0x00000080 & b) != 0) {
+            b = (0x000000FF & readByte(input));
+            value |= ((0x0000007F & b) << 14);
+            if ((0x00000080 & b) != 0) {
+                b = (0x000000FF & readByte(input));
+                value |= ((0x0000007F & b) << 21);
+                if ((0x00000080 & b) != 0) {
+                    b = (0x000000FF & readByte(input));
+                    value |= ((0x0000007F & b) << 28);
+                }
+            }
+        }
+    }
+    if (!optimizePositive) {
+        value = (value >> 1) ^ -(0x00000001 & (int32_t)(value));
+    }
+    return (int32_t)(value);
 }
 
 float readFloat (_dataInput* input) {
