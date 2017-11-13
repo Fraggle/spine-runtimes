@@ -90,6 +90,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 	static final float checkModifiedInterval = 0.250f;
 	static final float reloadDelay = 1;
 	static float uiScale = 1;
+	static String[] atlasSuffixes = {".atlas", ".atlas.txt", "-pro.atlas", "-pro.atlas.txt", "-ess.atlas", "-ess.atlas.txt"};
 
 	UI ui;
 
@@ -127,6 +128,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 			Gdx.files.internal(Gdx.app.getPreferences("spine-skeletonviewer").getString("lastFile", "spineboy/spineboy.json")));
 
 		ui.loadPrefs();
+		ui.prefsLoaded = true;
 	}
 
 	void loadSkeleton (final FileHandle skeletonFile) {
@@ -141,9 +143,17 @@ public class SkeletonViewer extends ApplicationAdapter {
 			pixmap.dispose();
 
 			String atlasFileName = skeletonFile.nameWithoutExtension();
-			if (atlasFileName.endsWith(".json")) atlasFileName = new FileHandle(atlasFileName).nameWithoutExtension();
+			if (atlasFileName.endsWith(".json") || atlasFileName.endsWith(".skel"))
+				atlasFileName = atlasFileName.substring(0, atlasFileName.length() - 5);
 			FileHandle atlasFile = skeletonFile.sibling(atlasFileName + ".atlas");
-			if (!atlasFile.exists()) atlasFile = skeletonFile.sibling(atlasFileName + ".atlas.txt");
+			if (!atlasFile.exists()) {
+				if (atlasFileName.endsWith("-pro") || atlasFileName.endsWith("-ess"))
+					atlasFileName = atlasFileName.substring(0, atlasFileName.length() - 4);
+				for (String suffix : atlasSuffixes) {
+					atlasFile = skeletonFile.sibling(atlasFileName + suffix);
+					if (atlasFile.exists()) break;
+				}
+			}
 			TextureAtlasData data = !atlasFile.exists() ? null : new TextureAtlasData(atlasFile, atlasFile.parent(), false);
 			TextureAtlas atlas = new TextureAtlas(data) {
 				public AtlasRegion findRegion (String name) {
@@ -188,6 +198,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		state = new AnimationState(new AnimationStateData(skeletonData));
 		state.addListener(new AnimationStateAdapter() {
+
 			public void event (TrackEntry entry, Event event) {
 				ui.toast(event.getData().getName());
 			}
@@ -371,6 +382,8 @@ public class SkeletonViewer extends ApplicationAdapter {
 	}
 
 	class UI {
+		boolean prefsLoaded;
+
 		Stage stage = new Stage(new ScreenViewport());
 		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = new com.badlogic.gdx.scenes.scene2d.ui.Skin(
 			Gdx.files.internal("skin/skin.json"));
@@ -427,7 +440,6 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		Label statusLabel = new Label("", skin);
 		WidgetGroup toasts = new WidgetGroup();
-		boolean prefsLoaded;
 
 		UI () {
 			initialize();
@@ -697,6 +709,16 @@ public class SkeletonViewer extends ApplicationAdapter {
 				}
 			});
 
+			InputListener scrollFocusListener = new InputListener() {
+				public void enter (InputEvent event, float x, float y, int pointer, Actor fromActor) {
+					if (pointer == -1) stage.setScrollFocus(event.getListenerActor());
+				}
+
+				public void exit (InputEvent event, float x, float y, int pointer, Actor toActor) {
+					if (pointer == -1 && stage.getScrollFocus() == event.getListenerActor()) stage.setScrollFocus(null);
+				}
+			};
+
 			animationList.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
 					if (state != null) {
@@ -708,6 +730,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 					}
 				}
 			});
+			animationScroll.addListener(scrollFocusListener);
 
 			loopCheckbox.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
@@ -727,6 +750,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 					}
 				}
 			});
+			skinScroll.addListener(scrollFocusListener);
 
 			ChangeListener trackButtonListener = new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
@@ -900,7 +924,6 @@ public class SkeletonViewer extends ApplicationAdapter {
 			scaleSlider.setValue(prefs.getFloat("scale", 1));
 			animationList.setSelected(prefs.getString("animationName", null));
 			skinList.setSelected(prefs.getString("skinName", null));
-			prefsLoaded = true;
 		}
 	}
 

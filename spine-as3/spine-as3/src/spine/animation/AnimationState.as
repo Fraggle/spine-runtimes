@@ -132,7 +132,8 @@ package spine.animation {
 
 			// Require mixTime > 0 to ensure the mixing from entry was applied at least once.
 			if (to.mixTime > 0 && (to.mixTime >= to.mixDuration || to.timeScale == 0)) {
-				if (from.totalAlpha == 0) {
+				// Require totalAlpha == 0 to ensure mixing is complete, unless mixDuration == 0 (the transition is a single frame).
+				if (from.totalAlpha == 0 || to.mixDuration == 0) {
 					to.mixingFrom = from.mixingFrom;
 					to.interruptAlpha = from.interruptAlpha;
 					queue.end(from);					
@@ -551,14 +552,10 @@ package spine.animation {
 			animationsChanged = false;
 
 			var propertyIDs : Dictionary = this.propertyIDs = new Dictionary();					
-			var mixingTo : Vector.<TrackEntry> = this.mixingTo;
-			var lastEntry : TrackEntry = null;
+			var mixingTo : Vector.<TrackEntry> = this.mixingTo;			
 			for (var i : int = 0, n : int = tracks.length; i < n; i++) {
 				var entry : TrackEntry = tracks[i];
-				if (entry != null) {
-					entry.setTimelineData(lastEntry, mixingTo, propertyIDs);
-					lastEntry = entry;
-				}
+				if (entry != null) entry.setTimelineData(null, mixingTo, propertyIDs);				
 			}
 		}
 

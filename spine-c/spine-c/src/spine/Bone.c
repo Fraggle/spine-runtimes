@@ -46,6 +46,8 @@ spBone* spBone_create (spBoneData* data, spSkeleton* skeleton, spBone* parent) {
 	CONST_CAST(spBoneData*, self->data) = data;
 	CONST_CAST(spSkeleton*, self->skeleton) = skeleton;
 	CONST_CAST(spBone*, self->parent) = parent;
+	CONST_CAST(float, self->a) = 1.0f;
+	CONST_CAST(float, self->d) = 1.0f;
 	spBone_setToSetupPose(self);
 	return self;
 }
@@ -171,14 +173,14 @@ void spBone_updateWorldTransformWith (spBone* self, float x, float y, float rota
 			lb = COS_DEG(90 + shearY) * scaleY;
 			lc = SIN_DEG(shearX) * scaleX;
 			ld = SIN_DEG(90 + shearY) * scaleY;
+			if (self->data->transformMode != SP_TRANSFORMMODE_NOSCALEORREFLECTION ? pa * pd - pb * pc < 0 : self->skeleton->flipX != self->skeleton->flipY) {
+				zb = -zb;
+				zd = -zd;
+			}
 			CONST_CAST(float, self->a) = za * la + zb * lc;
 			CONST_CAST(float, self->b) = za * lb + zb * ld;
 			CONST_CAST(float, self->c) = zc * la + zd * lc;
 			CONST_CAST(float, self->d) = zc * lb + zd * ld;
-			if (self->data->transformMode != SP_TRANSFORMMODE_NOSCALEORREFLECTION ? pa * pd - pb * pc < 0 : self->skeleton->flipX != self->skeleton->flipY) {
-				CONST_CAST(float, self->b) = -self->b;
-				CONST_CAST(float, self->d) = -self->d;
-			}
 			return;
 		}
 	}

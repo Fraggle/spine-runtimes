@@ -74,7 +74,8 @@ namespace Spine.Unity.Editor {
 			SpineEditorUtilities.ConfirmInitialization();
 			m_skeletonDataAsset = (SkeletonDataAsset)target;
 
-			atlasAssets = serializedObject.FindProperty("atlasAssets");
+			bool newAtlasAssets = atlasAssets == null;
+			if (newAtlasAssets) atlasAssets = serializedObject.FindProperty("atlasAssets");
 			skeletonJSON = serializedObject.FindProperty("skeletonJSON");
 			scale = serializedObject.FindProperty("scale");
 			fromAnimation = serializedObject.FindProperty("fromAnimation");
@@ -87,10 +88,10 @@ namespace Spine.Unity.Editor {
 			#endif
 
 			#if SPINE_TK2D
-			atlasAssets.isExpanded = false;
+			if (newAtlasAssets) atlasAssets.isExpanded = false;
 			spriteCollection = serializedObject.FindProperty("spriteCollection");
 			#else
-			atlasAssets.isExpanded = true;
+			if (newAtlasAssets) atlasAssets.isExpanded = true;
 			#endif
 
 			m_skeletonDataAssetGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m_skeletonDataAsset));
@@ -197,6 +198,32 @@ namespace Spine.Unity.Editor {
 				EditorGUILayout.LabelField("spine-tk2d", EditorStyles.boldLabel);
 				EditorGUILayout.PropertyField(spriteCollection, true);
 				#endif
+
+				{
+					bool hasNulls = false;
+					foreach (var a in m_skeletonDataAsset.atlasAssets) {
+						if (a == null) {
+							hasNulls = true;
+							break;
+						}
+					}
+					if (hasNulls) {
+						if (m_skeletonDataAsset.atlasAssets.Length == 1) {
+							EditorGUILayout.HelpBox("Atlas array cannot have null entries!", MessageType.None);
+						} else {
+							EditorGUILayout.HelpBox("Atlas array should not have null entries!", MessageType.Error);
+							if (SpineInspectorUtility.CenteredButton(SpineInspectorUtility.TempContent("Remove null entries"))) {
+								var trimmedAtlasAssets = new List<AtlasAsset>();
+								foreach (var a in m_skeletonDataAsset.atlasAssets) {
+									if (a != null) trimmedAtlasAssets.Add(a);
+								}
+								m_skeletonDataAsset.atlasAssets = trimmedAtlasAssets.ToArray();
+								serializedObject.Update();
+							}
+						}
+
+					}
+				}
 			}
 
 			if (EditorGUI.EndChangeCheck()) {
@@ -445,69 +472,60 @@ namespace Spine.Unity.Editor {
 		void RepopulateWarnings () {
 			warnings.Clear();
 
-			// Clear null entries.
-			{
-				bool hasNulls = false;
-				foreach (var a in m_skeletonDataAsset.atlasAssets) {
-					if (a == null) {
-						hasNulls = true;
-						break;
-					}
-				}
-				if (hasNulls) {
-					var trimmedAtlasAssets = new List<AtlasAsset>();
-					foreach (var a in m_skeletonDataAsset.atlasAssets) {
-						if (a != null) trimmedAtlasAssets.Add(a);
-					}
-					m_skeletonDataAsset.atlasAssets = trimmedAtlasAssets.ToArray();
-				}
-				serializedObject.Update();
-			}
-
 			if (skeletonJSON.objectReferenceValue == null) {
 				warnings.Add("Missing Skeleton JSON");
 			} else {
 				if (SpineEditorUtilities.IsSpineData((TextAsset)skeletonJSON.objectReferenceValue) == false) {
 					warnings.Add("Skeleton data file is not a valid JSON or binary file.");
 				} else {
-					#if !SPINE_TK2D
-					bool detectedNullAtlasEntry = false;
-					var atlasList = new List<Atlas>();
-					var actualAtlasAssets = m_skeletonDataAsset.atlasAssets;
-					for (int i = 0; i < actualAtlasAssets.Length; i++) {
-						if (m_skeletonDataAsset.atlasAssets[i] == null) {
-							detectedNullAtlasEntry = true;
-							break;
-						} else {
-							atlasList.Add(actualAtlasAssets[i].GetAtlas());
-						}
-					}
+					#if SPINE_TK2D
+					bool searchForSpineAtlasAssets = true;
+					bool isSpriteCollectionNull = spriteCollection.objectReferenceValue == null;
+					if (!isSpriteCollectionNull) searchForSpineAtlasAssets = false;
+					#else
+					const bool searchForSpineAtlasAssets = true;
+					#endif
 
-					if (detectedNullAtlasEntry)
-						warnings.Add("AtlasAsset elements should not be null.");
-					else {
-						// Get requirements.
-						var missingPaths = SpineEditorUtilities.GetRequiredAtlasRegions(AssetDatabase.GetAssetPath((TextAsset)skeletonJSON.objectReferenceValue));
+					if (searchForSpineAtlasAssets) {
+						bool detectedNullAtlasEntry = false;
+						var atlasList = new List<Atlas>();
+						var actualAtlasAssets = m_skeletonDataAsset.atlasAssets;
 
-						foreach (var atlas in atlasList) {
-							for (int i = 0; i < missingPaths.Count; i++) {
-								if (atlas.FindRegion(missingPaths[i]) != null) {
-									missingPaths.RemoveAt(i);
-									i--;
-								}
+						for (int i = 0; i < actualAtlasAssets.Length; i++) {
+							if (m_skeletonDataAsset.atlasAssets[i] == null) {
+								detectedNullAtlasEntry = true;
+								break;
+							} else {
+								atlasList.Add(actualAtlasAssets[i].GetAtlas());
 							}
 						}
 
-						foreach (var str in missingPaths)
-							warnings.Add("Missing Region: '" + str + "'");
-						
+						if (detectedNullAtlasEntry) {
+							warnings.Add("AtlasAsset elements should not be null.");
+						} else {
+							// Get requirements.
+							var missingPaths = SpineEditorUtilities.GetRequiredAtlasRegions(AssetDatabase.GetAssetPath((TextAsset)skeletonJSON.objectReferenceValue));
+
+							foreach (var atlas in atlasList) {
+								for (int i = 0; i < missingPaths.Count; i++) {
+									if (atlas.FindRegion(missingPaths[i]) != null) {
+										missingPaths.RemoveAt(i);
+										i--;
+									}
+								}
+							}
+
+							#if SPINE_TK2D
+							if (missingPaths.Count > 0)
+								warnings.Add("Missing regions. SkeletonDataAsset requires tk2DSpriteCollectionData or Spine AtlasAssets.");
+							#endif
+
+							foreach (var str in missingPaths)
+								warnings.Add("Missing Region: '" + str + "'");
+
+						}
 					}
-					#else
-					if (spriteCollection.objectReferenceValue == null)
-						warnings.Add("SkeletonDataAsset requires tk2DSpriteCollectionData.");
-//					else
-//						warnings.Add("Your sprite collection may have missing images.");
-					#endif
+
 				}
 			}
 		}
@@ -522,6 +540,16 @@ namespace Spine.Unity.Editor {
 		bool m_playing;
 		bool m_requireRefresh;
 		Color m_originColor = new Color(0.3f, 0.3f, 0.3f, 1);
+
+		Camera PreviewUtilityCamera {
+			get {
+				#if UNITY_2017_1_OR_NEWER
+				return m_previewUtility.camera;
+				#else
+				return m_previewUtility.m_Camera;
+				#endif
+			}
+		}
 
 		void StopAnimation () {
 			if (m_skeletonAnimation == null) {
@@ -559,7 +587,7 @@ namespace Spine.Unity.Editor {
 			if (this.m_previewUtility == null) {
 				this.m_lastTime = Time.realtimeSinceStartup;
 				this.m_previewUtility = new PreviewRenderUtility(true);
-				var c = this.m_previewUtility.m_Camera;
+				var c = this.PreviewUtilityCamera;
 				c.orthographic = true;
 				c.orthographicSize = 1;
 				c.cullingMask = -2147483648;
@@ -682,16 +710,17 @@ namespace Spine.Unity.Editor {
 			if (EditorApplication.timeSinceStartup < m_adjustFrameEndTime)
 				AdjustCameraGoals();
 
-			float orthoSet = Mathf.Lerp(this.m_previewUtility.m_Camera.orthographicSize, m_orthoGoal, 0.1f);
+			var c = this.PreviewUtilityCamera;
+			float orthoSet = Mathf.Lerp(c.orthographicSize, m_orthoGoal, 0.1f);
 
-			this.m_previewUtility.m_Camera.orthographicSize = orthoSet;
+			c.orthographicSize = orthoSet;
 
-			float dist = Vector3.Distance(m_previewUtility.m_Camera.transform.position, m_posGoal);
+			float dist = Vector3.Distance(c.transform.position, m_posGoal);
 			if(dist > 0f) {
-				Vector3 pos = Vector3.Lerp(this.m_previewUtility.m_Camera.transform.position, m_posGoal, 0.1f);
+				Vector3 pos = Vector3.Lerp(c.transform.position, m_posGoal, 0.1f);
 				pos.x = 0;
-				this.m_previewUtility.m_Camera.transform.position = pos;
-				this.m_previewUtility.m_Camera.transform.rotation = Quaternion.identity;
+				c.transform.position = pos;
+				c.transform.rotation = Quaternion.identity;
 				m_requireRefresh = true;
 			}
 		}
@@ -710,18 +739,20 @@ namespace Spine.Unity.Editor {
 				if (!EditorApplication.isPlaying)
 					m_skeletonAnimation.LateUpdate();
 
+				var c = this.PreviewUtilityCamera;
+
 				if (drawHandles) {			
-					Handles.SetCamera(m_previewUtility.m_Camera);
+					Handles.SetCamera(c);
 					Handles.color = m_originColor;
 
 					Handles.DrawLine(new Vector3(-1000 * m_skeletonDataAsset.scale, 0, 0), new Vector3(1000 * m_skeletonDataAsset.scale, 0, 0));
 					Handles.DrawLine(new Vector3(0, 1000 * m_skeletonDataAsset.scale, 0), new Vector3(0, -1000 * m_skeletonDataAsset.scale, 0));
 				}
 
-				this.m_previewUtility.m_Camera.Render();
+				c.Render();
 
 				if (drawHandles) {
-					Handles.SetCamera(m_previewUtility.m_Camera);
+					Handles.SetCamera(c);
 					SpineHandles.DrawBoundingBoxes(m_skeletonAnimation.transform, m_skeletonAnimation.skeleton);
 					if (showAttachments) SpineHandles.DrawPaths(m_skeletonAnimation.transform, m_skeletonAnimation.skeleton);
 				}
@@ -904,19 +935,19 @@ namespace Spine.Unity.Editor {
 			}
 		}
 
-
 		public override Texture2D RenderStaticPreview (string assetPath, UnityEngine.Object[] subAssets, int width, int height) {
 			var tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
 
 			this.InitPreview();
-			if (this.m_previewUtility.m_Camera == null)
+			var c = this.PreviewUtilityCamera;
+			if (c == null)
 				return null;
 
 			m_requireRefresh = true;
 			this.DoRenderPreview(false);
 			AdjustCameraGoals(false);
-			this.m_previewUtility.m_Camera.orthographicSize = m_orthoGoal / 2;
-			this.m_previewUtility.m_Camera.transform.position = m_posGoal;
+			c.orthographicSize = m_orthoGoal / 2;
+			c.transform.position = m_posGoal;
 			this.m_previewUtility.BeginStaticPreview(new Rect(0, 0, width, height));
 			this.DoRenderPreview(false);
 			tex = this.m_previewUtility.EndStaticPreview();

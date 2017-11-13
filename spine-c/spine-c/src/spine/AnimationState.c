@@ -193,9 +193,13 @@ void _spAnimationState_disposeTrackEntries (spAnimationState* state, spTrackEntr
 		spTrackEntry* from = entry->mixingFrom;
 		while (from) {
 			spTrackEntry* nextFrom = from->mixingFrom;
+			if (entry->listener) entry->listener(state, SP_ANIMATION_DISPOSE, from, 0);
+			if (state->listener) state->listener(state, SP_ANIMATION_DISPOSE, from, 0);
 			_spAnimationState_disposeTrackEntry(from);
 			from = nextFrom;
 		}
+		if (entry->listener) entry->listener(state, SP_ANIMATION_DISPOSE, entry, 0);
+		if (state->listener) state->listener(state, SP_ANIMATION_DISPOSE, entry, 0);
 		_spAnimationState_disposeTrackEntry(entry);
 		entry = next;
 	}
@@ -312,7 +316,8 @@ int /*boolean*/ _spAnimationState_updateMixingFrom (spAnimationState* self, spTr
 
 	/* Require mixTime > 0 to ensure the mixing from entry was applied at least once. */
 	if (to->mixTime > 0 && (to->mixTime >= to->mixDuration || to->timeScale == 0)) {
-		if (from->totalAlpha == 0) {
+		/* Require totalAlpha == 0 to ensure mixing is complete, unless mixDuration == 0 (the transition is a single frame). */
+		if (from->totalAlpha == 0 || to->mixDuration == 0) {
 			to->mixingFrom = from->mixingFrom;
 			to->interruptAlpha = from->interruptAlpha;
 			_spEventQueue_end(internal->queue, from);
@@ -801,7 +806,6 @@ void _spAnimationState_animationsChanged (spAnimationState* self) {
 	_spAnimationState* internal = SUB_CAST(_spAnimationState, self);
 	int i, n;
 	spTrackEntry* entry;
-	spTrackEntry* lastEntry = 0;
 	spTrackEntryArray* mixingTo;
 	internal->animationsChanged = 0;
 
@@ -812,10 +816,7 @@ void _spAnimationState_animationsChanged (spAnimationState* self) {
 
 	for (;i < n; i++) {
 		entry = self->tracks[i];
-		if (entry != 0) {
-			_spTrackEntry_setTimelineData(entry, lastEntry, mixingTo, self);
-			lastEntry = entry;
-		}
+		if (entry != 0) _spTrackEntry_setTimelineData(entry, 0, mixingTo, self);
 	}
 }
 
@@ -903,7 +904,6 @@ spTrackEntry* _spTrackEntry_setTimelineData(spTrackEntry* self, spTrackEntry* to
 	spTrackEntryArray_clear(self->timelineDipMix);
 	timelineDipMix = spTrackEntryArray_setSize(self->timelineDipMix, timelinesCount)->items;
 
-	outer:
 	for (i = 0; i < timelinesCount; i++) {
 		int id = spTimeline_getPropertyId(timelines[i]);
 		if (!_spAnimationState_addPropertyID(state, id))
@@ -926,5 +926,6 @@ spTrackEntry* _spTrackEntry_setTimelineData(spTrackEntry* self, spTrackEntry* to
 			timelineData[i] = DIP;
 		}
 	}
+	outer:
 	return lastEntry;
 }

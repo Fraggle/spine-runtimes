@@ -47,7 +47,7 @@ package spine.examples {
 	import starling.textures.TextureAtlas;
 
 	public class GoblinsExample extends Sprite {
-		[Embed(source = "/goblins-mesh.json", mimeType = "application/octet-stream")]
+		[Embed(source = "/goblins-pro.json", mimeType = "application/octet-stream")]
 		static public const GoblinsJson : Class;
 
 		[Embed(source = "/goblins.atlas", mimeType = "application/octet-stream")]
@@ -66,7 +66,7 @@ package spine.examples {
 		private var skinChangeCount: Number = 0;
 
 		public function GoblinsExample() {
-			var useStarlingAtlas : Boolean = false;
+			var useStarlingAtlas : Boolean = true;
 
 			var attachmentLoader : AttachmentLoader;
 			if (useStarlingAtlas) {

@@ -129,7 +129,6 @@ void spineboy (SkeletonData* skeletonData, Atlas* atlas) {
 	Slot* headSlot = Skeleton_findSlot(skeleton, "head");
 
 	drawable->state->listener = callback;
-	AnimationState_setAnimationByName(drawable->state, 0, "test", true);
 	AnimationState_addAnimationByName(drawable->state, 0, "walk", true, 0);
 	AnimationState_addAnimationByName(drawable->state, 0, "jump", false, 3);
 	AnimationState_addAnimationByName(drawable->state, 0, "run", true, 0);
@@ -205,18 +204,23 @@ void raptor (SkeletonData* skeletonData, Atlas* atlas) {
 	SkeletonDrawable* drawable = new SkeletonDrawable(skeletonData);
 	drawable->timeScale = 1;
 
+	spSwirlVertexEffect* effect = spSwirlVertexEffect_create(400);
+	effect->centerY = -200;
+	drawable->vertexEffect = &effect->super;
+
 	Skeleton* skeleton = drawable->skeleton;
 	skeleton->x = 320;
 	skeleton->y = 590;
 	Skeleton_updateWorldTransform(skeleton);
 
 	AnimationState_setAnimationByName(drawable->state, 0, "walk", true);
-	AnimationState_addAnimationByName(drawable->state, 1, "gungrab", false, 2);
+	AnimationState_addAnimationByName(drawable->state, 1, "gun-grab", false, 2);
 
 	sf::RenderWindow window(sf::VideoMode(640, 640), "Spine SFML - raptor");
 	window.setFramerateLimit(60);
 	sf::Event event;
 	sf::Clock deltaClock;
+	float swirlTime = 0;
 	while (window.isOpen()) {
 		while (window.pollEvent(event))
 			if (event.type == sf::Event::Closed) window.close();
@@ -224,12 +228,18 @@ void raptor (SkeletonData* skeletonData, Atlas* atlas) {
 		float delta = deltaClock.getElapsedTime().asSeconds();
 		deltaClock.restart();
 
+		swirlTime += delta;
+		float percent = fmod(swirlTime, 2);
+		if (percent > 1) percent = 1 - (percent - 1);
+		effect->angle = _spMath_interpolate(_spMath_pow2_apply, -60, 60, percent);
+
 		drawable->update(delta);
 
 		window.clear();
 		window.draw(*drawable);
 		window.display();
 	}
+	spSwirlVertexEffect_dispose(effect);
 }
 
 void tank (SkeletonData* skeletonData, Atlas* atlas) {
@@ -270,7 +280,7 @@ void vine (SkeletonData* skeletonData, Atlas* atlas) {
 	skeleton->y = 590;
 	Skeleton_updateWorldTransform(skeleton);
 
-	AnimationState_setAnimationByName(drawable->state, 0, "animation", true);
+	AnimationState_setAnimationByName(drawable->state, 0, "grow", true);
 
 	sf::RenderWindow window(sf::VideoMode(640, 640), "Spine SFML - vine");
 	window.setFramerateLimit(60);
@@ -339,6 +349,7 @@ void coin (SkeletonData* skeletonData, Atlas* atlas) {
 	window.setFramerateLimit(60);
 	sf::Event event;
 	sf::Clock deltaClock;
+	float swirlTime = 0;
 	while (window.isOpen()) {
 		while (window.pollEvent(event))
 			if (event.type == sf::Event::Closed) window.close();
@@ -382,13 +393,13 @@ void test (SkeletonData* skeletonData, Atlas* atlas) {
 }
 
 int main () {
-	testcase(test, "data/tank.json", "data/tank.skel", "data/tank.atlas", 1.0f);
-	testcase(coin, "data/coin.json", "data/coin.skel", "data/coin.atlas", 0.5f);
-	testcase(vine, "data/vine.json", "data/vine.skel", "data/vine.atlas", 0.5f);
-	testcase(tank, "data/tank.json", "data/tank.skel", "data/tank.atlas", 0.2f);
-	testcase(raptor, "data/raptor.json", "data/raptor.skel", "data/raptor.atlas", 0.5f);
-	testcase(spineboy, "data/spineboy.json", "data/spineboy.skel", "data/spineboy.atlas", 0.6f);
-	testcase(goblins, "data/goblins-mesh.json", "data/goblins-mesh.skel", "data/goblins.atlas", 1.4f);
-	testcase(stretchyman, "data/stretchyman.json", "data/stretchyman.skel", "data/stretchyman.atlas", 0.6f);
+	testcase(test, "data/tank-pro.json", "data/tank-pro.skel", "data/tank.atlas", 1.0f);
+	testcase(coin, "data/coin-pro.json", "data/coin-pro.skel", "data/coin.atlas", 0.5f);
+	testcase(vine, "data/vine-pro.json", "data/vine-pro.skel", "data/vine.atlas", 0.5f);
+	testcase(tank, "data/tank-pro.json", "data/tank-pro.skel", "data/tank.atlas", 0.2f);
+	testcase(raptor, "data/raptor-pro.json", "data/raptor-pro.skel", "data/raptor.atlas", 0.5f);
+	testcase(spineboy, "data/spineboy-ess.json", "data/spineboy-ess.skel", "data/spineboy.atlas", 0.6f);
+	testcase(goblins, "data/goblins-pro.json", "data/goblins-pro.skel", "data/goblins.atlas", 1.4f);
+	testcase(stretchyman, "data/stretchyman-pro.json", "data/stretchyman-pro.skel", "data/stretchyman.atlas", 0.6f);
 	return 0;
 }

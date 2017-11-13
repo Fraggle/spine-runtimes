@@ -61,13 +61,14 @@ namespace Spine.Unity {
 		public bool useClipping = true;
 		public bool immutableTriangles = false;
 		public bool pmaVertexColors = true;
+		/// <summary>Clears the state when this component or its GameObject is disabled. This prevents previous state from being retained when it is enabled again. When pooling your skeleton, setting this to true can be helpful.</summary>
 		public bool clearStateOnDisable = false;
 		public bool tintBlack = false;
 		public bool singleSubmesh = false;
 
 		[UnityEngine.Serialization.FormerlySerializedAs("calculateNormals")]
-		public bool addNormals;
-		public bool calculateTangents;
+		public bool addNormals = false;
+		public bool calculateTangents = false;
 
 		public bool logErrors = false;
 
@@ -134,6 +135,18 @@ namespace Spine.Unity {
 			}
 			return c;
 		}
+
+		/// <summary>Applies MeshGenerator settings to the SkeletonRenderer and its internal MeshGenerator.</summary>
+		public void SetMeshSettings (MeshGenerator.Settings settings) {
+			this.calculateTangents = settings.calculateTangents;
+			this.immutableTriangles = settings.immutableTriangles;
+			this.pmaVertexColors = settings.pmaVertexColors;
+			this.tintBlack = settings.tintBlack;
+			this.useClipping = settings.useClipping;
+			this.zSpacing = settings.zSpacing;
+
+			this.meshGenerator.settings = settings;
+		}
 		#endregion
 
 		public virtual void Awake () {
@@ -147,9 +160,10 @@ namespace Spine.Unity {
 
 		void OnDestroy () {
 			rendererBuffers.Dispose();
+			valid = false;
 		}
 
-		protected virtual void ClearState () {
+		public virtual void ClearState () {
 			meshFilter.sharedMesh = null;
 			currentInstructions.Clear();
 			if (skeleton != null) skeleton.SetToSetupPose();
@@ -283,7 +297,7 @@ namespace Spine.Unity {
 					meshGenerator.BuildMeshWithArrays(currentInstructions, updateTriangles);
 			}
 
-			if (OnPostProcessVertices != null) OnPostProcessVertices.Invoke(this.meshGenerator);
+			if (OnPostProcessVertices != null) OnPostProcessVertices.Invoke(this.meshGenerator.Buffers);
 
 			// STEP 3. Move the mesh data into a UnityEngine.Mesh ===========================================================================
 			var currentMesh = currentSmartMesh.mesh;

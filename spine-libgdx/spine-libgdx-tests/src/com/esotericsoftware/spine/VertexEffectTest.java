@@ -39,7 +39,6 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Interpolation;
-import com.esotericsoftware.spine.vertexeffects.JitterEffect;
 import com.esotericsoftware.spine.vertexeffects.SwirlEffect;
 
 public class VertexEffectTest extends ApplicationAdapter {
@@ -63,7 +62,7 @@ public class VertexEffectTest extends ApplicationAdapter {
 		atlas = new TextureAtlas(Gdx.files.internal("raptor/raptor-pma.atlas"));
 		SkeletonJson json = new SkeletonJson(atlas); // This loads skeleton JSON data, which is stateless.
 		json.setScale(0.5f); // Load the skeleton at 50% the size it was in Spine.
-		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("raptor/raptor.json"));
+		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("raptor/raptor-pro.json"));
 
 		skeleton = new Skeleton(skeletonData); // Skeleton holds skeleton state (bone positions, slot attachments, etc).
 		skeleton.setPosition(350, 45);
@@ -75,13 +74,12 @@ public class VertexEffectTest extends ApplicationAdapter {
 
 		// Queue animations on tracks 0 and 1.
 		state.setAnimation(0, "walk", true);
-		state.setAnimation(1, "empty", false);
-		state.addAnimation(1, "gungrab", false, 2); // Keys in higher tracks override the pose from lower tracks.
+		state.addAnimation(1, "gun-grab", false, 2); // Keys in higher tracks override the pose from lower tracks.
 		
 		swirl = new SwirlEffect(400);
 		swirl.setCenter(0, 200);
 		renderer.setVertexEffect(swirl);
-		renderer.setVertexEffect(new JitterEffect(10, 10));
+		// renderer.setVertexEffect(new JitterEffect(10, 10));
 	}
 
 	public void render () {

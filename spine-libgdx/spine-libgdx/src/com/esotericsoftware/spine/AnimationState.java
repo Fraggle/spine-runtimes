@@ -144,7 +144,8 @@ public class AnimationState {
 
 		// Require mixTime > 0 to ensure the mixing from entry was applied at least once.
 		if (to.mixTime > 0 && (to.mixTime >= to.mixDuration || to.timeScale == 0)) {
-			if (from.totalAlpha == 0) {
+			// Require totalAlpha == 0 to ensure mixing is complete, unless mixDuration == 0 (the transition is a single frame).
+			if (from.totalAlpha == 0 || to.mixDuration == 0) {
 				to.mixingFrom = from.mixingFrom;
 				to.interruptAlpha = from.interruptAlpha;
 				queue.end(from);
@@ -610,13 +611,9 @@ public class AnimationState {
 		propertyIDs.clear();
 		Array<TrackEntry> mixingTo = this.mixingTo;
 
-		TrackEntry lastEntry = null;
 		for (int i = 0, n = tracks.size; i < n; i++) {
 			TrackEntry entry = tracks.get(i);
-			if (entry != null) {
-				entry.setTimelineData(lastEntry, mixingTo, propertyIDs);
-				lastEntry = entry;
-			}
+			if (entry != null) entry.setTimelineData(null, mixingTo, propertyIDs);
 		}
 	}
 

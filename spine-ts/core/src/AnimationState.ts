@@ -116,7 +116,8 @@ module spine {
 
 			// Require mixTime > 0 to ensure the mixing from entry was applied at least once.
 			if (to.mixTime > 0 && (to.mixTime >= to.mixDuration || to.timeScale == 0)) {
-				if (from.totalAlpha == 0) {
+				// Require totalAlpha == 0 to ensure mixing is complete, unless mixDuration == 0 (the transition is a single frame).
+				if (from.totalAlpha == 0 || to.mixDuration == 0) {
 					to.mixingFrom = from.mixingFrom;
 					to.interruptAlpha = from.interruptAlpha;
 					this.queue.end(from);
@@ -208,7 +209,7 @@ module spine {
 			let firstFrame = from.timelinesRotation.length == 0;
 			if (firstFrame) Utils.setArraySize(from.timelinesRotation, timelineCount << 1, null);
 			let timelinesRotation = from.timelinesRotation;
-			
+
 			let pose: MixPose;
 			let alphaDip = from.alpha * to.interruptAlpha, alphaMix = alphaDip * (1 - mix), alpha = 0;
 			from.totalAlpha = 0;
@@ -239,7 +240,7 @@ module spine {
 				from.totalAlpha += alpha;
 				if (timeline instanceof RotateTimeline)
 					this.applyRotateTimeline(timeline, skeleton, animationTime, alpha, pose, timelinesRotation, i << 1, firstFrame);
-				else {					
+				else {
 					timeline.apply(skeleton, animationLast, animationTime, events, alpha, pose, MixDirection.out);
 				}
 			}
@@ -540,13 +541,9 @@ module spine {
 			propertyIDs.clear();
 			let mixingTo = this.mixingTo;
 
-			let lastEntry: TrackEntry = null;
 			for (var i = 0, n = this.tracks.length; i < n; i++) {
 				let entry = this.tracks[i];
-				if (entry != null) {
-					entry.setTimelineData(lastEntry, mixingTo, propertyIDs);
-					lastEntry = entry;
-				}
+				if (entry != null) entry.setTimelineData(null, mixingTo, propertyIDs);
 			}
 		}
 

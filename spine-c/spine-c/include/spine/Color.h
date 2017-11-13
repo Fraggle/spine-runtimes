@@ -31,6 +31,8 @@
 #ifndef SPINE_COLOR_H_
 #define SPINE_COLOR_H_
 
+#include <spine/dll.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,17 +44,21 @@ typedef struct spColor {
 	spColor() :
 		r(0), g(0), b(0), a(0) {
 	}
+
+	bool operator==(const spColor& rhs) {
+		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
 #endif
 } spColor;
 
 /* @param attachmentName May be 0 for no setup pose attachment. */
-spColor* spColor_create();
-void spColor_dispose(spColor* self);
-void spColor_setFromFloats(spColor* color, float r, float g, float b, float a);
-void spColor_setFromColor(spColor* color, spColor* otherColor);
-void spColor_addFloats(spColor* color, float r, float g, float b, float a);
-void spColor_addColor(spColor* color, spColor* otherColor);
-void spColor_clamp(spColor* color);
+SP_API spColor* spColor_create();
+SP_API void spColor_dispose(spColor* self);
+SP_API void spColor_setFromFloats(spColor* color, float r, float g, float b, float a);
+SP_API void spColor_setFromColor(spColor* color, spColor* otherColor);
+SP_API void spColor_addFloats(spColor* color, float r, float g, float b, float a);
+SP_API void spColor_addColor(spColor* color, spColor* otherColor);
+SP_API void spColor_clamp(spColor* color);
 
 #ifdef SPINE_SHORT_NAMES
 typedef spColor color;
