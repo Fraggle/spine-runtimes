@@ -20,16 +20,27 @@ target_include_directories(spineruntime PUBLIC
     spine-c/spine-c/src/spine
     ../cocos2d-x/cocos)
 
-# Create target which consume the command via DEPENDS.
-get_filename_component(LIB_PUBLISH_DIRECTORY
-                       "../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
-                       ABSOLUTE)
-file(MAKE_DIRECTORY ${LIB_PUBLISH_DIRECTORY})
-add_custom_command(TARGET spineruntime POST_BUILD
-                   COMMAND "${CMAKE_COMMAND}" -E
-                   copy "${CMAKE_BINARY_DIR}/libspineruntime.a"
-                   "${LIB_PUBLISH_DIRECTORY}/libspineruntime.a"
-                   COMMENT "Copying library to output directory")
+if(ANDROID)
 
+    # Create target which consume the command via DEPENDS.
+    get_filename_component(LIB_PUBLISH_DIRECTORY
+                           "../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
+                           ABSOLUTE)
+    file(MAKE_DIRECTORY ${LIB_PUBLISH_DIRECTORY})
+    add_custom_command(TARGET spineruntime POST_BUILD
+                       COMMAND "${CMAKE_COMMAND}" -E
+                       copy "${CMAKE_BINARY_DIR}/libspineruntime.a"
+                       "${LIB_PUBLISH_DIRECTORY}/libspineruntime.a"
+                       COMMENT "Copying library to output directory")
 
+endif()
 
+if(EMSCRIPTEN)
+
+	# str(n)dup() is a POSIX 2008 extension, yet was natively added to BSD before it made it to posix.
+	# It is therefore available on those platforms, but not on emscripten, unless _POSIX_SOURCE is defined
+	# and set to a positive integer
+
+	add_definitions(-D_POSIX_SOURCE=1)
+
+endif()
