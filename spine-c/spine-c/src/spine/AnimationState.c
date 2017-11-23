@@ -449,7 +449,7 @@ float _spAnimationState_applyMixingFrom (spAnimationState* self, spTrackEntry* t
 				if (!attachments && timeline->type == SP_TIMELINE_ATTACHMENT) continue;
 				if (!drawOrder && timeline->type == SP_TIMELINE_DRAWORDER) continue;
 				pose = currentPose;
-				alpha = alphaMix;
+				alpha = alphaDip;
 				break;
 			case FIRST:
 				pose = SP_MIX_POSE_SETUP;
