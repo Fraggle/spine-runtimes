@@ -59,12 +59,30 @@ GLuint filter (spAtlasFilter filter) {
 	return GL_LINEAR;
 }
 
+// GL_TEXTURE_MAG_FILTER only supports GL_NEAREST or GL_LINEAR http://docs.gl/es2/glTexParameter
+GLuint magFilter (spAtlasFilter filter) {
+    switch (filter) {
+        case SP_ATLAS_UNKNOWN_FILTER:
+            break;
+        case SP_ATLAS_MIPMAP_NEAREST_LINEAR:
+        case SP_ATLAS_MIPMAP_NEAREST_NEAREST:
+        case SP_ATLAS_NEAREST:
+            return GL_NEAREST;
+        case SP_ATLAS_LINEAR:
+        case SP_ATLAS_MIPMAP:
+        case SP_ATLAS_MIPMAP_LINEAR_NEAREST:
+        case SP_ATLAS_MIPMAP_LINEAR_LINEAR:
+            return GL_LINEAR;
+    }
+    return GL_LINEAR;
+}
+
 void _spAtlasPage_createTexture (spAtlasPage* self, const char* path) {
 	Texture2D* texture = Director::getInstance()->getTextureCache()->addImage(path);
 	CCASSERT(texture != nullptr, "Invalid image");
 	texture->retain();
 
-	Texture2D::TexParams textureParams = {filter(self->minFilter), filter(self->magFilter), wrap(self->uWrap), wrap(self->vWrap)};
+	Texture2D::TexParams textureParams = {filter(self->minFilter), magFilter(self->magFilter), wrap(self->uWrap), wrap(self->vWrap)};
 	texture->setTexParameters(textureParams);
 
 	self->rendererObject = texture;
