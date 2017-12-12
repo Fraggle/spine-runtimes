@@ -171,7 +171,7 @@ char* _spUtil_readFile (const char* path, int* length);
 
 #ifdef NDEBUG
 void* _spMalloc (size_t size);
-void* _spCalloc (size_t num);
+void* _spCalloc (size_t num, size_t size);
 #else
 void* _spMalloc (size_t size, const char* file, int line);
 void* _spCalloc (size_t num, size_t size, const char* file, int line);

@@ -47,18 +47,19 @@ static float (*randomFunc) () = _spInternalRandom;
 void* _spMalloc (size_t size) {
 #else
 void* _spMalloc (size_t size, const char* file, int line) {
-#endif
 	if(debugMallocFunc)
 		return debugMallocFunc(size, file, line);
+#endif
 
 	return mallocFunc(size);
 }
 #ifdef NDEBUG
 void* _spCalloc (size_t num, size_t size) {
+	void* ptr = _spMalloc(num * size);
 #else
 void* _spCalloc (size_t num, size_t size, const char* file, int line) {
-#endif
 	void* ptr = _spMalloc(num * size, file, line);
+#endif
 	if (ptr) memset(ptr, 0, num * size);
 	return ptr;
 }
