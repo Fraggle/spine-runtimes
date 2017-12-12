@@ -266,7 +266,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			color.r = attachment->color.r;
 			color.g = attachment->color.g;
 			color.b = attachment->color.b;
-			color.a = attachment->color.a;
+			color.a = mask ? 0 : attachment->color.a;
 			
 			break;
 		}
@@ -318,6 +318,11 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			blendFunc.src = _premultipliedAlpha ? GL_ONE : GL_SRC_ALPHA;
 			blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		}
+
+        if (mask) {
+            blendFunc.src = GL_ONE;
+            blendFunc.dst = GL_ZERO;
+        }
 		
 		if (!isTwoColorTint) {
 			if (spSkeletonClipping_isClipping(_clipper)) {
