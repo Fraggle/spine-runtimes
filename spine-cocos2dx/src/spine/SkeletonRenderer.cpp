@@ -291,7 +291,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 
 		color.a *= nodeColor.a * _skeleton->color.a * slot->color.a * 255;
 		// skip rendering if the color of this attachment is 0
-		if (color.a == 0){
+		if (color.a == 0 && mask == false) {
 			spSkeletonClipping_clipEnd(_clipper, slot);
 			continue;
 		}
