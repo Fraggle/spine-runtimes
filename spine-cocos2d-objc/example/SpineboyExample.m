@@ -35,7 +35,7 @@
 
 + (CCScene*) scene {
 	CCScene *scene = [CCScene node];
-	[scene addChild:[SpineboyExample node]];
+	[scene addChild:[SpineboyExample node]];	
 	return scene;
 }
 
@@ -43,11 +43,12 @@
 	self = [super init];
 	if (!self) return nil;
 
-	skeletonNode = [SkeletonAnimation skeletonWithFile:@"spineboy.json" atlasFile:@"spineboy.atlas" scale:0.6];
+	skeletonNode = [SkeletonAnimation skeletonWithFile:@"spineboy-ess.json" atlasFile:@"spineboy.atlas" scale:0.4];
 	[skeletonNode setMixFrom:@"walk" to:@"jump" duration:0.2f];
 	[skeletonNode setMixFrom:@"jump" to:@"run" duration:0.2f];
 
     __weak SkeletonAnimation* node = skeletonNode;
+	skeletonNode.twoColorTint = true;
 	skeletonNode.startListener = ^(spTrackEntry* entry) {
 		const char* animationName = entry->animation->name;
 		NSLog(@"%d start: %s", entry->trackIndex, animationName);
@@ -69,12 +70,8 @@
 	};
 
 	[skeletonNode setAnimationForTrack:0 name:@"walk" loop:YES];
-	spTrackEntry* jumpEntry = [skeletonNode addAnimationForTrack:0 name:@"jump" loop:NO afterDelay:3];
+	[skeletonNode addAnimationForTrack:0 name:@"jump" loop:NO afterDelay:2];
 	[skeletonNode addAnimationForTrack:0 name:@"run" loop:YES afterDelay:0];
-
-	[skeletonNode setListenerForEntry:jumpEntry onStart:^(spTrackEntry* entry) {
-		CCLOG(@"jumped!");
-	}];
 
 	// [skeletonNode setAnimationForTrack:1 name:@"test" loop:YES];
 

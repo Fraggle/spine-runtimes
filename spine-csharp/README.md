@@ -10,13 +10,13 @@ The Spine Runtimes are developed with the intent to be used with data exported f
 
 ## Spine version
 
-spine-csharp works with data exported from Spine 3.5.xx.
+spine-csharp works with data exported from Spine 3.6.xx.
 
 spine-csharp supports all Spine features.
 
 ## Setup
 
-1. Download the Spine Runtimes source using [git](https://help.github.com/articles/set-up-git) or by downloading it [as a zip](https://github.com/EsotericSoftware/spine-runtimes/archive/master.zip).
+1. Download the Spine Runtimes source using [git](https://help.github.com/articles/set-up-git) or by downloading it [as a zip](https://github.com/EsotericSoftware/spine-runtimes/archive/3.6.zip).
 1. Open the `spine-csharp.sln` Visual Studio 2015 Community project file.
 
 Alternatively, the contents of the `spine-csharp/src` directory can be copied into your project.

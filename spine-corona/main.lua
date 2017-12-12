@@ -5,6 +5,8 @@ local spine = require "spine-corona.spine"
 local skeletons = {}
 local activeSkeleton = 1
 local lastTime = 0
+local swirl = spine.SwirlEffect.new(400)
+local swirlTime = 0
 
 function loadSkeleton(atlasFile, jsonFile, x, y, scale, animation, skin)
 	-- to load an atlas, we need to define a function that returns
@@ -67,7 +69,11 @@ function loadSkeleton(atlasFile, jsonFile, x, y, scale, animation, skin)
 		animationState:setAnimationByName(0, "walk", true)
 		local jumpEntry = animationState:addAnimationByName(0, "jump", false, 3)
 		animationState:addAnimationByName(0, "run", true, 0)
-  else
+  elseif atlasFile == "raptor.atlas" then
+		--skeleton.vertexEffect = spine.JitterEffect.new(5, 5)
+		skeleton.vertexEffect = swirl
+		animationState:setAnimationByName(0, animation, true)
+	else
     animationState:setAnimationByName(0, animation, true)
   end
 
@@ -75,12 +81,33 @@ function loadSkeleton(atlasFile, jsonFile, x, y, scale, animation, skin)
 	return { skeleton = skeleton, state = animationState }
 end
 
-table.insert(skeletons, loadSkeleton("spineboy.atlas", "spineboy.json", 240, 300, 0.4, "walk"))
-table.insert(skeletons, loadSkeleton("raptor.atlas", "raptor.json", 200, 300, 0.25, "walk"))
-table.insert(skeletons, loadSkeleton("goblins.atlas", "goblins-mesh.json", 240, 300, 0.8, "walk", "goblin"))
-table.insert(skeletons, loadSkeleton("stretchyman.atlas", "stretchyman.json", 40, 300, 0.5, "sneak"))
-table.insert(skeletons, loadSkeleton("tank.atlas", "tank.json", 400, 300, 0.2, "drive"))
-table.insert(skeletons, loadSkeleton("vine.atlas", "vine.json", 240, 300, 0.3, "animation"))
+-- table.insert(skeletons, loadSkeleton("coin.atlas", "coin-pro.json", 240, 300, 0.4, "rotate"))
+-- table.insert(skeletons, loadSkeleton("spineboy.atlas", "spineboy-ess.json", 240, 300, 0.4, "walk"))
+table.insert(skeletons, loadSkeleton("raptor.atlas", "raptor-pro.json", 200, 300, 0.25, "walk"))
+-- table.insert(skeletons, loadSkeleton("goblins.atlas", "goblins-pro.json", 240, 300, 0.8, "walk", "goblin"))
+table.insert(skeletons, loadSkeleton("stretchyman.atlas", "stretchyman-pro.json", 40, 300, 0.5, "sneak"))
+-- table.insert(skeletons, loadSkeleton("tank.atlas", "tank-pro.json", 400, 300, 0.2, "drive"))
+table.insert(skeletons, loadSkeleton("vine.atlas", "vine-pro.json", 240, 300, 0.3, "grow"))
+
+local triangulator = spine.Triangulator.new()
+local polygon = { 411, 219, 199, 230, 161, 362, 534, 407, 346, 305, 596, 265 }
+local indices = triangulator:triangulate(polygon)
+print(indices)
+print(triangulator:decompose(polygon, indices))
+
+local skeletonClipping = spine.SkeletonClipping.new()
+local polygon2 = {0, 0, 100, 0, 100, 100, 0, 100 }
+skeletonClipping:makeClockwise(polygon2)
+print(polygon2)
+
+
+local bounds = spine.SkeletonBounds.new()
+skeletons[1].skeleton:updateWorldTransform()
+bounds:update(skeletons[1].skeleton, true)
+
+local offset = {}
+local size = {}
+skeletons[1].skeleton:getBounds(offset, size)
 
 display.setDefault("background", 0.2, 0.2, 0.2, 1)
 
@@ -88,6 +115,11 @@ Runtime:addEventListener("enterFrame", function (event)
 	local currentTime = event.time / 1000
 	local delta = currentTime - lastTime
 	lastTime = currentTime
+	
+	swirlTime = swirlTime + delta
+	local percent = swirlTime % 2
+	if (percent > 1) then percent = 1 - (percent - 1) end
+	swirl.angle = spine.Interpolation.apply(spine.Interpolation.pow2, -60, 60, percent)
 
 	skeleton = skeletons[activeSkeleton].skeleton
 	skeleton.group.isVisible = true
@@ -104,7 +136,7 @@ end)
 Runtime:addEventListener("key", function(event)
 	if activeSkeleton == 2 and event.phase == "down" then
 		state = skeletons[activeSkeleton].state
-		state:setAnimationByName(0, "Jump", false)
+		state:setAnimationByName(0, "jump", false)
 		state:addAnimationByName(0, "walk", true, 0)
 	end
 	return false

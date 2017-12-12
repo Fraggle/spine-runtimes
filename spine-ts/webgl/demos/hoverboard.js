@@ -21,6 +21,10 @@ var hoverboardDemo = function(loadingComplete, bgColor) {
 		canvas = document.getElementById("hoverboard-canvas");
 		canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
 		gl = canvas.getContext("webgl", { alpha: false }) || canvas.getContext("experimental-webgl", { alpha: false });
+		if (!gl) {
+			alert('WebGL is unavailable.');
+			return;
+		}
 
 		renderer = new spine.webgl.SceneRenderer(canvas, gl);
 		assetManager = spineDemos.assetManager;
@@ -50,7 +54,7 @@ var hoverboardDemo = function(loadingComplete, bgColor) {
 			skeleton.updateWorldTransform();
 			var offset = new spine.Vector2();
 			bounds = new spine.Vector2();
-			skeleton.getBounds(offset, bounds);
+			skeleton.getBounds(offset, bounds, []);
 			for (var i = 0; i < controlBones.length; i++) hoverTargets.push(null);
 
 			renderer.camera.position.x = offset.x + bounds.x / 2;
@@ -145,8 +149,8 @@ var hoverboardDemo = function(loadingComplete, bgColor) {
 			var bone = skeleton.findBone(controlBones[i]);
 			var colorInner = hoverTargets[i] !== null ? spineDemos.HOVER_COLOR_INNER : spineDemos.NON_HOVER_COLOR_INNER;
 			var colorOuter = hoverTargets[i] !== null ? spineDemos.HOVER_COLOR_OUTER : spineDemos.NON_HOVER_COLOR_OUTER;
-			renderer.circle(true, bone.worldX, bone.worldY, 20, colorInner);
-			renderer.circle(false, bone.worldX, bone.worldY, 20, colorOuter);
+			renderer.circle(true, skeleton.x + bone.worldX, skeleton.y + bone.worldY, 20, colorInner);
+			renderer.circle(false, skeleton.x + bone.worldX, skeleton.y + bone.worldY, 20, colorOuter);
 		}
 		renderer.end();
 		gl.lineWidth(1);

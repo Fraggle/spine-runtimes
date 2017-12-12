@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 #import "TankExample.h"
-#import "SpineboyExample.h"
+#import "CoinExample.h"
 
 @implementation TankExample
 
@@ -43,7 +43,7 @@
     self = [super init];
     if (!self) return nil;
     
-    skeletonNode = [SkeletonAnimation skeletonWithFile:@"tank.json" atlasFile:@"tank.atlas" scale:0.2f];
+    skeletonNode = [SkeletonAnimation skeletonWithFile:@"tank-pro.json" atlasFile:@"tank.atlas" scale:0.2f];
     [skeletonNode setAnimationForTrack:0 name:@"drive" loop:YES];
     
     CGSize windowSize = [[CCDirector sharedDirector] viewSize];
@@ -63,7 +63,7 @@
     else if (skeletonNode.timeScale == 1)
         skeletonNode.timeScale = 0.3f;
     else
-        [[CCDirector sharedDirector] replaceScene:[SpineboyExample scene]];
+        [[CCDirector sharedDirector] replaceScene:[CoinExample scene]];
 }
 #endif
 

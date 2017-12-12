@@ -42,7 +42,7 @@ import com.esotericsoftware.spine.attachments.VertexAttachment;
 public class Slot {
 	final SlotData data;
 	final Bone bone;
-	final Color color;
+	final Color color = new Color(), darkColor;
 	Attachment attachment;
 	private float attachmentTime;
 	private FloatArray attachmentVertices = new FloatArray();
@@ -52,7 +52,7 @@ public class Slot {
 		if (bone == null) throw new IllegalArgumentException("bone cannot be null.");
 		this.data = data;
 		this.bone = bone;
-		color = new Color();
+		darkColor = data.darkColor == null ? null : new Color();
 		setToSetupPose();
 	}
 
@@ -62,7 +62,8 @@ public class Slot {
 		if (bone == null) throw new IllegalArgumentException("bone cannot be null.");
 		data = slot.data;
 		this.bone = bone;
-		color = new Color(slot.color);
+		color.set(slot.color);
+		darkColor = slot.darkColor == null ? null : new Color(slot.darkColor);
 		attachment = slot.attachment;
 		attachmentTime = slot.attachmentTime;
 	}
@@ -82,9 +83,16 @@ public class Slot {
 		return bone.skeleton;
 	}
 
-	/** The color used to tint the slot's attachment. */
+	/** The color used to tint the slot's attachment. If {@link #getDarkColor()} is set, this is used as the light color for two
+	 * color tinting. */
 	public Color getColor () {
 		return color;
+	}
+
+	/** The dark color used to tint the slot's attachment for two color tinting, or null if two color tinting is not used. The dark
+	 * color's alpha is not used. */
+	public Color getDarkColor () {
+		return darkColor;
 	}
 
 	/** The current attachment for the slot, or null if the slot has no attachment. */
@@ -115,7 +123,7 @@ public class Slot {
 	/** Vertices to deform the slot's attachment. For an unweighted mesh, the entries are local positions for each vertex. For a
 	 * weighted mesh, the entries are an offset for each vertex which will be added to the mesh's local vertex positions.
 	 * <p>
-	 * See {@link VertexAttachment#computeWorldVertices(Slot, int, int, float[], int)} and {@link DeformTimeline}. */
+	 * See {@link VertexAttachment#computeWorldVertices(Slot, int, int, float[], int, int)} and {@link DeformTimeline}. */
 	public FloatArray getAttachmentVertices () {
 		return attachmentVertices;
 	}
@@ -128,6 +136,7 @@ public class Slot {
 	/** Sets this slot to the setup pose. */
 	public void setToSetupPose () {
 		color.set(data.color);
+		if (darkColor != null) darkColor.set(data.darkColor);
 		if (data.attachmentName == null)
 			setAttachment(null);
 		else {

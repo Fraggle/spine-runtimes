@@ -47,6 +47,7 @@ local AttachmentType = require "spine-lua.attachments.AttachmentType"
 local BlendMode = require "spine-lua.BlendMode"
 local TransformMode = require "spine-lua.TransformMode"
 local utils = require "spine-lua.utils"
+local Color = require "spine-lua.Color"
 
 local SkeletonJson = {}
 function SkeletonJson.new (attachmentLoader)
@@ -129,6 +130,15 @@ function SkeletonJson.new (attachmentLoader)
 					               tonumber(color:sub(3, 4), 16) / 255,
 					               tonumber(color:sub(5, 6), 16) / 255,
 					               tonumber(color:sub(7, 8), 16) / 255)
+				end
+
+				local dark = slotMap["dark"]
+				if dark then
+					data.darkColor = Color.newWith(1, 1, 1, 1)
+					data.darkColor:set(tonumber(dark:sub(1, 2), 16) / 255,
+					               tonumber(dark:sub(3, 4), 16) / 255,
+					               tonumber(dark:sub(5, 6), 16) / 255,
+					               0)
 				end
 
 				data.attachmentName = getValue(slotMap, "attachment", nil)
@@ -232,7 +242,7 @@ function SkeletonJson.new (attachmentLoader)
 				for slotName,slotMap in pairs(skinMap) do
 					local slotIndex = skeletonData.slotNameIndices[slotName]
 					for attachmentName,attachmentMap in pairs(slotMap) do
-						local attachment = readAttachment(attachmentMap, skin, slotIndex, attachmentName)
+						local attachment = readAttachment(attachmentMap, skin, slotIndex, attachmentName, skeletonData)
 						if attachment then
 							skin:addAttachment(slotIndex, attachmentName, attachment)
 						end
@@ -246,7 +256,7 @@ function SkeletonJson.new (attachmentLoader)
 		-- Linked meshes
 		for i, linkedMesh in ipairs(self.linkedMeshes) do
 			local skin = skeletonData.defaultSkin
-			if linkedMesh.skin then skin = skeletonData.findSkin(linkedMesh.skin) end
+			if linkedMesh.skin then skin = skeletonData:findSkin(linkedMesh.skin) end
 			if not skin then error("Skin not found: " .. linkedMesh.skin) end
 			local parent = skin:getAttachment(linkedMesh.slotIndex, linkedMesh.parent)
 			if not parent then error("Parent mesh not found: " + linkedMesh.parent) end
@@ -276,7 +286,7 @@ function SkeletonJson.new (attachmentLoader)
 		return skeletonData
 	end
 
-	readAttachment = function (map, skin, slotIndex, name)
+	readAttachment = function (map, skin, slotIndex, name, skeletonData)
 		local scale = self.scale
 		name = getValue(map, "name", name)
 
@@ -380,6 +390,43 @@ function SkeletonJson.new (attachmentLoader)
 				               tonumber(color:sub(7, 8), 16) / 255)
 			end
 			return path;
+		
+		elseif type == AttachmentType.point then
+			local point = self.attachmentLoader:newPointAttachment(skin, name)
+			if not point then return nil end
+			point.x = getValue(map, "x", 0) * scale
+			point.y = getValue(map, "y", 0) * scale
+			point.rotation = getValue(map, "rotation", 0)
+			
+			local color = map.color
+			if color then
+				path.color:set(tonumber(color:sub(1, 2), 16) / 255,
+				               tonumber(color:sub(3, 4), 16) / 255,
+				               tonumber(color:sub(5, 6), 16) / 255,
+				               tonumber(color:sub(7, 8), 16) / 255)
+			end
+			return point
+		
+		elseif type == AttachmentType.clipping then
+			local clip = attachmentLoader:newClippingAttachment(skin, name)
+			if not clip then return nil end
+			
+			local _end = getValue(map, "end", nil)
+			if _end then
+				local slot = skeletonData:findSlot(_end)
+				if not slot then error("Clipping end slot not found: " + _end) end
+				clip.endSlot = slot
+			end
+			
+			readVertices(map, clip, map.vertexCount * 2)
+			local color = map.color
+			if color then
+				clip.color:set(tonumber(color:sub(1, 2), 16) / 255,
+				              tonumber(color:sub(3, 4), 16) / 255,
+				              tonumber(color:sub(5, 6), 16) / 255,
+				              tonumber(color:sub(7, 8), 16) / 255)
+			end
+			return clip
 		end
 
 		error("Unknown attachment type: " .. type .. " (" .. name .. ")")
@@ -454,7 +501,29 @@ function SkeletonJson.new (attachmentLoader)
 						end
 						table_insert(timelines, timeline)
 						duration = math.max(duration, timeline.frames[(timeline:getFrameCount() - 1) * Animation.ColorTimeline.ENTRIES])
+					elseif timelineName == "twoColor" then
+						local timeline = Animation.TwoColorTimeline.new(#values)
+						timeline.slotIndex = slotIndex
 
+						local frameIndex = 0
+						for i,valueMap in ipairs(values) do
+							local light = valueMap["light"]
+							local dark = valueMap["dark"]
+							timeline:setFrame(
+								frameIndex, valueMap["time"],
+								tonumber(light:sub(1, 2), 16) / 255,
+								tonumber(light:sub(3, 4), 16) / 255,
+								tonumber(light:sub(5, 6), 16) / 255,
+								tonumber(light:sub(7, 8), 16) / 255,
+								tonumber(dark:sub(1, 2), 16) / 255,
+								tonumber(dark:sub(3, 4), 16) / 255,
+								tonumber(dark:sub(5, 6), 16) / 255
+							)
+							readCurve(valueMap, timeline, frameIndex)
+							frameIndex = frameIndex + 1
+						end
+						table_insert(timelines, timeline)
+						duration = math.max(duration, timeline.frames[(timeline:getFrameCount() - 1) * Animation.TwoColorTimeline.ENTRIES])
 					elseif timelineName == "attachment" then
 						local timeline = Animation.AttachmentTimeline.new(#values)
 						timeline.slotIndex = slotIndex

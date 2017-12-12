@@ -30,10 +30,12 @@
 
 package com.esotericsoftware.spine;
 
+import static com.badlogic.gdx.math.Interpolation.*;
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.*;
 
 import java.awt.FileDialog;
 import java.awt.Frame;
+import java.awt.Toolkit;
 import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
 
@@ -47,16 +49,17 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
-import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.TextureAtlasData;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -81,20 +84,23 @@ import com.badlogic.gdx.utils.StringBuilder;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.esotericsoftware.spine.AnimationState.AnimationStateAdapter;
 import com.esotericsoftware.spine.AnimationState.TrackEntry;
+import com.esotericsoftware.spine.utils.TwoColorPolygonBatch;
 
 public class SkeletonViewer extends ApplicationAdapter {
 	static final float checkModifiedInterval = 0.250f;
 	static final float reloadDelay = 1;
+	static float uiScale = 1;
+	static String[] atlasSuffixes = {".atlas", ".atlas.txt", "-pro.atlas", "-pro.atlas.txt", "-ess.atlas", "-ess.atlas.txt"};
 
 	UI ui;
 
-	PolygonSpriteBatch batch;
-	SkeletonMeshRenderer renderer;
+	OrthographicCamera camera;
+	TwoColorPolygonBatch batch;
+	SkeletonRenderer renderer;
 	SkeletonRendererDebug debugRenderer;
 	SkeletonData skeletonData;
 	Skeleton skeleton;
 	AnimationState state;
-	int skeletonX, skeletonY;
 	FileHandle skeletonFile;
 	long lastModified;
 	float lastModifiedCheck, reloadTimer;
@@ -111,17 +117,18 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		prefs = Gdx.app.getPreferences("spine-skeletonviewer");
 		ui = new UI();
-		batch = new PolygonSpriteBatch();
-		renderer = new SkeletonMeshRenderer();
+		batch = new TwoColorPolygonBatch(3100);
+		camera = new OrthographicCamera();
+		renderer = new SkeletonRenderer();
 		debugRenderer = new SkeletonRendererDebug();
-		skeletonX = (int)(ui.window.getWidth() + (Gdx.graphics.getWidth() - ui.window.getWidth()) / 2);
-		skeletonY = Gdx.graphics.getHeight() / 4;
+		resetCameraPosition();
 		ui.loadPrefs();
 
 		loadSkeleton(
 			Gdx.files.internal(Gdx.app.getPreferences("spine-skeletonviewer").getString("lastFile", "spineboy/spineboy.json")));
 
 		ui.loadPrefs();
+		ui.prefsLoaded = true;
 	}
 
 	void loadSkeleton (final FileHandle skeletonFile) {
@@ -136,9 +143,17 @@ public class SkeletonViewer extends ApplicationAdapter {
 			pixmap.dispose();
 
 			String atlasFileName = skeletonFile.nameWithoutExtension();
-			if (atlasFileName.endsWith(".json")) atlasFileName = new FileHandle(atlasFileName).nameWithoutExtension();
+			if (atlasFileName.endsWith(".json") || atlasFileName.endsWith(".skel"))
+				atlasFileName = atlasFileName.substring(0, atlasFileName.length() - 5);
 			FileHandle atlasFile = skeletonFile.sibling(atlasFileName + ".atlas");
-			if (!atlasFile.exists()) atlasFile = skeletonFile.sibling(atlasFileName + ".atlas.txt");
+			if (!atlasFile.exists()) {
+				if (atlasFileName.endsWith("-pro") || atlasFileName.endsWith("-ess"))
+					atlasFileName = atlasFileName.substring(0, atlasFileName.length() - 4);
+				for (String suffix : atlasSuffixes) {
+					atlasFile = skeletonFile.sibling(atlasFileName + suffix);
+					if (atlasFile.exists()) break;
+				}
+			}
 			TextureAtlasData data = !atlasFile.exists() ? null : new TextureAtlasData(atlasFile, atlasFile.parent(), false);
 			TextureAtlas atlas = new TextureAtlas(data) {
 				public AtlasRegion findRegion (String name) {
@@ -183,6 +198,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		state = new AnimationState(new AnimationStateData(skeletonData));
 		state.addListener(new AnimationStateAdapter() {
+
 			public void event (TrackEntry entry, Event event) {
 				ui.toast(event.getData().getName());
 			}
@@ -237,17 +253,21 @@ public class SkeletonViewer extends ApplicationAdapter {
 	}
 
 	public void render () {
+		Gdx.gl.glClearColor(0.3f, 0.3f, 0.3f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		float delta = Gdx.graphics.getDeltaTime();
+		camera.update();
+		batch.getProjectionMatrix().set(camera.combined);
+		debugRenderer.getShapeRenderer().setProjectionMatrix(camera.combined);
 
 		// Draw skeleton origin lines.
 		ShapeRenderer shapes = debugRenderer.getShapeRenderer();
 		if (state != null) {
 			shapes.setColor(Color.DARK_GRAY);
 			shapes.begin(ShapeType.Line);
-			shapes.line(skeleton.x, -99999, skeleton.x, 99999);
-			shapes.line(-99999, skeleton.y, 99999, skeleton.y);
+			shapes.line(0, -99999, 0, 99999);
+			shapes.line(-99999, 0, 99999, 0);
 			shapes.end();
 		}
 
@@ -273,7 +293,6 @@ public class SkeletonViewer extends ApplicationAdapter {
 			renderer.setPremultipliedAlpha(ui.premultipliedCheckbox.isChecked());
 
 			skeleton.setFlip(ui.flipXCheckbox.isChecked(), ui.flipYCheckbox.isChecked());
-			skeleton.setPosition(skeletonX, skeletonY);
 
 			delta = Math.min(delta, 0.032f) * ui.speedSlider.getValue();
 			skeleton.update(delta);
@@ -281,7 +300,6 @@ public class SkeletonViewer extends ApplicationAdapter {
 			state.apply(skeleton);
 			skeleton.updateWorldTransform();
 
-			batch.setColor(Color.WHITE);
 			batch.begin();
 			renderer.draw(batch, skeleton);
 			batch.end();
@@ -292,6 +310,8 @@ public class SkeletonViewer extends ApplicationAdapter {
 			debugRenderer.setMeshHull(ui.debugMeshHullCheckbox.isChecked());
 			debugRenderer.setMeshTriangles(ui.debugMeshTrianglesCheckbox.isChecked());
 			debugRenderer.setPaths(ui.debugPathsCheckbox.isChecked());
+			debugRenderer.setPoints(ui.debugPointsCheckbox.isChecked());
+			debugRenderer.setClipping(ui.debugClippingCheckbox.isChecked());
 			debugRenderer.draw(skeleton);
 		}
 
@@ -318,15 +338,17 @@ public class SkeletonViewer extends ApplicationAdapter {
 		if (state != null) {
 			TrackEntry entry = state.getCurrent(0);
 			if (entry != null) {
+				shapes.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+				shapes.updateMatrices();
 				shapes.begin(ShapeType.Line);
 
 				float percent = entry.getAnimationTime() / entry.getAnimationEnd();
-				float x = ui.window.getRight() + (Gdx.graphics.getWidth() - ui.window.getRight()) * percent;
+				float x = ui.window.getRight() * uiScale + (Gdx.graphics.getWidth() - ui.window.getRight() * uiScale) * percent;
 				shapes.setColor(Color.CYAN);
 				shapes.line(x, 0, x, 12);
 
 				percent = entry.getMixDuration() == 0 ? 1 : Math.min(1, entry.getMixTime() / entry.getMixDuration());
-				x = ui.window.getRight() + (Gdx.graphics.getWidth() - ui.window.getRight()) * percent;
+				x = ui.window.getRight() * uiScale + (Gdx.graphics.getWidth() - ui.window.getRight() * uiScale) * percent;
 				shapes.setColor(Color.RED);
 				shapes.line(x, 0, x, 12);
 
@@ -345,14 +367,23 @@ public class SkeletonViewer extends ApplicationAdapter {
 		status.append("% -> ");
 	}
 
+	void resetCameraPosition () {
+		camera.position.x = -ui.window.getWidth() / 2 * uiScale;
+		camera.position.y = Gdx.graphics.getHeight() / 4;
+	}
+
 	public void resize (int width, int height) {
-		batch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
-		debugRenderer.getShapeRenderer().setProjectionMatrix(batch.getProjectionMatrix());
+		float x = camera.position.x, y = camera.position.y;
+		camera.setToOrtho(false);
+		camera.position.set(x, y, 0);
+		((ScreenViewport)ui.stage.getViewport()).setUnitsPerPixel(1 / uiScale);
 		ui.stage.getViewport().update(width, height, true);
-		if (!ui.minimizeButton.isChecked()) ui.window.setHeight(height + 8);
+		if (!ui.minimizeButton.isChecked()) ui.window.setHeight(height / uiScale + 8);
 	}
 
 	class UI {
+		boolean prefsLoaded;
+
 		Stage stage = new Stage(new ScreenViewport());
 		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = new com.badlogic.gdx.scenes.scene2d.ui.Skin(
 			Gdx.files.internal("skin/skin.json"));
@@ -360,36 +391,55 @@ public class SkeletonViewer extends ApplicationAdapter {
 		Window window = new Window("Skeleton", skin);
 		Table root = new Table(skin);
 		TextButton openButton = new TextButton("Open", skin);
-		List<String> animationList = new List(skin);
-		ScrollPane animationScroll = new ScrollPane(animationList, skin, "bg");
-		List<String> skinList = new List(skin);
-		ScrollPane skinScroll = new ScrollPane(skinList, skin, "bg");
-		CheckBox loopCheckbox = new CheckBox("Loop", skin);
-		CheckBox premultipliedCheckbox = new CheckBox("Premultiplied", skin);
-		Slider mixSlider = new Slider(0, 4, 0.01f, false, skin);
-		Label mixLabel = new Label("0.3", skin);
-		Slider speedSlider = new Slider(0, 3, 0.01f, false, skin);
-		Label speedLabel = new Label("1.0", skin);
+		TextButton minimizeButton = new TextButton("-", skin);
+
+		Slider scaleSlider = new Slider(0.1f, 3, 0.01f, false, skin);
+		Label scaleLabel = new Label("1.0", skin);
+		TextButton scaleResetButton = new TextButton("Reset", skin);
+
+		Slider zoomSlider = new Slider(0.01f, 10, 0.01f, false, skin);
+		Label zoomLabel = new Label("1.0", skin);
+		TextButton zoomResetButton = new TextButton("Reset", skin);
+
 		CheckBox flipXCheckbox = new CheckBox("X", skin);
 		CheckBox flipYCheckbox = new CheckBox("Y", skin);
+
 		CheckBox debugBonesCheckbox = new CheckBox("Bones", skin);
 		CheckBox debugRegionsCheckbox = new CheckBox("Regions", skin);
 		CheckBox debugBoundingBoxesCheckbox = new CheckBox("Bounds", skin);
 		CheckBox debugMeshHullCheckbox = new CheckBox("Mesh hull", skin);
 		CheckBox debugMeshTrianglesCheckbox = new CheckBox("Triangles", skin);
 		CheckBox debugPathsCheckbox = new CheckBox("Paths", skin);
-		Slider scaleSlider = new Slider(0.1f, 3, 0.01f, false, skin);
-		Label scaleLabel = new Label("1.0", skin);
-		TextButton minimizeButton = new TextButton("-", skin);
+		CheckBox debugPointsCheckbox = new CheckBox("Points", skin);
+		CheckBox debugClippingCheckbox = new CheckBox("Clipping", skin);
+
+		CheckBox premultipliedCheckbox = new CheckBox("Premultiplied", skin);
+
 		TextButton bonesSetupPoseButton = new TextButton("Bones", skin);
 		TextButton slotsSetupPoseButton = new TextButton("Slots", skin);
 		TextButton setupPoseButton = new TextButton("Both", skin);
-		Label statusLabel = new Label("", skin);
-		WidgetGroup toasts = new WidgetGroup();
+
+		List<String> skinList = new List(skin);
+		ScrollPane skinScroll = new ScrollPane(skinList, skin, "bg");
+
 		ButtonGroup<TextButton> trackButtons = new ButtonGroup();
+		CheckBox loopCheckbox = new CheckBox("Loop", skin);
+
 		Slider alphaSlider = new Slider(0, 1, 0.01f, false, skin);
 		Label alphaLabel = new Label("1.0", skin);
-		boolean prefsLoaded;
+
+		List<String> animationList = new List(skin);
+		ScrollPane animationScroll = new ScrollPane(animationList, skin, "bg");
+
+		Slider speedSlider = new Slider(0, 3, 0.01f, false, skin);
+		Label speedLabel = new Label("1.0", skin);
+		TextButton speedResetButton = new TextButton("Reset", skin);
+
+		Slider mixSlider = new Slider(0, 4, 0.01f, false, skin);
+		Label mixLabel = new Label("0.3", skin);
+
+		Label statusLabel = new Label("", skin);
+		WidgetGroup toasts = new WidgetGroup();
 
 		UI () {
 			initialize();
@@ -410,13 +460,16 @@ public class SkeletonViewer extends ApplicationAdapter {
 			loopCheckbox.setChecked(true);
 
 			scaleSlider.setValue(1);
-			scaleSlider.setSnapToValues(new float[] {1, 1.5f, 2, 2.5f, 3, 3.5f}, 0.01f);
+			scaleSlider.setSnapToValues(new float[] {0.5f, 1, 1.5f, 2, 2.5f, 3, 3.5f}, 0.01f);
+
+			zoomSlider.setValue(1);
+			zoomSlider.setSnapToValues(new float[] {0.5f, 1, 1.5f, 2, 2.5f, 3, 3.5f}, 0.01f);
 
 			mixSlider.setValue(0.3f);
 			mixSlider.setSnapToValues(new float[] {1, 1.5f, 2, 2.5f, 3, 3.5f}, 0.1f);
 
 			speedSlider.setValue(1);
-			speedSlider.setSnapToValues(new float[] {0.5f, 0.75f, 1, 1.25f, 1.5f, 2, 2.5f}, 0.1f);
+			speedSlider.setSnapToValues(new float[] {0.5f, 0.75f, 1, 1.25f, 1.5f, 2, 2.5f}, 0.01f);
 
 			alphaSlider.setValue(1);
 			alphaSlider.setDisabled(true);
@@ -427,7 +480,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 			window.setX(-3);
 			window.setY(-2);
 
-			window.getTitleLabel().setColor(new Color(0.76f, 1, 1, 1));
+			window.getTitleLabel().setColor(new Color(0xc1ffffff));
 			window.getTitleTable().add(openButton).space(3);
 			window.getTitleTable().add(minimizeButton).width(20);
 
@@ -444,7 +497,16 @@ public class SkeletonViewer extends ApplicationAdapter {
 			{
 				Table table = table();
 				table.add(scaleLabel).width(29);
-				table.add(scaleSlider).fillX().expandX();
+				table.add(scaleSlider).growX();
+				table.add(scaleResetButton);
+				root.add(table).fill().row();
+			}
+			root.add("Zoom:");
+			{
+				Table table = table();
+				table.add(zoomLabel).width(29);
+				table.add(zoomSlider).growX();
+				table.add(zoomResetButton);
 				root.add(table).fill().row();
 			}
 			root.add("Flip:");
@@ -452,7 +514,9 @@ public class SkeletonViewer extends ApplicationAdapter {
 			root.add("Debug:");
 			root.add(table(debugBonesCheckbox, debugRegionsCheckbox, debugBoundingBoxesCheckbox)).row();
 			root.add();
-			root.add(table(debugMeshHullCheckbox, debugMeshTrianglesCheckbox, debugPathsCheckbox)).row();
+			root.add(table(debugPathsCheckbox, debugPointsCheckbox, debugClippingCheckbox)).row();
+			root.add();
+			root.add(table(debugMeshHullCheckbox, debugMeshTrianglesCheckbox)).row();
 			root.add("Atlas alpha:");
 			root.add(premultipliedCheckbox).row();
 
@@ -462,7 +526,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 			root.add("Setup pose:");
 			root.add(table(bonesSetupPoseButton, slotsSetupPoseButton, setupPoseButton)).row();
 			root.add("Skin:");
-			root.add(skinScroll).expand().fill().row();
+			root.add(skinScroll).grow().minHeight(64).row();
 
 			root.add(new Image(skin.newDrawable("white", new Color(0x4e4e4eff)))).height(1).fillX().colspan(2).pad(1, 0, 1, 0).row();
 
@@ -478,27 +542,28 @@ public class SkeletonViewer extends ApplicationAdapter {
 			{
 				Table table = table();
 				table.add(alphaLabel).width(29);
-				table.add(alphaSlider).fillX().expandX();
+				table.add(alphaSlider).growX();
 				root.add(table).fill().row();
 			}
 			root.add("Animation:");
-			root.add(animationScroll).expand().fill().row();
-			root.add("Default mix:");
-			{
-				Table table = table();
-				table.add(mixLabel).width(29);
-				table.add(mixSlider).fillX().expandX();
-				root.add(table).fill().row();
-			}
+			root.add(animationScroll).grow().minHeight(64).row();
 			root.add("Speed:");
 			{
 				Table table = table();
 				table.add(speedLabel).width(29);
-				table.add(speedSlider).fillX().expandX();
+				table.add(speedSlider).growX();
+				table.add(speedResetButton);
+				root.add(table).fill().row();
+			}
+			root.add("Default mix:");
+			{
+				Table table = table();
+				table.add(mixLabel).width(29);
+				table.add(mixSlider).growX();
 				root.add(table).fill().row();
 			}
 
-			window.add(root).expand().fill();
+			window.add(root).grow();
 			window.pack();
 			stage.addActor(window);
 
@@ -573,7 +638,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 						minimizeButton.setText("+");
 					} else {
 						window.getCells().get(0).setActor(root);
-						ui.window.setHeight(Gdx.graphics.getHeight() + 8);
+						window.setHeight(Gdx.graphics.getHeight() / uiScale + 8);
 						minimizeButton.setText("-");
 					}
 				}
@@ -585,10 +650,41 @@ public class SkeletonViewer extends ApplicationAdapter {
 					if (!scaleSlider.isDragging()) loadSkeleton(skeletonFile);
 				}
 			});
+			scaleResetButton.addListener(new ChangeListener() {
+				public void changed (ChangeEvent event, Actor actor) {
+					resetCameraPosition();
+					if (scaleSlider.getValue() == 1)
+						loadSkeleton(skeletonFile);
+					else
+						scaleSlider.setValue(1);
+				}
+			});
+
+			zoomSlider.addListener(new ChangeListener() {
+				public void changed (ChangeEvent event, Actor actor) {
+					zoomLabel.setText(Float.toString((int)(zoomSlider.getValue() * 100) / 100f));
+					float newZoom = 1 / zoomSlider.getValue();
+					camera.position.x -= window.getWidth() / 2 * (newZoom - camera.zoom);
+					camera.zoom = newZoom;
+				}
+			});
+			zoomResetButton.addListener(new ChangeListener() {
+				public void changed (ChangeEvent event, Actor actor) {
+					resetCameraPosition();
+					float x = camera.position.x;
+					zoomSlider.setValue(1);
+					camera.position.x = x;
+				}
+			});
 
 			speedSlider.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
 					speedLabel.setText(Float.toString((int)(speedSlider.getValue() * 100) / 100f));
+				}
+			});
+			speedResetButton.addListener(new ChangeListener() {
+				public void changed (ChangeEvent event, Actor actor) {
+					speedSlider.setValue(1);
 				}
 			});
 
@@ -613,17 +709,28 @@ public class SkeletonViewer extends ApplicationAdapter {
 				}
 			});
 
+			InputListener scrollFocusListener = new InputListener() {
+				public void enter (InputEvent event, float x, float y, int pointer, Actor fromActor) {
+					if (pointer == -1) stage.setScrollFocus(event.getListenerActor());
+				}
+
+				public void exit (InputEvent event, float x, float y, int pointer, Actor toActor) {
+					if (pointer == -1 && stage.getScrollFocus() == event.getListenerActor()) stage.setScrollFocus(null);
+				}
+			};
+
 			animationList.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
 					if (state != null) {
 						String name = animationList.getSelected();
 						if (name == null)
-							state.setEmptyAnimation(trackButtons.getCheckedIndex(), ui.mixSlider.getValue());
+							state.setEmptyAnimation(trackButtons.getCheckedIndex(), mixSlider.getValue());
 						else
 							setAnimation();
 					}
 				}
 			});
+			animationScroll.addListener(scrollFocusListener);
 
 			loopCheckbox.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
@@ -643,10 +750,11 @@ public class SkeletonViewer extends ApplicationAdapter {
 					}
 				}
 			});
+			skinScroll.addListener(scrollFocusListener);
 
 			ChangeListener trackButtonListener = new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
-					int track = ui.trackButtons.getCheckedIndex();
+					int track = trackButtons.getCheckedIndex();
 					if (track == -1) return;
 					TrackEntry current = state.getCurrent(track);
 					animationList.getSelection().setProgrammaticChangeEvents(false);
@@ -655,6 +763,8 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 					alphaSlider.setDisabled(track == 0);
 					alphaSlider.setValue(current == null ? 1 : current.alpha);
+
+					if (current != null) loopCheckbox.setChecked(current.getLoop());
 				}
 			};
 			for (TextButton button : trackButtons.getButtons())
@@ -663,20 +773,20 @@ public class SkeletonViewer extends ApplicationAdapter {
 			Gdx.input.setInputProcessor(new InputMultiplexer(stage, new InputAdapter() {
 				float offsetX;
 				float offsetY;
-				
+
 				public boolean touchDown (int screenX, int screenY, int pointer, int button) {
 					offsetX = screenX;
-					offsetY = Gdx.graphics.getHeight() - screenY;					
+					offsetY = Gdx.graphics.getHeight() - screenY;
 					return false;
 				}
 
 				public boolean touchDragged (int screenX, int screenY, int pointer) {
 					float deltaX = screenX - offsetX;
 					float deltaY = Gdx.graphics.getHeight() - screenY - offsetY;
-					
-					skeletonX += deltaX;
-					skeletonY += deltaY;
-					
+
+					camera.position.x -= deltaX * camera.zoom;
+					camera.position.y -= deltaY * camera.zoom;
+
 					offsetX = screenX;
 					offsetY = Gdx.graphics.getHeight() - screenY;
 					return false;
@@ -684,6 +794,14 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 				public boolean touchUp (int screenX, int screenY, int pointer, int button) {
 					savePrefs();
+					return false;
+				}
+
+				public boolean scrolled (int amount) {
+					float zoom = zoomSlider.getValue(), zoomMin = zoomSlider.getMinValue(), zoomMax = zoomSlider.getMaxValue();
+					float speedAlpha = Math.min(1.2f, (zoom - zoomMin) / (zoomMax - zoomMin) * 3.5f);
+					zoom -= linear.apply(0.02f, 0.2f, speedAlpha) * Math.signum(amount);
+					zoomSlider.setValue(MathUtils.clamp(zoom, zoomMin, zoomMax));
 					return false;
 				}
 			}));
@@ -699,11 +817,17 @@ public class SkeletonViewer extends ApplicationAdapter {
 			debugMeshHullCheckbox.addListener(savePrefsListener);
 			debugMeshTrianglesCheckbox.addListener(savePrefsListener);
 			debugPathsCheckbox.addListener(savePrefsListener);
+			debugPointsCheckbox.addListener(savePrefsListener);
+			debugClippingCheckbox.addListener(savePrefsListener);
 			premultipliedCheckbox.addListener(savePrefsListener);
 			loopCheckbox.addListener(savePrefsListener);
 			speedSlider.addListener(savePrefsListener);
+			speedResetButton.addListener(savePrefsListener);
 			mixSlider.addListener(savePrefsListener);
 			scaleSlider.addListener(savePrefsListener);
+			scaleResetButton.addListener(savePrefsListener);
+			zoomSlider.addListener(savePrefsListener);
+			zoomResetButton.addListener(savePrefsListener);
 			animationList.addListener(savePrefsListener);
 			skinList.addListener(savePrefsListener);
 		}
@@ -716,10 +840,10 @@ public class SkeletonViewer extends ApplicationAdapter {
 		}
 
 		void render () {
-			if (state != null && state.getCurrent(ui.trackButtons.getCheckedIndex()) == null) {
-				ui.animationList.getSelection().setProgrammaticChangeEvents(false);
-				ui.animationList.setSelected(null);
-				ui.animationList.getSelection().setProgrammaticChangeEvents(true);
+			if (state != null && state.getCurrent(trackButtons.getCheckedIndex()) == null) {
+				animationList.getSelection().setProgrammaticChangeEvents(false);
+				animationList.setSelected(null);
+				animationList.getSelection().setProgrammaticChangeEvents(true);
 			}
 
 			statusLabel.pack();
@@ -757,18 +881,23 @@ public class SkeletonViewer extends ApplicationAdapter {
 			prefs.putBoolean("debugMeshHull", debugMeshHullCheckbox.isChecked());
 			prefs.putBoolean("debugMeshTriangles", debugMeshTrianglesCheckbox.isChecked());
 			prefs.putBoolean("debugPaths", debugPathsCheckbox.isChecked());
+			prefs.putBoolean("debugPoints", debugPointsCheckbox.isChecked());
+			prefs.putBoolean("debugClipping", debugClippingCheckbox.isChecked());
 			prefs.putBoolean("premultiplied", premultipliedCheckbox.isChecked());
 			prefs.putBoolean("loop", loopCheckbox.isChecked());
 			prefs.putFloat("speed", speedSlider.getValue());
 			prefs.putFloat("mix", mixSlider.getValue());
 			prefs.putFloat("scale", scaleSlider.getValue());
-			prefs.putInteger("x", skeletonX);
-			prefs.putInteger("y", skeletonY);
-			TrackEntry current = state.getCurrent(0);
-			if (current != null) {
-				String name = current.animation.name;
-				if (name.equals("<empty>")) name = current.next == null ? "" : current.next.animation.name;
-				prefs.putString("animationName", name);
+			prefs.putFloat("zoom", zoomSlider.getValue());
+			prefs.putFloat("x", camera.position.x);
+			prefs.putFloat("y", camera.position.y);
+			if (state != null) {
+				TrackEntry current = state.getCurrent(0);
+				if (current != null) {
+					String name = current.animation.name;
+					if (name.equals("<empty>")) name = current.next == null ? "" : current.next.animation.name;
+					prefs.putString("animationName", name);
+				}
 			}
 			if (skinList.getSelected() != null) prefs.putString("skinName", skinList.getSelected());
 			prefs.flush();
@@ -780,24 +909,38 @@ public class SkeletonViewer extends ApplicationAdapter {
 			debugMeshHullCheckbox.setChecked(prefs.getBoolean("debugMeshHull", false));
 			debugMeshTrianglesCheckbox.setChecked(prefs.getBoolean("debugMeshTriangles", false));
 			debugPathsCheckbox.setChecked(prefs.getBoolean("debugPaths", true));
+			debugPointsCheckbox.setChecked(prefs.getBoolean("debugPoints", true));
+			debugClippingCheckbox.setChecked(prefs.getBoolean("debugClipping", true));
 			premultipliedCheckbox.setChecked(prefs.getBoolean("premultiplied", true));
 			loopCheckbox.setChecked(prefs.getBoolean("loop", false));
 			speedSlider.setValue(prefs.getFloat("speed", 0.3f));
 			mixSlider.setValue(prefs.getFloat("mix", 0.3f));
+
+			zoomSlider.setValue(prefs.getFloat("zoom", 1));
+			camera.zoom = 1 / prefs.getFloat("zoom", 1);
+			camera.position.x = prefs.getFloat("x", 0);
+			camera.position.y = prefs.getFloat("y", 0);
+
 			scaleSlider.setValue(prefs.getFloat("scale", 1));
-			skeletonX = prefs.getInteger("x", 0);
-			skeletonY = prefs.getInteger("y", 0);
 			animationList.setSelected(prefs.getString("animationName", null));
 			skinList.setSelected(prefs.getString("skinName", null));
-			prefsLoaded = true;
 		}
 	}
 
 	static public void main (String[] args) throws Exception {
+		String os = System.getProperty("os.name");
+		float dpiScale = 1;
+		if (os.contains("Windows")) dpiScale = Toolkit.getDefaultToolkit().getScreenResolution() / 96f;
+		if (os.contains("OS X")) {
+			Object object = Toolkit.getDefaultToolkit().getDesktopProperty("apple.awt.contentScaleFactor");
+			if (object instanceof Float && ((Float)object).intValue() >= 2) dpiScale = 2;
+		}
+		if (dpiScale >= 2.0f) uiScale = 2;
+
 		LwjglApplicationConfiguration.disableAudio = true;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		config.width = 800;
-		config.height = 600;
+		config.width = (int)(800 * uiScale);
+		config.height = (int)(600 * uiScale);
 		config.title = "Skeleton Viewer";
 		config.allowSoftwareMode = true;
 		new LwjglApplication(new SkeletonViewer(), config);

@@ -29,61 +29,95 @@
  *****************************************************************************/
 
 package spine.examples {
-import spine.atlas.Atlas;
-import spine.*;
-import spine.attachments.AtlasAttachmentLoader;
-import spine.attachments.AttachmentLoader;
-import spine.starling.SkeletonAnimation;
-import spine.starling.StarlingTextureLoader;
+	import spine.interpolation.Pow;
+	import starling.animation.IAnimatable;
+	import spine.vertexeffects.SwirlEffect;
+	import spine.vertexeffects.JitterEffect;
+	import starling.display.DisplayObjectContainer;
+	import spine.atlas.Atlas;
+	import spine.*;
+	import spine.attachments.AtlasAttachmentLoader;
+	import spine.attachments.AttachmentLoader;
+	import spine.starling.SkeletonAnimation;
+	import spine.starling.StarlingTextureLoader;
 
-import starling.core.Starling;
-import starling.display.Sprite;
-import starling.events.Touch;
-import starling.events.TouchEvent;
-import starling.events.TouchPhase;
+	import starling.core.Starling;
+	import starling.display.Sprite;
+	import starling.events.Touch;
+	import starling.events.TouchEvent;
+	import starling.events.TouchPhase;
 
-public class RaptorExample extends Sprite {
-	[Embed(source = "/raptor.json", mimeType = "application/octet-stream")]
-	static public const RaptorJson:Class;
-	
-	[Embed(source = "/raptor.atlas", mimeType = "application/octet-stream")]
-	static public const RaptorAtlas:Class;
-	
-	[Embed(source = "/raptor.png")]
-	static public const RaptorAtlasTexture:Class;
-	
-	private var skeleton:SkeletonAnimation;
-	private var gunGrabbed:Boolean;
+	public class RaptorExample extends Sprite implements IAnimatable {
+		[Embed(source = "/raptor-pro.json", mimeType = "application/octet-stream")]
+		static public const RaptorJson : Class;
 
-	public function RaptorExample () {
-		var attachmentLoader:AttachmentLoader;
-		var spineAtlas:Atlas = new Atlas(new RaptorAtlas(), new StarlingTextureLoader(new RaptorAtlasTexture()));
-		attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
+		[Embed(source = "/raptor.atlas", mimeType = "application/octet-stream")]
+		static public const RaptorAtlas : Class;
 
-		var json:SkeletonJson = new SkeletonJson(attachmentLoader);
-		json.scale = 0.5;
-		var skeletonData:SkeletonData = json.readSkeletonData(new RaptorJson());
+		[Embed(source = "/raptor.png")]
+		static public const RaptorAtlasTexture : Class;
+		private var skeleton : SkeletonAnimation;
+		private var gunGrabbed : Boolean;
+		private var gunGrabCount : Number = 0;
+		
+		private var swirl : SwirlEffect;
+		private var swirlTime : Number = 0;
+		private var pow2 : Interpolation = new Pow(2);
 
-		skeleton = new SkeletonAnimation(skeletonData);
-		skeleton.x = 400;
-		skeleton.y = 560;
-		skeleton.state.setAnimationByName(0, "walk", true);
+		public function RaptorExample() {
+			var attachmentLoader : AttachmentLoader;
+			var spineAtlas : Atlas = new Atlas(new RaptorAtlas(), new StarlingTextureLoader(new RaptorAtlasTexture()));
+			attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
 
-		addChild(skeleton);
-		Starling.juggler.add(skeleton);
+			var json : SkeletonJson = new SkeletonJson(attachmentLoader);
+			json.scale = 0.5;
+			var skeletonData : SkeletonData = json.readSkeletonData(new RaptorJson());
 
-		addEventListener(TouchEvent.TOUCH, onClick);
-	}
+			this.x = 400;
+			this.y = 560;
 
-	private function onClick (event:TouchEvent) : void {
-		var touch:Touch = event.getTouch(this);
-		if (touch && touch.phase == TouchPhase.BEGAN) {
-			if (gunGrabbed)
-				skeleton.skeleton.setToSetupPose();
-			else
-				skeleton.state.setAnimationByName(1, "gungrab", false);
-			gunGrabbed = !gunGrabbed;
+			skeleton = new SkeletonAnimation(skeletonData);
+			skeleton.state.setAnimationByName(0, "walk", true);
+			skeleton.state.update(0);
+			skeleton.state.apply(skeleton.skeleton);
+			skeleton.skeleton.updateWorldTransform();
+			this.setRequiresRedraw();
+			
+			// skeleton.vertexEffect = new JitterEffect(10, 10);
+			swirl = new SwirlEffect(400);
+			swirl.centerY = -200;	
+			skeleton.vertexEffect = swirl;
+
+			addChild(skeleton);
+			Starling.juggler.add(skeleton);
+			Starling.juggler.add(this);
+
+			addEventListener(TouchEvent.TOUCH, onClick);
+		}
+
+		private function onClick(event : TouchEvent) : void {
+			var touch : Touch = event.getTouch(this);
+			if (touch && touch.phase == TouchPhase.BEGAN) {				
+				if (gunGrabCount < 2) {
+					if (gunGrabbed)
+						skeleton.skeleton.setToSetupPose();
+					else
+						skeleton.state.setAnimationByName(1, "gun-grab", false);
+					gunGrabbed = !gunGrabbed;
+					gunGrabCount++;
+				} else {
+					var parent: DisplayObjectContainer = this.parent;
+					this.removeFromParent(true);	
+					parent.addChild(new TankExample());
+				}
+			}
+		}
+
+		public function advanceTime(time : Number) : void {
+			swirlTime += time;
+			var percent : Number = swirlTime % 2;
+			if (percent > 1) percent = 1 - (percent - 1);
+			swirl.angle = pow2.apply(-60, 60, percent);
 		}
 	}
-}
 }

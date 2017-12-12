@@ -31,11 +31,15 @@
 package com.esotericsoftware.spine;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.esotericsoftware.spine.Animation.MixDirection;
+import com.esotericsoftware.spine.Animation.MixPose;
 import com.esotericsoftware.spine.attachments.AttachmentLoader;
 import com.esotericsoftware.spine.attachments.BoundingBoxAttachment;
+import com.esotericsoftware.spine.attachments.ClippingAttachment;
 import com.esotericsoftware.spine.attachments.RegionAttachment;
 import com.esotericsoftware.spine.attachments.MeshAttachment;
 import com.esotericsoftware.spine.attachments.PathAttachment;
+import com.esotericsoftware.spine.attachments.PointAttachment;
 
 public class BonePlotting {
 	static public void main (String[] args) throws Exception {
@@ -53,18 +57,26 @@ public class BonePlotting {
 				return null;
 			}
 
+			public ClippingAttachment newClippingAttachment (Skin skin, String name) {
+				return null;
+			}
+
 			public PathAttachment newPathAttachment (Skin skin, String name) {
 				return null;
 			}
+
+			public PointAttachment newPointAttachment (Skin skin, String name) {
+				return null;
+			}
 		});
-		SkeletonData skeletonData = json.readSkeletonData(new FileHandle("assets/spineboy/spineboy.json"));
+		SkeletonData skeletonData = json.readSkeletonData(new FileHandle("assets/spineboy/spineboy-ess.json"));
 		Skeleton skeleton = new Skeleton(skeletonData);
-		Bone bone = skeleton.findBone("gunTip");
+		Bone bone = skeleton.findBone("gun-tip");
 		float fps = 1 / 15f;
 		for (Animation animation : skeletonData.getAnimations()) {
 			float time = 0;
 			while (time < animation.getDuration()) {
-				animation.apply(skeleton, time, time, false, null, 1, false, false);
+				animation.apply(skeleton, time, time, false, null, 1, MixPose.current, MixDirection.in);
 				skeleton.updateWorldTransform();
 				System.out
 					.println(animation.getName() + "," + bone.getWorldX() + "," + bone.getWorldY() + "," + bone.getWorldRotationX());

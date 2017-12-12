@@ -59,6 +59,10 @@ module spine {
 		dispose (): void;
 	}
 
+	export interface Restorable {
+		restore (): void;
+	}
+
 	export class Color {
 		public static WHITE = new Color(1, 1, 1, 1);
 		public static RED = new Color(1, 0, 0, 1);
@@ -154,6 +158,48 @@ module spine {
 			var y = Math.pow(Math.abs(x), 1/3);
 			return x < 0 ? -y : y;
 		}
+
+		static randomTriangular (min: number, max: number): number {
+			return MathUtils.randomTriangularWith(min, max, (min + max) * 0.5);
+		}
+
+		static randomTriangularWith (min: number, max: number, mode: number): number {
+			let u = Math.random();
+			let d = max - min;
+			if (u <= (mode - min) / d) return min + Math.sqrt(u * d * (mode - min));
+			return max - Math.sqrt((1 - u) * d * (max - mode));
+		}
+	}
+
+	export abstract class Interpolation {
+		protected abstract applyInternal (a: number): number;
+		apply(start: number, end: number, a: number): number {
+			return start + (end - start) * this.applyInternal(a);
+		}
+	}
+
+	export class Pow extends Interpolation {
+		protected power = 2;
+
+		constructor (power: number) {
+			super();
+			this.power = power;
+		}
+
+		applyInternal (a: number): number {
+			if (a <= 0.5) return Math.pow(a * 2, this.power) / 2;
+			return Math.pow((a - 1) * 2, this.power) / (this.power % 2 == 0 ? -2 : 2) + 1;
+		}
+	}
+
+	export class PowOut extends Pow {
+		constructor (power: number) {
+			super(power);
+		}
+
+		applyInternal (a: number) : number {
+			return Math.pow(a - 1, this.power) * (this.power % 2 == 0 ? -1 : 1) + 1;
+		}
 	}
 
 	export class Utils {
@@ -196,8 +242,22 @@ module spine {
 			}
 		}
 
+		static newShortArray (size: number): ArrayLike<number> {
+			if (Utils.SUPPORTS_TYPED_ARRAYS) {
+				return new Int16Array(size)
+			} else {
+				 let array = new Array<number>(size);
+				 for (let i = 0; i < array.length; i++) array[i] = 0;
+				 return array;
+			}
+		}
+
 		static toFloatArray (array: Array<number>) {
 			return Utils.SUPPORTS_TYPED_ARRAYS ? new Float32Array(array) : array;
+		}
+
+		static toSinglePrecision (value: number) {
+			return Utils.SUPPORTS_TYPED_ARRAYS ? Math.fround(value) : value;
 		}
 	}
 
@@ -295,5 +355,45 @@ module spine {
 	export interface ArrayLike<T> {
 		length: number;
 		[n: number]: T;
+	}
+
+	export class WindowedMean {
+		values: Array<number>;
+		addedValues = 0;
+		lastValue = 0;
+		mean = 0;
+		dirty = true;
+
+		constructor (windowSize: number = 32) {
+			this.values = new Array<number>(windowSize);
+		}
+
+		hasEnoughData () {
+			return this.addedValues >= this.values.length;
+		}
+
+		addValue (value: number) {
+			if (this.addedValues < this.values.length)
+				this.addedValues++;
+			this.values[this.lastValue++] = value;
+			if (this.lastValue > this.values.length - 1) this.lastValue = 0;
+			this.dirty = true;
+		}
+
+		getMean () {
+			if (this.hasEnoughData()) {
+				if (this.dirty) {
+					let mean = 0;
+					for (let i = 0; i < this.values.length; i++) {
+						mean += this.values[i];
+					}
+					this.mean = mean / this.values.length;
+					this.dirty = false;
+				}
+				return this.mean;
+			} else {
+				return 0;
+			}
+		}
 	}
 }

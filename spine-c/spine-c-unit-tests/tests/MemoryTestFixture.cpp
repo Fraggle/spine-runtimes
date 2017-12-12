@@ -1,11 +1,12 @@
-#include "MemoryTestFixture.h" 
+#include <spine/extension.h>
+#include "MemoryTestFixture.h"
 #include "SpineEventMonitor.h" 
 
 #include "spine/spine.h"
 
 #include "KMemory.h" // last include
 
-#define SPINEBOY_JSON "testdata/spineboy/spineboy.json"
+#define SPINEBOY_JSON "testdata/spineboy/spineboy-ess.json"
 #define SPINEBOY_ATLAS "testdata/spineboy/spineboy.atlas"
 
 #define MAX_RUN_TIME 6000 // equal to about 100 seconds of execution
@@ -217,6 +218,123 @@ void MemoryTestFixture::reproduceIssue_Loop()
 	}
 
 	DisposeAll(skeleton, state, stateData, skeletonData, atlas);
+}
+
+void MemoryTestFixture::triangulator() {
+	spTriangulator* triangulator = spTriangulator_create();
+	spFloatArray* polygon = spFloatArray_create(16);
+	spFloatArray_add(polygon, 0);
+	spFloatArray_add(polygon, 0);
+	spFloatArray_add(polygon, 100);
+	spFloatArray_add(polygon, 0);
+	spFloatArray_add(polygon, 100);
+	spFloatArray_add(polygon, 100);
+	spFloatArray_add(polygon, 0);
+	spFloatArray_add(polygon, 100);
+
+	spShortArray* triangles = spTriangulator_triangulate(triangulator, polygon);
+	ASSERT(triangles->size == 6);
+	ASSERT(triangles->items[0] == 3);
+	ASSERT(triangles->items[1] == 0);
+	ASSERT(triangles->items[2] == 1);
+	ASSERT(triangles->items[3] == 3);
+	ASSERT(triangles->items[4] == 1);
+	ASSERT(triangles->items[5] == 2);
+
+	spArrayFloatArray* polys = spTriangulator_decompose(triangulator, polygon, triangles);
+	ASSERT(polys->size == 1);
+	ASSERT(polys->items[0]->size == 8);
+	ASSERT(polys->items[0]->items[0] == 0);
+	ASSERT(polys->items[0]->items[1] == 100);
+	ASSERT(polys->items[0]->items[2] == 0);
+	ASSERT(polys->items[0]->items[3] == 0);
+	ASSERT(polys->items[0]->items[4] == 100);
+	ASSERT(polys->items[0]->items[5] == 0);
+	ASSERT(polys->items[0]->items[6] == 100);
+	ASSERT(polys->items[0]->items[7] == 100);
+
+	spFloatArray_dispose(polygon);
+	spTriangulator_dispose(triangulator);
+}
+
+void MemoryTestFixture::skeletonClipper() {
+	spSkeletonClipping* clipping = spSkeletonClipping_create();
+
+	spBoneData* boneData = spBoneData_create(0, "bone", 0);
+	spBone* bone = spBone_create(boneData, 0, 0);
+	CONST_CAST(float, bone->a) = 1;
+	CONST_CAST(float, bone->b) = 0;
+	CONST_CAST(float, bone->c) = 0;
+	CONST_CAST(float, bone->d) = 1;
+	CONST_CAST(float, bone->worldX) = 0;
+	CONST_CAST(float, bone->worldY) = 0;
+	spSlotData* slotData = spSlotData_create(0, "slot", 0);
+	spSlot* slot = spSlot_create(slotData, bone);
+	spClippingAttachment* clip = spClippingAttachment_create("clipping");
+	clip->endSlot = slotData;
+	clip->super.worldVerticesLength = 4 * 2;
+	clip->super.verticesCount = 4;
+	clip->super.vertices = MALLOC(float, 4 * 8);
+	clip->super.vertices[0] = 0;
+	clip->super.vertices[1] = 50;
+	clip->super.vertices[2] = 100;
+	clip->super.vertices[3] = 50;
+	clip->super.vertices[4] = 100;
+	clip->super.vertices[5] = 70;
+	clip->super.vertices[6] = 0;
+	clip->super.vertices[7] = 70;
+
+	spSkeletonClipping_clipStart(clipping, slot, clip);
+
+	spFloatArray* vertices = spFloatArray_create(16);
+	spFloatArray_add(vertices, 0);
+	spFloatArray_add(vertices, 0);
+	spFloatArray_add(vertices, 100);
+	spFloatArray_add(vertices, 0);
+	spFloatArray_add(vertices, 50);
+	spFloatArray_add(vertices, 150);
+	spFloatArray* uvs = spFloatArray_create(16);
+	spFloatArray_add(uvs, 0);
+	spFloatArray_add(uvs, 0);
+	spFloatArray_add(uvs, 1);
+	spFloatArray_add(uvs, 0);
+	spFloatArray_add(uvs, 0.5f);
+	spFloatArray_add(uvs, 1);
+	spUnsignedShortArray* indices = spUnsignedShortArray_create(16);
+	spUnsignedShortArray_add(indices, 0);
+	spUnsignedShortArray_add(indices, 1);
+	spUnsignedShortArray_add(indices, 2);
+
+	spSkeletonClipping_clipTriangles(clipping, vertices->items, vertices->size, indices->items, indices->size, uvs->items, 2);
+
+	float expectedVertices[8] = { 83.333328, 50.000000, 76.666664, 70.000000, 23.333334, 70.000000, 16.666672, 50.000000 };
+	ASSERT(clipping->clippedVertices->size == 8);
+	for (int i = 0; i < clipping->clippedVertices->size; i++) {
+		ASSERT(ABS(clipping->clippedVertices->items[i] - expectedVertices[i]) < 0.001);
+	}
+
+	float expectedUVs[8] = { 0.833333f, 0.333333, 0.766667, 0.466667, 0.233333, 0.466667, 0.166667, 0.333333 };
+	ASSERT(clipping->clippedUVs->size == 8);
+	for (int i = 0; i < clipping->clippedUVs->size; i++) {
+		ASSERT(ABS(clipping->clippedUVs->items[i] - expectedUVs[i]) < 0.001);
+	}
+
+	short expectedIndices[6] = { 0, 1, 2, 0, 2, 3 };
+	ASSERT(clipping->clippedTriangles->size == 6);
+	for (int i = 0; i < clipping->clippedTriangles->size; i++) {
+		ASSERT(clipping->clippedTriangles->items[i] == expectedIndices[i]);
+	}
+
+	spFloatArray_dispose(vertices);
+	spFloatArray_dispose(uvs);
+	spUnsignedShortArray_dispose(indices);
+
+	spSlotData_dispose(slotData);
+	spSlot_dispose(slot);
+	spBoneData_dispose(boneData);
+	spBone_dispose(bone);
+	_spClippingAttachment_dispose(SUPER(SUPER(clip)));
+	spSkeletonClipping_dispose(clipping);
 }
 
 

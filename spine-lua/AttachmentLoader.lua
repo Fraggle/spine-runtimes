@@ -33,6 +33,8 @@ local RegionAttachment = require "spine-lua.attachments.RegionAttachment"
 local BoundingBoxAttachment = require "spine-lua.attachments.BoundingBoxAttachment"
 local MeshAttachment = require "spine-lua.attachments.MeshAttachment"
 local PathAttachment = require "spine-lua.attachments.PathAttachment"
+local PointAttachment = require "spine-lua.attachments.PointAttachment"
+local ClippingAttachment = require "spine-lua.attachments.ClippingAttachment"
 
 local AttachmentLoader = {}
 function AttachmentLoader.new ()
@@ -56,6 +58,14 @@ function AttachmentLoader.new ()
 
 	function self:newPathAttachment(skin, name)
 		return PathAttachment.new(name)
+	end
+	
+	function self:newPointAttachment(skin, name)
+		return PointAttachment.new(name)
+	end
+	
+	function self:newClippingAttachment(skin, name)
+		return ClippingAttachment.new(name)
 	end
 
 	return self

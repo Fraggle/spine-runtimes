@@ -27,78 +27,87 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-
+ 
 package spine.examples {
-import spine.*;
-import spine.atlas.Atlas;
-import spine.attachments.AtlasAttachmentLoader;
-import spine.attachments.AttachmentLoader;
-import spine.starling.SkeletonAnimation;
-import spine.starling.StarlingAtlasAttachmentLoader;
-import spine.starling.StarlingTextureLoader;
+	import starling.display.DisplayObjectContainer;
+	import spine.*;
+	import spine.atlas.Atlas;
+	import spine.attachments.AtlasAttachmentLoader;
+	import spine.attachments.AttachmentLoader;
+	import spine.starling.SkeletonAnimation;
+	import spine.starling.StarlingAtlasAttachmentLoader;
+	import spine.starling.StarlingTextureLoader;
 
-import starling.core.Starling;
-import starling.display.Sprite;
-import starling.events.Touch;
-import starling.events.TouchEvent;
-import starling.events.TouchPhase;
-import starling.textures.Texture;
-import starling.textures.TextureAtlas;
+	import starling.core.Starling;
+	import starling.display.Sprite;
+	import starling.events.Touch;
+	import starling.events.TouchEvent;
+	import starling.events.TouchPhase;
+	import starling.textures.Texture;
+	import starling.textures.TextureAtlas;
 
-public class GoblinsExample extends Sprite {
-	[Embed(source = "/goblins-mesh.json", mimeType = "application/octet-stream")]
-	static public const GoblinsJson:Class;
-	
-	[Embed(source = "/goblins.atlas", mimeType = "application/octet-stream")]
-	static public const GoblinsAtlas:Class;
-	
-	[Embed(source = "/goblins.png")]
-	static public const GoblinsAtlasTexture:Class;
-	
-	[Embed(source = "/goblins-mesh-starling.xml", mimeType = "application/octet-stream")]
-	static public const GoblinsStarlingAtlas:Class;
-	
-	[Embed(source = "/goblins-mesh-starling.png")]
-	static public const GoblinsStarlingAtlasTexture:Class;
+	public class GoblinsExample extends Sprite {
+		[Embed(source = "/goblins-pro.json", mimeType = "application/octet-stream")]
+		static public const GoblinsJson : Class;
 
-	private var skeleton:SkeletonAnimation;
+		[Embed(source = "/goblins.atlas", mimeType = "application/octet-stream")]
+		static public const GoblinsAtlas : Class;
 
-	public function GoblinsExample () {
-		var useStarlingAtlas:Boolean = false;
+		[Embed(source = "/goblins.png")]
+		static public const GoblinsAtlasTexture : Class;
 
-		var attachmentLoader:AttachmentLoader;
-		if (useStarlingAtlas) {
-			var texture:Texture = Texture.fromBitmap(new GoblinsStarlingAtlasTexture());
-			var xml:XML = XML(new GoblinsStarlingAtlas());
-			var starlingAtlas:TextureAtlas = new TextureAtlas(texture, xml);
-			attachmentLoader = new StarlingAtlasAttachmentLoader(starlingAtlas);
-		} else {
-			var spineAtlas:Atlas = new Atlas(new GoblinsAtlas(), new StarlingTextureLoader(new GoblinsAtlasTexture()));
-			attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
-		}
+		[Embed(source = "/goblins-mesh-starling.xml", mimeType = "application/octet-stream")]
+		static public const GoblinsStarlingAtlas : Class;
 
-		var json:SkeletonJson = new SkeletonJson(attachmentLoader);
-		var skeletonData:SkeletonData = json.readSkeletonData(new GoblinsJson());
+		[Embed(source = "/goblins-mesh-starling.png")]
+		static public const GoblinsStarlingAtlasTexture : Class;
+		private var skeleton : SkeletonAnimation;
+		
+		private var skinChangeCount: Number = 0;
 
-		skeleton = new SkeletonAnimation(skeletonData);
-		skeleton.x = 320;
-		skeleton.y = 420;
-		skeleton.skeleton.skinName = "goblin";
-		skeleton.skeleton.setSlotsToSetupPose();
-		skeleton.state.setAnimationByName(0, "walk", true);
+		public function GoblinsExample() {
+			var useStarlingAtlas : Boolean = true;
 
-		addChild(skeleton);
-		Starling.juggler.add(skeleton);
+			var attachmentLoader : AttachmentLoader;
+			if (useStarlingAtlas) {
+				var texture : Texture = Texture.fromBitmap(new GoblinsStarlingAtlasTexture());
+				var xml : XML = XML(new GoblinsStarlingAtlas());
+				var starlingAtlas : TextureAtlas = new TextureAtlas(texture, xml);
+				attachmentLoader = new StarlingAtlasAttachmentLoader(starlingAtlas);
+			} else {
+				var spineAtlas : Atlas = new Atlas(new GoblinsAtlas(), new StarlingTextureLoader(new GoblinsAtlasTexture()));
+				attachmentLoader = new AtlasAttachmentLoader(spineAtlas);
+			}
 
-		addEventListener(TouchEvent.TOUCH, onClick);
-	}
+			var json : SkeletonJson = new SkeletonJson(attachmentLoader);
+			var skeletonData : SkeletonData = json.readSkeletonData(new GoblinsJson());
 
-	private function onClick (event:TouchEvent) : void {
-		var touch:Touch = event.getTouch(this);
-		if (touch && touch.phase == TouchPhase.BEGAN) {
-			skeleton.skeleton.skinName = skeleton.skeleton.skin.name == "goblin" ? "goblingirl" : "goblin";
+			skeleton = new SkeletonAnimation(skeletonData);
+			skeleton.x = 320;
+			skeleton.y = 420;
+			skeleton.skeleton.skinName = "goblin";
 			skeleton.skeleton.setSlotsToSetupPose();
+			skeleton.state.setAnimationByName(0, "walk", true);
+
+			addChild(skeleton);
+			Starling.juggler.add(skeleton);
+
+			addEventListener(TouchEvent.TOUCH, onClick);
+		}
+
+		private function onClick(event : TouchEvent) : void {
+			var touch : Touch = event.getTouch(this);
+			if (touch && touch.phase == TouchPhase.BEGAN) {
+				if (skinChangeCount < 2) {
+					skeleton.skeleton.skinName = skeleton.skeleton.skin.name == "goblin" ? "goblingirl" : "goblin";
+					skeleton.skeleton.setSlotsToSetupPose();
+					skinChangeCount++;
+				} else {					
+					var parent: DisplayObjectContainer = this.parent;
+					this.removeFromParent(true);			
+					parent.addChild(new RaptorExample());	
+				}
+			}
 		}
 	}
-}
 }

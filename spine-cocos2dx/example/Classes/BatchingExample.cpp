@@ -34,6 +34,8 @@
 USING_NS_CC;
 using namespace spine;
 
+#define NUM_SKELETONS 50
+
 Scene* BatchingExample::scene () {
 	Scene *scene = Scene::create();
 	scene->addChild(BatchingExample::create());
@@ -54,7 +56,7 @@ bool BatchingExample::init () {
 	// Load the skeleton data.
 	spSkeletonJson* json = spSkeletonJson_createWithLoader(_attachmentLoader);
 	json->scale = 0.6f; // Resizes skeleton data to 60% of the size it was in Spine.
-	_skeletonData = spSkeletonJson_readSkeletonDataFile(json, "spineboy.json");
+	_skeletonData = spSkeletonJson_readSkeletonDataFile(json, "spineboy-ess.json");
 	CCASSERT(_skeletonData, json->error ? json->error : "Error reading skeleton data file.");
 	spSkeletonJson_dispose(json);
 
@@ -65,14 +67,21 @@ bool BatchingExample::init () {
 
 	int xMin = _contentSize.width * 0.10f, xMax = _contentSize.width * 0.90f;
 	int yMin = 0, yMax = _contentSize.height * 0.7f;
-	for (int i = 0; i < 50; i++) {
+	for (int i = 0, j = 0; i < NUM_SKELETONS; i++) {
 		// Each skeleton node shares the same atlas, skeleton data, and mix times.
 		SkeletonAnimation* skeletonNode = SkeletonAnimation::createWithData(_skeletonData, false);
 		skeletonNode->setAnimationStateData(_stateData);
 
 		skeletonNode->setAnimation(0, "walk", true);
-		skeletonNode->addAnimation(0, "jump", false, 3);
+		skeletonNode->addAnimation(0, "jump", true, RandomHelper::random_int(0, 300) / 100.0f);
 		skeletonNode->addAnimation(0, "run", true);
+		
+		// alternative setting two color tint for groups of 10 skeletons
+		// should end up with #skeletons / 10 batches
+		// if (j++ < 10)
+//			skeletonNode->setTwoColorTint(true);
+//		if (j == 20) j = 0;
+		// skeletonNode->setTwoColorTint(true);
 
 		skeletonNode->setPosition(Vec2(
 			RandomHelper::random_int(xMin, xMax),

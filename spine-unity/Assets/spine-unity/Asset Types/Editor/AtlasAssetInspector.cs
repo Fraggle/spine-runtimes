@@ -52,7 +52,7 @@ namespace Spine.Unity.Editor {
 				if (spriteSlicesLabel == null) {
 					spriteSlicesLabel = new GUIContent(
 						"Apply Regions as Texture Sprite Slices",
-						SpineEditorUtilities.Icons.unityIcon,
+						SpineEditorUtilities.Icons.unity,
 						"Adds Sprite slices to atlas texture(s). " +
 						"Updates existing slices if ones with matching names exist. \n\n" +
 						"If your atlas was exported with Premultiply Alpha, " +
@@ -120,7 +120,7 @@ namespace Spine.Unity.Editor {
 			}
 
 			if (materials.arraySize == 0) {
-				EditorGUILayout.LabelField(new GUIContent("Error:  Missing materials", SpineEditorUtilities.Icons.warning));
+				EditorGUILayout.HelpBox("Missing materials", MessageType.Error);
 				return;
 			}
 
@@ -128,7 +128,7 @@ namespace Spine.Unity.Editor {
 				SerializedProperty prop = materials.GetArrayElementAtIndex(i);
 				Material mat = (Material)prop.objectReferenceValue;
 				if (mat == null) {
-					EditorGUILayout.LabelField(new GUIContent("Error:  Materials cannot be null", SpineEditorUtilities.Icons.warning));
+					EditorGUILayout.HelpBox("Materials cannot be null.", MessageType.Error);
 					return;
 				}
 			}

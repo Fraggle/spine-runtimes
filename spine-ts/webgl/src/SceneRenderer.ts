@@ -30,10 +30,11 @@
 
 module spine.webgl {
 	export class SceneRenderer implements Disposable {
-		gl: WebGLRenderingContext;
+		context: ManagedWebGLRenderingContext;
 		canvas: HTMLCanvasElement;
 		camera: OrthoCamera;
 		batcher: PolygonBatcher;
+		private twoColorTint = false;
 		private batcherShader: Shader;
 		private shapes: ShapeRenderer;
 		private shapesShader: Shader;
@@ -49,16 +50,17 @@ module spine.webgl {
 		private QUAD_TRIANGLES = [0, 1, 2, 2, 3, 0];
 		private WHITE = new Color(1, 1, 1, 1);
 
-		constructor (canvas: HTMLCanvasElement, gl: WebGLRenderingContext) {
+		constructor (canvas: HTMLCanvasElement, context: ManagedWebGLRenderingContext | WebGLRenderingContext, twoColorTint: boolean = true) {
 			this.canvas = canvas;
-			this.gl = gl;
+			this.context = context instanceof ManagedWebGLRenderingContext? context : new ManagedWebGLRenderingContext(context);
+			this.twoColorTint = twoColorTint;
 			this.camera = new OrthoCamera(canvas.width, canvas.height);
-			this.batcherShader = Shader.newColoredTextured(gl);
-			this.batcher = new PolygonBatcher(gl);
-			this.shapesShader = Shader.newColored(gl);
-			this.shapes = new ShapeRenderer(gl); 
-			this.skeletonRenderer = new SkeletonRenderer(gl);
-			this.skeletonDebugRenderer = new SkeletonDebugRenderer(gl);
+			this.batcherShader = twoColorTint ? Shader.newTwoColoredTextured(this.context) : Shader.newColoredTextured(this.context);
+			this.batcher = new PolygonBatcher(this.context, twoColorTint);
+			this.shapesShader = Shader.newColored(this.context);
+			this.shapes = new ShapeRenderer(this.context);
+			this.skeletonRenderer = new SkeletonRenderer(this.context, twoColorTint);
+			this.skeletonDebugRenderer = new SkeletonDebugRenderer(this.context);
 		}
 
 		begin () {
@@ -82,38 +84,63 @@ module spine.webgl {
 			this.enableRenderer(this.batcher);
 			if (color === null) color = this.WHITE;
 			let quad = this.QUAD;
-			quad[0] = x;
-			quad[1] = y;
-			quad[2] = color.r;
-			quad[3] = color.g;
-			quad[4] = color.b;
-			quad[5] = color.a;
-			quad[6] = 0;
-			quad[7] = 1;
-			quad[8] = x + width;
-			quad[9] = y;
-			quad[10] = color.r;
-			quad[11] = color.g;
-			quad[12] = color.b;
-			quad[13] = color.a;
-			quad[14] = 1;
-			quad[15] = 1;
-			quad[16] = x + width;
-			quad[17] = y + height;
-			quad[18] = color.r;
-			quad[19] = color.g;
-			quad[20] = color.b;
-			quad[21] = color.a;
-			quad[22] = 1;
-			quad[23] = 0;
-			quad[24] = x;
-			quad[25] = y + height;
-			quad[26] = color.r;
-			quad[27] = color.g;
-			quad[28] = color.b;
-			quad[29] = color.a;
-			quad[30] = 0;
-			quad[31] = 0;
+			var i = 0;
+			quad[i++] = x;
+			quad[i++] = y;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 0;
+			quad[i++] = 1;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x + width;
+			quad[i++] = y;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 1;
+			quad[i++] = 1;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x + width;
+			quad[i++] = y + height;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 1;
+			quad[i++] = 0;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x;
+			quad[i++] = y + height;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 0;
+			quad[i++] = 0;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
 			this.batcher.draw(texture, quad, this.QUAD_TRIANGLES);
 		}
 
@@ -188,38 +215,63 @@ module spine.webgl {
 			x4 += worldOriginX;
 			y4 += worldOriginY;
 
-			quad[0] = x1;
-			quad[1] = y1;
-			quad[2] = color.r;
-			quad[3] = color.g;
-			quad[4] = color.b;
-			quad[5] = color.a;
-			quad[6] = 0;
-			quad[7] = 1;
-			quad[8] = x2;
-			quad[9] = y2;
-			quad[10] = color.r;
-			quad[11] = color.g;
-			quad[12] = color.b;
-			quad[13] = color.a;
-			quad[14] = 1;
-			quad[15] = 1;
-			quad[16] = x3;
-			quad[17] = y3;
-			quad[18] = color.r;
-			quad[19] = color.g;
-			quad[20] = color.b;
-			quad[21] = color.a;
-			quad[22] = 1;
-			quad[23] = 0;
-			quad[24] = x4;
-			quad[25] = y4;
-			quad[26] = color.r;
-			quad[27] = color.g;
-			quad[28] = color.b;
-			quad[29] = color.a;
-			quad[30] = 0;
-			quad[31] = 0;
+			var i = 0;
+			quad[i++] = x1;
+			quad[i++] = y1;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 0;
+			quad[i++] = 1;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x2;
+			quad[i++] = y2;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 1;
+			quad[i++] = 1;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x3;
+			quad[i++] = y3;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 1;
+			quad[i++] = 0;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x4;
+			quad[i++] = y4;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = 0;
+			quad[i++] = 0;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
 			this.batcher.draw(texture, quad, this.QUAD_TRIANGLES);
 		}
 
@@ -227,38 +279,63 @@ module spine.webgl {
 			this.enableRenderer(this.batcher);
 			if (color === null) color = this.WHITE;
 			let quad = this.QUAD;
-			quad[0] = x;
-			quad[1] = y;
-			quad[2] = color.r;
-			quad[3] = color.g;
-			quad[4] = color.b;
-			quad[5] = color.a;
-			quad[6] = region.u;
-			quad[7] = region.v2;
-			quad[8] = x + width;
-			quad[9] = y;
-			quad[10] = color.r;
-			quad[11] = color.g;
-			quad[12] = color.b;
-			quad[13] = color.a;
-			quad[14] = region.u2;
-			quad[15] = region.v2;
-			quad[16] = x + width;
-			quad[17] = y + height;
-			quad[18] = color.r;
-			quad[19] = color.g;
-			quad[20] = color.b;
-			quad[21] = color.a;
-			quad[22] = region.u2;
-			quad[23] = region.v;
-			quad[24] = x;
-			quad[25] = y + height;
-			quad[26] = color.r;
-			quad[27] = color.g;
-			quad[28] = color.b;
-			quad[29] = color.a;
-			quad[30] = region.u;
-			quad[31] = region.v;
+			var i = 0;
+			quad[i++] = x;
+			quad[i++] = y;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = region.u;
+			quad[i++] = region.v2;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x + width;
+			quad[i++] = y;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = region.u2;
+			quad[i++] = region.v2;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x + width;
+			quad[i++] = y + height;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = region.u2;
+			quad[i++] = region.v;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
+			quad[i++] = x;
+			quad[i++] = y + height;
+			quad[i++] = color.r;
+			quad[i++] = color.g;
+			quad[i++] = color.b;
+			quad[i++] = color.a;
+			quad[i++] = region.u;
+			quad[i++] = region.v;
+			if (this.twoColorTint) {
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+				quad[i++] = 0;
+			}
 			this.batcher.draw(<GLTexture>region.texture, quad, this.QUAD_TRIANGLES);
 		}
 
@@ -316,7 +393,7 @@ module spine.webgl {
 				canvas.width = w;
 				canvas.height = h;
 			}
-			this.gl.viewport(0, 0, canvas.width, canvas.height);
+			this.context.gl.viewport(0, 0, canvas.width, canvas.height);
 
 			if (resizeMode === ResizeMode.Stretch) {
 				// nothing to do, we simply apply the viewport size of the camera
@@ -340,6 +417,7 @@ module spine.webgl {
 			if (renderer instanceof PolygonBatcher) {
 				this.batcherShader.bind();
 				this.batcherShader.setUniform4x4f(Shader.MVP_MATRIX, this.camera.projectionView.values);
+				this.batcherShader.setUniformi("u_texture", 0);
 				this.batcher.begin(this.batcherShader);
 				this.activeRenderer = this.batcher;
 			} else if (renderer instanceof ShapeRenderer) {

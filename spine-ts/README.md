@@ -18,18 +18,18 @@ The Spine Runtimes are developed with the intent to be used with data exported f
 
 ## Spine version
 
-spine-ts works with data exported from Spine 3.5.xx.
+spine-ts works with data exported from Spine 3.6.xx.
 
 spine-ts WebGL & Widget backends supports all Spine features. 
 
-spine-ts Canvas does not support color tinting and mesh attachments. Only the alpha channel from tint colors is applied. Experimental support for mesh attachments can be enabled by setting `spine.canvas.SkeletonRenderer.useTriangleRendering` to true. Note that this method is slow and may lead to artifacts on some browsers. 
+spine-ts Canvas does not support color tinting, mesh attachments and clipping. Only the alpha channel from tint colors is applied. Experimental support for mesh attachments can be enabled by setting `spine.canvas.SkeletonRenderer.useTriangleRendering` to true. Note that this method is slow and may lead to artifacts on some browsers. 
 
-spine-ts THREE.JS does not support color tinting and blend modes. The THREE.JS backend provides `SkeletonMesh.zOffset` to avoid z-fighting. Adjust to your near/far plane settings.
+spine-ts THREE.JS does not support color tinting, blend modes and clipping. The THREE.JS backend provides `SkeletonMesh.zOffset` to avoid z-fighting. Adjust to your near/far plane settings.
 
 spine-ts does not yet support loading the binary format.
 
 ## Usage
-1. Download the Spine Runtimes source using [git](https://help.github.com/articles/set-up-git) or by downloading it [as a zip](https://github.com/EsotericSoftware/spine-runtimes/archive/master.zip).
+1. Download the Spine Runtimes source using [git](https://help.github.com/articles/set-up-git) or by downloading it [as a zip](https://github.com/EsotericSoftware/spine-runtimes/archive/3.6.zip).
 2. To use only the core library without rendering support, include the `build/spine-core.js` file in your project.
 3. To use the WebGL backend, include the `spine-webgl.js` file in your project.
 3. To use the Canvas backend, include the `spine-canvas.js` file in your project.
@@ -40,18 +40,30 @@ All `*.js` files are self-contained and include both the core and respective bac
 
 If you write your app with TypeScript, additionally copy the corresponding `build/spine-*.d.ts` file to your project.
 
+**Note:** If you are using the compiled `.js` files with ES6 or other module systems, you have to add
+
+```
+export { spine };
+```
+
+At the bottom of the `.js` file you are using. You can then import the module as usual, e.g.:
+
+```
+import { spine } from './spine-webgl.js';
+```
+
 ## Examples
 To run the examples, the image, atlas, and JSON files must be served by a webserver, they can't be loaded from your local disk. Spawn a light-weight web server in the root of spine-ts, then navigate to the `index.html` file for the example you want to view. E.g.:
 
 ```
 cd spine-ts
 python -m SimpleHTTPServer
-````
+```
 
 Then open `http://localhost:8000/webgl/example`, `http://localhost:8000/canvas/example`, `https://localhost:8000/threejs/example` or `http://localhost:8000/widget/example` in your browser.
 
 ## WebGL Demos
-The spine-ts WebGL demos load their image, atlas, and JSON files from our webserver and so can be run directly, without needing a webserver. View the demos [all on one page](http://esotericsoftware.com/spine-demos/) or use the [standalone demos]() which are easy for you to explore and edit. The standalone demos can also be viewed here:
+The spine-ts WebGL demos load their image, atlas, and JSON files from our webserver and so can be run directly, without needing a webserver. The demos can be viewed [all on one page](http://esotericsoftware.com/spine-demos/) or in individual, standalone pages which are easy for you to explore and edit. See the [standalone demos source code](https://github.com/EsotericSoftware/spine-runtimes/tree/master/spine-ts/webgl/demos) and view the pages here:
 
 - [Spine vs sprite sheets](http://rawgit.com/EsotericSoftware/spine-runtimes/master/spine-ts/webgl/demos/spritesheets.html)
 - [Image changes](http://rawgit.com/EsotericSoftware/spine-runtimes/master/spine-ts/webgl/demos/imagechanges.html)
@@ -92,6 +104,24 @@ python -m SimpleHTTPServer
 ```
 
 Then navigate to `http://localhost:8000/webgl/example`, `http://localhost:8000/canvas/example`, `http://localhost:8000/threejs/example` or `http://localhost:8000/widget/example`
+
+### Spine-ts WebGL backend
+By default, the spine-ts WebGL backend supports two-color tinting. This has a neglible effect on performance, as more per vertex data has to be submitted to the GPU, and the fragment shader has to do a few more arithmetic operations.
+
+You can disable two-color tinting like this:
+
+```javascript
+// If you use SceneRenderer, disable two-color tinting via the last constructor argument
+var sceneRenderer = new spine.SceneRenderer(canvas, gl, false);
+
+// If you use SkeletonRenderer and PolygonBatcher directly, 
+// disable two-color tinting in the respective constructor
+// and use the shader returned by Shader.newColoredTextured()
+// instead of Shader.newTwoColoredTextured()
+var batcher = new spine.PolygonBatcher(gl, false);
+var skeletonRenderer = new spine.SkeletonRenderer(gl, false);
+var shader = Shader.newColoredTextured();
+```
 
 ### Using the Widget
 To easily display Spine animations on your website, you can use the spine-ts Widget backend.
@@ -163,10 +193,11 @@ The configuration object has the following fields:
   * `json`: required, path to the `.json` file, absolute or relative, e.g. "assets/animation.json"
   * `jsonContent`: optional, string or JSON object holding the content of a skeleton `.json` file. Overrides `json` if given.
   * `atlas`: required, path to the `.atlas` file, absolute or relative, e.g. "assets/animation.atlas"
-  * `atlasContent`: optional, string holding the content of a file. Overrides `atlasContent` if given.
+  * `atlasContent`: optional, string holding the content of an .atlas file. Overrides `atlas` if given.
   * `animation`: required, the name of the animation to play back
   * `imagesPath`: optional, the location of images on the server to load atlas pages from. If omitted, atlas `.png` page files are loaded relative to the `.atlas` file.
   * `atlasPages`: optional, the list of atlas page images, e.g. `atlasPages: ["assets/page1.png", "assets/page2.png"]` when using code, or `data-atlas-pages="assets/page1.png,assets/page2.png"` on case of HTML instantiation. Use this if you have a multi-page atlas. If ommited, only one atlas page image is loaded based on the atlas file name, replacing `.atlas` with `.png`.
+  * `atlasPagesContent`: optional, the list of atlas page images as data URIs. If given, `atlasPages` must also be given.
   * `skin`: optional, the name of the skin to use. Defaults to `default` if omitted.
   * `loop`: optional, whether to loop the animation or not. Defaults to `true` if omitted.
   * `scale`: optional, the scaling factor to apply when loading the `.json` file. Defaults to `1` if omitted. Irrelevant if `data-fit-to-canavs` is `true`.

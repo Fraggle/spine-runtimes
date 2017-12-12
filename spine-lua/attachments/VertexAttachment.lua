@@ -37,6 +37,9 @@ local setmetatable = setmetatable
 local AttachmentType = require "spine-lua.attachments.AttachmentType"
 local Attachment = require "spine-lua.attachments.Attachment"
 
+local nextID = 0;
+local SHL_11 = 2048;
+
 local VertexAttachment = {}
 VertexAttachment.__index = VertexAttachment
 setmetatable(VertexAttachment, { __index = Attachment })
@@ -46,16 +49,17 @@ function VertexAttachment.new (name, attachmentType)
 	self.bones = nil
 	self.vertices = nil
 	self.worldVerticesLength = 0
+	while nextID > 65535 do
+		nextID = nextID - 65535
+	end
+	self.id = nextID * SHL_11
+	nextID = nextID + 1
 	setmetatable(self, VertexAttachment)
 	return self
 end
 
-function VertexAttachment:computeWorldVertices (slot, worldVertices)
-	self:computeWorldVerticesWith(slot, 0, self.worldVerticesLength, worldVertices, 0)
-end
-
-function VertexAttachment:computeWorldVerticesWith (slot, start, count, worldVertices, offset)
-	count = count + offset
+function VertexAttachment:computeWorldVertices (slot, start, count, worldVertices, offset, stride)
+	count = offset + (count / 2) * stride
 	local skeleton = slot.bone.skeleton
 	local deformArray = slot.attachmentVertices
 	local vertices = self.vertices
@@ -77,7 +81,7 @@ function VertexAttachment:computeWorldVerticesWith (slot, start, count, worldVer
 			worldVertices[w + 1] = vx * a + vy * b + x
 			worldVertices[w + 2] = vx * c + vy * d + y
 			v = v + 2
-			w = w + 2
+			w = w + stride
 		end
 		return
 	end
@@ -112,7 +116,7 @@ function VertexAttachment:computeWorldVerticesWith (slot, start, count, worldVer
 			end
 			worldVertices[w + 1] = wx
 			worldVertices[w + 2] = wy
-			w = w + 2
+			w = w + stride
 		end
 	else
 		local deform = deformArray
@@ -139,7 +143,7 @@ function VertexAttachment:computeWorldVerticesWith (slot, start, count, worldVer
 			end
 			worldVertices[w + 1] = wx
 			worldVertices[w + 2] = wy
-			w = w + 2
+			w = w + stride
 		end
 	end
 end

@@ -30,9 +30,12 @@
 
 #include "RaptorExample.h"
 #include "TankExample.h"
+#include <spine/extension.h>
 
 USING_NS_CC;
 using namespace spine;
+
+spSwirlVertexEffect* effect = spSwirlVertexEffect_create(400);
 
 Scene* RaptorExample::scene () {
 	Scene *scene = Scene::create();
@@ -43,10 +46,16 @@ Scene* RaptorExample::scene () {
 bool RaptorExample::init () {
 	if (!LayerColor::initWithColor(Color4B(128, 128, 128, 255))) return false;
 
-	skeletonNode = SkeletonAnimation::createWithJsonFile("raptor.json", "raptor.atlas", 0.5f);
+	skeletonNode = SkeletonAnimation::createWithJsonFile("raptor-pro.json", "raptor.atlas", 0.5f);
 	skeletonNode->setAnimation(0, "walk", true);
 	skeletonNode->setAnimation(1, "empty", false);
 	skeletonNode->addAnimation(1, "gungrab", false, 2);
+	skeletonNode->setTwoColorTint(true);
+	
+	effect->centerY = 200;
+	swirlTime = 0;
+	
+	skeletonNode->setVertexEffect(&effect->super);
 
 	skeletonNode->setPosition(Vec2(_contentSize.width / 2, 20));
 	addChild(skeletonNode);
@@ -55,9 +64,10 @@ bool RaptorExample::init () {
 	
 	EventListenerTouchOneByOne* listener = EventListenerTouchOneByOne::create();
 	listener->onTouchBegan = [this] (Touch* touch, Event* event) -> bool {
-		if (!skeletonNode->getDebugBonesEnabled())
+		if (!skeletonNode->getDebugBonesEnabled()) {
 			skeletonNode->setDebugBonesEnabled(true);
-		else if (skeletonNode->getTimeScale() == 1)
+			skeletonNode->setDebugMeshesEnabled(true);
+		} else if (skeletonNode->getTimeScale() == 1)
 			skeletonNode->setTimeScale(0.3f);
 		else
 			Director::getInstance()->replaceScene(TankExample::scene());
@@ -66,4 +76,11 @@ bool RaptorExample::init () {
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
 	return true;
+}
+
+void RaptorExample::update(float fDelta) {
+	swirlTime += fDelta;
+	float percent = fmod(swirlTime, 2);
+	if (percent > 1) percent = 1 - (percent - 1);
+	effect->angle = _spMath_interpolate(_spMath_pow2_apply, -60, 60, percent);
 }

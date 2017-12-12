@@ -19,6 +19,10 @@ var spritesheetsDemo = function(loadingComplete, bgColor) {
 		canvas = document.getElementById("spritesheets-canvas");
 		canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
 		gl = canvas.getContext("webgl", { alpha: false }) || canvas.getContext("experimental-webgl", { alpha: false });
+		if (!gl) {
+			alert('WebGL is unavailable.');
+			return;
+		}
 
 		renderer = new spine.webgl.SceneRenderer(canvas, gl);
 		assetManager = spineDemos.assetManager;
@@ -50,7 +54,7 @@ var spritesheetsDemo = function(loadingComplete, bgColor) {
 			skeleton.updateWorldTransform();
 			offset = new spine.Vector2();
 			bounds = new spine.Vector2();
-			skeleton.getBounds(offset, bounds);
+			skeleton.getBounds(offset, bounds, []);
 			skeleton.x -= 60;
 
 			skeletonSeq = new spine.Skeleton(skeletonData);

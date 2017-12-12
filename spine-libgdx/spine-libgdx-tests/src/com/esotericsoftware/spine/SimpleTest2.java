@@ -66,7 +66,7 @@ public class SimpleTest2 extends ApplicationAdapter {
 		atlas = new TextureAtlas(Gdx.files.internal("spineboy/spineboy-pma.atlas"));
 		SkeletonJson json = new SkeletonJson(atlas); // This loads skeleton JSON data, which is stateless.
 		json.setScale(0.6f); // Load the skeleton at 60% the size it was in Spine.
-		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("spineboy/spineboy.json"));
+		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("spineboy/spineboy-ess.json"));
 
 		skeleton = new Skeleton(skeletonData); // Skeleton holds skeleton state (bone positions, slot attachments, etc).
 		skeleton.setPosition(250, 20);
@@ -146,8 +146,8 @@ public class SimpleTest2 extends ApplicationAdapter {
 
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		state.apply(skeleton); // Poses skeleton using current animations. This sets the bones' local SRT.
-		skeleton.updateWorldTransform(); // Uses the bones' local SRT to compute their world SRT.
+		if (state.apply(skeleton)) // Poses skeleton using current animations. This sets the bones' local SRT.
+			skeleton.updateWorldTransform(); // Uses the bones' local SRT to compute their world SRT.
 
 		// Configure the camera, SpriteBatch, and SkeletonRendererDebug.
 		camera.update();

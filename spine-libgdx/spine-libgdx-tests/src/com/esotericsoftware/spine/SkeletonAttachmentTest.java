@@ -42,7 +42,7 @@ import com.esotericsoftware.spine.attachments.SkeletonAttachment;
 public class SkeletonAttachmentTest extends ApplicationAdapter {
 	OrthographicCamera camera;
 	PolygonSpriteBatch batch;
-	SkeletonMeshRenderer renderer;
+	SkeletonRenderer renderer;
 
 	Skeleton spineboy, goblin;
 	AnimationState spineboyState, goblinState;
@@ -50,14 +50,14 @@ public class SkeletonAttachmentTest extends ApplicationAdapter {
 	public void create () {
 		camera = new OrthographicCamera();
 		batch = new PolygonSpriteBatch();
-		renderer = new SkeletonMeshRenderer();
+		renderer = new SkeletonRenderer();
 		renderer.setPremultipliedAlpha(true);
 
 		{
 			TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("spineboy/spineboy-pma.atlas"));
 			SkeletonJson json = new SkeletonJson(atlas);
 			json.setScale(0.6f);
-			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("spineboy/spineboy.json"));
+			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("spineboy/spineboy-ess.json"));
 			spineboy = new Skeleton(skeletonData);
 			spineboy.setPosition(320, 20);
 
@@ -71,7 +71,7 @@ public class SkeletonAttachmentTest extends ApplicationAdapter {
 		{
 			TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("goblins/goblins-pma.atlas"));
 			SkeletonJson json = new SkeletonJson(atlas);
-			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("goblins/goblins-mesh.json"));
+			SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("goblins/goblins-pro.json"));
 			goblin = new Skeleton(skeletonData);
 			goblin.setSkin("goblin");
 			goblin.setSlotsToSetupPose();
@@ -82,7 +82,7 @@ public class SkeletonAttachmentTest extends ApplicationAdapter {
 			// Instead of a right shoulder, spineboy will have a goblin!
 			SkeletonAttachment skeletonAttachment = new SkeletonAttachment("goblin");
 			skeletonAttachment.setSkeleton(goblin);
-			spineboy.findSlot("front_upper_arm").setAttachment(skeletonAttachment);
+			spineboy.findSlot("front-upper-arm").setAttachment(skeletonAttachment);
 		}
 	}
 

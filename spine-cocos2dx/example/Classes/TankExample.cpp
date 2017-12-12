@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 #include "TankExample.h"
-#include "BatchingExample.h"
+#include "CoinExample.h"
 
 USING_NS_CC;
 using namespace spine;
@@ -43,7 +43,7 @@ Scene* TankExample::scene () {
 bool TankExample::init () {
 	if (!LayerColor::initWithColor(Color4B(128, 128, 128, 255))) return false;
 
-	skeletonNode = SkeletonAnimation::createWithJsonFile("tank.json", "tank.atlas", 0.5f);
+	skeletonNode = SkeletonAnimation::createWithJsonFile("tank-pro.json", "tank.atlas", 0.5f);
 	skeletonNode->setAnimation(0, "drive", true);
 
 	skeletonNode->setPosition(Vec2(_contentSize.width / 2 + 400, 20));
@@ -58,7 +58,7 @@ bool TankExample::init () {
 		else if (skeletonNode->getTimeScale() == 1)
 			skeletonNode->setTimeScale(0.3f);
 		else
-			Director::getInstance()->replaceScene(BatchingExample::scene());
+			Director::getInstance()->replaceScene(CoinExample::scene());
 		return true;
 	};
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);

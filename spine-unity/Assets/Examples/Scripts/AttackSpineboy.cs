@@ -41,6 +41,8 @@ namespace Spine.Unity.Examples {
 		int currentHealth = 100;
 		const int maxHealth = 100;
 
+		public UnityEngine.Events.UnityEvent onAttack;
+
 		void Update () {
 			if (Input.GetKeyDown(KeyCode.Space)) {
 				currentHealth -= 10;
@@ -50,6 +52,7 @@ namespace Spine.Unity.Examples {
 					spineboy.AnimationState.SetAnimation(0, "hit", false);
 					spineboy.AnimationState.AddAnimation(0, "idle", true, 0);
 					gauge.fillPercent = (float)currentHealth/(float)maxHealth;
+					onAttack.Invoke();
 				} else {
 					if (currentHealth >= 0) {
 						gauge.fillPercent = 0;

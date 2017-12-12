@@ -190,16 +190,16 @@ function Bone:updateWorldTransformWith (x, y, rotation, scaleX, scaleY, shearX, 
 		local lb = math_cos(math_rad(90 + shearY)) * scaleY;
 		local lc = math_sin(math_rad(shearX)) * scaleX;
 		local ld = math_sin(90 + shearY) * scaleY;
-		self.a = za * la + zb * lc
-		self.b = za * lb + zb * ld
-		self.c = zc * la + zd * lc
-		self.d = zc * lb + zd * ld
 		local flip = self.skeleton.flipX ~= self.skeleton.flipY
 		if transformMode ~= TransformMode.noScaleOrReflection then flip = pa * pd - pb * pc < 0 end
 		if flip then
-			self.b = -self.b
-			self.d = -self.d
+			zb = -zb
+			zd = -zd
 		end
+		self.a = za * la + zb * lc
+		self.b = za * lb + zb * ld
+		self.c = zc * la + zd * lc
+		self.d = zc * lb + zd * ld		
 		return
 	end
 	
@@ -238,45 +238,6 @@ end
 
 function Bone:getWorldScaleY ()
 	return math_sqrt(self.b * self.b + self.d * self.d)
-end
-
-function Bone:worldToLocalRotationX ()
-	local parent = self.parent
-	if parent == nil then return self.arotation end
-	local pa = parent.a
-	local pb = parent.b
-	local pc = parent.c
-	local pd = parent.d
-	local a = self.a
-	local c = self.c
-	return math_deg(math_atan2(pa * c - pc * a, pd * a - pb * c))
-end
-
-function Bone:worldToLocalRotationY ()
-	local parent = self.parent
-	if parent == nil then return self.rotation end
-	local pa = parent.a
-	local pb = parent.b
-	local pc = parent.c
-	local pd = parent.d
-	local b = self.b
-	local d = self.d
-	return math_deg(math_atan2(pa * d - pc * b, pd * b - pb * d))
-end
-
-function Bone:rotateWorld (degrees)
-	local a = self.a
-	local b = self.b
-	local c = self.c
-	local d = self.d
-	local degreesRad = math_rad(degrees)
-	local cos = math_cos(degreesRad)
-	local sin = math_sin(degreesRad)
-	self.a = cos * a - sin * c
-	self.b = cos * b - sin * d
-	self.c = sin * a + cos * c
-	self.d = sin * b + cos * d
-	self.appliedValid = false
 end
 
 function updateAppliedTransform ()
@@ -342,6 +303,33 @@ function Bone:localToWorld (localCoords)
 	localCoords[1] = x * self.a + y * self.b + self.worldX
 	localCoords[2] = x * self.c + y * self.d + self.worldY
 	return localCoords
+end
+
+function Bone:worldToLocalRotation (worldRotation)
+	local sin = math_sin(math_rad(worldRotation))
+	local cos = math_cos(math_rad(worldRotation))
+	return math_deg(math_atan2(self.a * sin - self.c * cos, self.d * cos - self.b * sin))
+end
+
+function Bone:localToWorldRotation (localRotation)
+	local sin = math_sin(math_rad(localRotation))
+	local cos = math_cos(math_rad(localRotation))
+	return math_deg(math_atan2(cos * self.c + sin * self.d, cos * self.a + sin * self.b))
+end
+
+function Bone:rotateWorld (degrees)
+	local a = self.a
+	local b = self.b
+	local c = self.c
+	local d = self.d
+	local degreesRad = math_rad(degrees)
+	local cos = math_cos(degreesRad)
+	local sin = math_sin(degreesRad)
+	self.a = cos * a - sin * c
+	self.b = cos * b - sin * d
+	self.c = sin * a + cos * c
+	self.d = sin * b + cos * d
+	self.appliedValid = false
 end
 
 return Bone

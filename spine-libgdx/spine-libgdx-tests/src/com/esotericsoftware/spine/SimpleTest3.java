@@ -41,7 +41,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 public class SimpleTest3 extends ApplicationAdapter {
 	OrthographicCamera camera;
 	PolygonSpriteBatch batch;
-	SkeletonMeshRenderer renderer;
+	SkeletonRenderer renderer;
 	SkeletonRendererDebug debugRenderer;
 
 	TextureAtlas atlas;
@@ -51,7 +51,7 @@ public class SimpleTest3 extends ApplicationAdapter {
 	public void create () {
 		camera = new OrthographicCamera();
 		batch = new PolygonSpriteBatch(); // Required to render meshes. SpriteBatch can't render meshes.
-		renderer = new SkeletonMeshRenderer();
+		renderer = new SkeletonRenderer();
 		renderer.setPremultipliedAlpha(true);
 		debugRenderer = new SkeletonRendererDebug();
 		debugRenderer.setMeshTriangles(false);
@@ -61,7 +61,7 @@ public class SimpleTest3 extends ApplicationAdapter {
 		atlas = new TextureAtlas(Gdx.files.internal("raptor/raptor-pma.atlas"));
 		SkeletonJson json = new SkeletonJson(atlas); // This loads skeleton JSON data, which is stateless.
 		json.setScale(0.5f); // Load the skeleton at 50% the size it was in Spine.
-		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("raptor/raptor.json"));
+		SkeletonData skeletonData = json.readSkeletonData(Gdx.files.internal("raptor/raptor-pro.json"));
 
 		skeleton = new Skeleton(skeletonData); // Skeleton holds skeleton state (bone positions, slot attachments, etc).
 		skeleton.setPosition(250, 20);
@@ -72,9 +72,8 @@ public class SimpleTest3 extends ApplicationAdapter {
 		state.setTimeScale(0.6f); // Slow all animations down to 60% speed.
 
 		// Queue animations on tracks 0 and 1.
-		state.setAnimation(0, "walk", true);
-		state.setAnimation(1, "empty", false);
-		state.addAnimation(1, "gungrab", false, 2); // Keys in higher tracks override the pose from lower tracks.
+		state.setAnimation(0, "walk", true);		
+		state.addAnimation(1, "gun-grab", false, 2); // Keys in higher tracks override the pose from lower tracks.
 	}
 
 	public void render () {
@@ -82,8 +81,8 @@ public class SimpleTest3 extends ApplicationAdapter {
 
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		state.apply(skeleton); // Poses skeleton using current animations. This sets the bones' local SRT.
-		skeleton.updateWorldTransform(); // Uses the bones' local SRT to compute their world SRT.
+		if (state.apply(skeleton)) // Poses skeleton using current animations. This sets the bones' local SRT.
+			skeleton.updateWorldTransform(); // Uses the bones' local SRT to compute their world SRT.
 
 		// Configure the camera, SpriteBatch, and SkeletonRendererDebug.
 		camera.update();
