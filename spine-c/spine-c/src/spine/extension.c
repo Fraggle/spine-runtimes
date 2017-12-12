@@ -32,17 +32,28 @@
 #include <stdio.h>
 
 static void* (*mallocFunc) (size_t size) = malloc;
+#ifndef NDEBUG
 static void* (*debugMallocFunc) (size_t size, const char* file, int line) = NULL;
+#endif
 static void (*freeFunc) (void* ptr) = free;
 
+#ifdef NDEBUG
+void* _malloc (size_t size) {
+#else
 void* _malloc (size_t size, const char* file, int line) {
 	if(debugMallocFunc)
 		return debugMallocFunc(size, file, line);
-
+#endif
 	return mallocFunc(size);
 }
+
+#ifdef NDEBUG
+void* _calloc (size_t num, size_t size) {
+	void* ptr = _malloc(num * size);
+#else
 void* _calloc (size_t num, size_t size, const char* file, int line) {
 	void* ptr = _malloc(num * size, file, line);
+#endif
 	if (ptr) memset(ptr, 0, num * size);
 	return ptr;
 }
@@ -50,9 +61,11 @@ void _free (void* ptr) {
 	freeFunc(ptr);
 }
 
+#ifndef NDEBUG
 void _setDebugMalloc(void* (*malloc) (size_t size, const char* file, int line)) {
 	debugMallocFunc = malloc;
 }
+#endif
 
 void _setMalloc (void* (*malloc) (size_t size)) {
 	mallocFunc = malloc;

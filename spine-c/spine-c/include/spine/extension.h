@@ -62,8 +62,13 @@
 #define SPINE_EXTENSION_H_
 
 /* All allocation uses these. */
+#ifdef NDEBUG
+#define MALLOC(TYPE,COUNT) ((TYPE*)_malloc(sizeof(TYPE) * (COUNT)))
+#define CALLOC(TYPE,COUNT) ((TYPE*)_calloc(COUNT, sizeof(TYPE)))
+#else
 #define MALLOC(TYPE,COUNT) ((TYPE*)_malloc(sizeof(TYPE) * (COUNT), __FILE__, __LINE__))
 #define CALLOC(TYPE,COUNT) ((TYPE*)_calloc(COUNT, sizeof(TYPE), __FILE__, __LINE__))
+#endif
 #define NEW(TYPE) CALLOC(TYPE,1)
 
 /* Gets the direct super class. Type safe. */
@@ -159,12 +164,19 @@ char* _spUtil_readFile (const char* path, int* length);
  * Internal API available for extension:
  */
 
+#ifdef NDEBUG
+void* _malloc (size_t size);
+void* _calloc (size_t num, size_t size);
+#else
 void* _malloc (size_t size, const char* file, int line);
 void* _calloc (size_t num, size_t size, const char* file, int line);
+#endif
 void _free (void* ptr);
 
 void _setMalloc (void* (*_malloc) (size_t size));
+#ifndef NDEBUG
 void _setDebugMalloc (void* (*_malloc) (size_t size, const char* file, int line));
+#endif
 void _setFree (void (*_free) (void* ptr));
 
 char* _readFile (const char* path, int* length);
