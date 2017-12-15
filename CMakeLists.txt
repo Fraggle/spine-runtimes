@@ -1,8 +1,9 @@
 # Sets the minimum version of CMake required to build the native
 # library. You should either keep the default value or only pass a
 # value of 3.4.0 or lower.
-
 cmake_minimum_required(VERSION 3.4.1)
+
+project(spine)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -24,15 +25,15 @@ if(ANDROID)
 
     # Create target which consume the command via DEPENDS.
     get_filename_component(LIB_PUBLISH_DIRECTORY
-                           "../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
+                           "{CMAKE_SOURCE_DIR}/../../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
                            ABSOLUTE)
     file(MAKE_DIRECTORY ${LIB_PUBLISH_DIRECTORY})
+
     add_custom_command(TARGET spineruntime POST_BUILD
                        COMMAND "${CMAKE_COMMAND}" -E
                        copy "${CMAKE_BINARY_DIR}/libspineruntime.a"
                        "${LIB_PUBLISH_DIRECTORY}/libspineruntime.a"
-                       COMMENT "Copying library to output directory")
-
+                       COMMENT "Copying spineruntime to output directory")
 endif()
 
 if(EMSCRIPTEN)
