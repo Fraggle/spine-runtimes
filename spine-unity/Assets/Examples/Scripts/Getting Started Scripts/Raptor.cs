@@ -44,26 +44,13 @@ namespace Spine.Unity.Examples {
 
 		[SpineAnimation]
 		public string gunkeep = "gunkeep";
-
-		[SpineEvent]
-		public string footstepEvent = "footstep";
-
-		public AudioSource footstepAudioSource;
 		#endregion
 
 		SkeletonAnimation skeletonAnimation;
 
 		void Start () {
 			skeletonAnimation = GetComponent<SkeletonAnimation>();
-			skeletonAnimation.AnimationState.Event += HandleEvent;
 			StartCoroutine(GunGrabRoutine());
-		}
-
-		void HandleEvent (Spine.TrackEntry trackEntry, Spine.Event e) {
-			if (e.Data.Name == footstepEvent) {
-				footstepAudioSource.pitch = 0.5f + Random.Range(-0.2f, 0.2f);
-				footstepAudioSource.Play();
-			}
 		}
 
 		IEnumerator GunGrabRoutine () {		

@@ -428,6 +428,7 @@ function AnimationState:applyMixingFrom (to, skeleton, currentPose)
 	local mix = 0
 	if to.mixDuration == 0 then -- Single frame mix to undo mixingFrom changes.
 		mix = 1
+    currentPose = MixPose.setup
 	else
 		mix = to.mixTime / to.mixDuration
 		if mix > 1 then mix = 1 end
@@ -719,7 +720,12 @@ function AnimationState:addAnimation (trackIndex, animation, loop, delay)
     if delay <= 0 then
       local duration = last.animationEnd - last.animationStart
       if duration ~= 0 then
-        delay = delay + duration * (1 + math_floor(last.trackTime / duration)) - data:getMix(last.animation, animation)
+				if last.loop then
+					delay = delay + duration * (1 + math_floor(last.trackTime / duration))
+				else
+					delay = delay + duration
+				end
+        delay = delay - data:getMix(last.animation, animation)
       else
         delay = 0
       end

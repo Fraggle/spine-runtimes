@@ -207,9 +207,10 @@ package spine.animation {
 			if (from.mixingFrom != null) applyMixingFrom(from, skeleton, currentPose);
 
 			var mix : Number = 0;
-			if (to.mixDuration == 0) // Single frame mix to undo mixingFrom changes.
+			if (to.mixDuration == 0) { // Single frame mix to undo mixingFrom changes.
 				mix = 1;
-			else {
+				currentPose = MixPose.setup;
+			} else {
 				mix = to.mixTime / to.mixDuration;
 				if (mix > 1) mix = 1;
 			}
@@ -467,9 +468,12 @@ package spine.animation {
 				last.next = entry;
 				if (delay <= 0) {
 					var duration : Number = last.animationEnd - last.animationStart;
-					if (duration != 0)
-						delay += duration * (1 + (int)(last.trackTime / duration)) - data.getMix(last.animation, animation);
-					else
+					if (duration != 0) {
+						if (last.loop)
+						    delay += duration * (1 + (int)(last.trackTime / duration));
+						else
+						    delay += duration;						
+					} else
 						delay = 0;
 				}
 			}

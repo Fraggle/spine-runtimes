@@ -652,41 +652,37 @@ var spine;
 			if (!(slotAttachment instanceof spine.VertexAttachment) || !slotAttachment.applyDeform(this.attachment))
 				return;
 			var verticesArray = slot.attachmentVertices;
+			if (verticesArray.length == 0)
+				alpha = 1;
 			var frameVertices = this.frameVertices;
 			var vertexCount = frameVertices[0].length;
-			var vertices = spine.Utils.setArraySize(verticesArray, vertexCount);
 			var frames = this.frames;
 			if (time < frames[0]) {
 				var vertexAttachment = slotAttachment;
 				switch (pose) {
 					case MixPose.setup:
-						var zeroVertices;
-						if (vertexAttachment.bones == null) {
-							zeroVertices = vertexAttachment.vertices;
-						}
-						else {
-							zeroVertices = zeros;
-							if (zeroVertices.length < vertexCount)
-								zeros = zeroVertices = spine.Utils.newFloatArray(vertexCount);
-						}
-						spine.Utils.arrayCopy(zeroVertices, 0, vertices, 0, vertexCount);
+						verticesArray.length = 0;
 						return;
 					case MixPose.current:
-						if (alpha == 1)
+						if (alpha == 1) {
+							verticesArray.length = 0;
 							break;
+						}
+						var vertices_1 = spine.Utils.setArraySize(verticesArray, vertexCount);
 						if (vertexAttachment.bones == null) {
 							var setupVertices = vertexAttachment.vertices;
 							for (var i = 0; i < vertexCount; i++)
-								vertices[i] += (setupVertices[i] - vertices[i]) * alpha;
+								vertices_1[i] += (setupVertices[i] - vertices_1[i]) * alpha;
 						}
 						else {
 							alpha = 1 - alpha;
 							for (var i = 0; i < vertexCount; i++)
-								vertices[i] *= alpha;
+								vertices_1[i] *= alpha;
 						}
 				}
 				return;
 			}
+			var vertices = spine.Utils.setArraySize(verticesArray, vertexCount);
 			if (time >= frames[frames.length - 1]) {
 				var lastVertices = frameVertices[frames.length - 1];
 				if (alpha == 1) {
@@ -1284,8 +1280,10 @@ var spine;
 			if (from.mixingFrom != null)
 				this.applyMixingFrom(from, skeleton, currentPose);
 			var mix = 0;
-			if (to.mixDuration == 0)
+			if (to.mixDuration == 0) {
 				mix = 1;
+				currentPose = spine.MixPose.setup;
+			}
 			else {
 				mix = to.mixTime / to.mixDuration;
 				if (mix > 1)
@@ -1523,8 +1521,13 @@ var spine;
 				last.next = entry;
 				if (delay <= 0) {
 					var duration = last.animationEnd - last.animationStart;
-					if (duration != 0)
-						delay += duration * (1 + ((last.trackTime / duration) | 0)) - this.data.getMix(last.animation, animation);
+					if (duration != 0) {
+						if (last.loop)
+							delay += duration * (1 + ((last.trackTime / duration) | 0));
+						else
+							delay += duration;
+						delay -= this.data.getMix(last.animation, animation);
+					}
 					else
 						delay = 0;
 				}
@@ -1864,11 +1867,11 @@ var spine;
 				throw new Error("from cannot be null.");
 			if (to == null)
 				throw new Error("to cannot be null.");
-			var key = from.name + to.name;
+			var key = from.name + "." + to.name;
 			this.animationToMixTime[key] = duration;
 		};
 		AnimationStateData.prototype.getMix = function (from, to) {
-			var key = from.name + to.name;
+			var key = from.name + "." + to.name;
 			var value = this.animationToMixTime[key];
 			return value === undefined ? this.defaultMix : value;
 		};
@@ -1888,31 +1891,58 @@ var spine;
 			this.textureLoader = textureLoader;
 			this.pathPrefix = pathPrefix;
 		}
+		AssetManager.downloadText = function (url, success, error) {
+			var request = new XMLHttpRequest();
+			request.open("GET", url, true);
+			request.onload = function () {
+				if (request.status == 200) {
+					success(request.responseText);
+				}
+				else {
+					error(request.status, request.responseText);
+				}
+			};
+			request.onerror = function () {
+				error(request.status, request.responseText);
+			};
+			request.send();
+		};
+		AssetManager.downloadBinary = function (url, success, error) {
+			var request = new XMLHttpRequest();
+			request.open("GET", url, true);
+			request.responseType = "arraybuffer";
+			request.onload = function () {
+				if (request.status == 200) {
+					success(new Uint8Array(request.response));
+				}
+				else {
+					error(request.status, request.responseText);
+				}
+			};
+			request.onerror = function () {
+				error(request.status, request.responseText);
+			};
+			request.send();
+		};
 		AssetManager.prototype.loadText = function (path, success, error) {
 			var _this = this;
 			if (success === void 0) { success = null; }
 			if (error === void 0) { error = null; }
 			path = this.pathPrefix + path;
 			this.toLoad++;
-			var request = new XMLHttpRequest();
-			request.onreadystatechange = function () {
-				if (request.readyState == XMLHttpRequest.DONE) {
-					if (request.status >= 200 && request.status < 300) {
-						_this.assets[path] = request.responseText;
-						if (success)
-							success(path, request.responseText);
-					}
-					else {
-						_this.errors[path] = "Couldn't load text " + path + ": status " + request.status + ", " + request.responseText;
-						if (error)
-							error(path, "Couldn't load text " + path + ": status " + request.status + ", " + request.responseText);
-					}
-					_this.toLoad--;
-					_this.loaded++;
-				}
-			};
-			request.open("GET", path, true);
-			request.send();
+			AssetManager.downloadText(path, function (data) {
+				_this.assets[path] = data;
+				if (success)
+					success(path, data);
+				_this.toLoad--;
+				_this.loaded++;
+			}, function (state, responseText) {
+				_this.errors[path] = "Couldn't load text " + path + ": status " + status + ", " + responseText;
+				if (error)
+					error(path, "Couldn't load text " + path + ": status " + status + ", " + responseText);
+				_this.toLoad--;
+				_this.loaded++;
+			});
 		};
 		AssetManager.prototype.loadTexture = function (path, success, error) {
 			var _this = this;
@@ -1962,6 +1992,91 @@ var spine;
 					error(path, "Couldn't load image " + path);
 			};
 			img.src = data;
+		};
+		AssetManager.prototype.loadTextureAtlas = function (path, success, error) {
+			var _this = this;
+			if (success === void 0) { success = null; }
+			if (error === void 0) { error = null; }
+			var parent = path.lastIndexOf("/") >= 0 ? path.substring(0, path.lastIndexOf("/")) : "";
+			path = this.pathPrefix + path;
+			this.toLoad++;
+			AssetManager.downloadText(path, function (atlasData) {
+				var pagesLoaded = { count: 0 };
+				var atlasPages = new Array();
+				try {
+					var atlas = new spine.TextureAtlas(atlasData, function (path) {
+						atlasPages.push(parent + "/" + path);
+						var image = document.createElement("img");
+						image.width = 16;
+						image.height = 16;
+						return new spine.FakeTexture(image);
+					});
+				}
+				catch (e) {
+					var ex = e;
+					_this.errors[path] = "Couldn't load texture atlas " + path + ": " + ex.message;
+					if (error)
+						error(path, "Couldn't load texture atlas " + path + ": " + ex.message);
+					_this.toLoad--;
+					_this.loaded++;
+					return;
+				}
+				var _loop_1 = function (atlasPage) {
+					var pageLoadError = false;
+					_this.loadTexture(atlasPage, function (imagePath, image) {
+						pagesLoaded.count++;
+						if (pagesLoaded.count == atlasPages.length) {
+							if (!pageLoadError) {
+								try {
+									var atlas = new spine.TextureAtlas(atlasData, function (path) {
+										return _this.get(parent + "/" + path);
+									});
+									_this.assets[path] = atlas;
+									if (success)
+										success(path, atlas);
+									_this.toLoad--;
+									_this.loaded++;
+								}
+								catch (e) {
+									var ex = e;
+									_this.errors[path] = "Couldn't load texture atlas " + path + ": " + ex.message;
+									if (error)
+										error(path, "Couldn't load texture atlas " + path + ": " + ex.message);
+									_this.toLoad--;
+									_this.loaded++;
+								}
+							}
+							else {
+								_this.errors[path] = "Couldn't load texture atlas page " + imagePath + "} of atlas " + path;
+								if (error)
+									error(path, "Couldn't load texture atlas page " + imagePath + " of atlas " + path);
+								_this.toLoad--;
+								_this.loaded++;
+							}
+						}
+					}, function (imagePath, errorMessage) {
+						pageLoadError = true;
+						pagesLoaded.count++;
+						if (pagesLoaded.count == atlasPages.length) {
+							_this.errors[path] = "Couldn't load texture atlas page " + imagePath + "} of atlas " + path;
+							if (error)
+								error(path, "Couldn't load texture atlas page " + imagePath + " of atlas " + path);
+							_this.toLoad--;
+							_this.loaded++;
+						}
+					});
+				};
+				for (var _i = 0, atlasPages_1 = atlasPages; _i < atlasPages_1.length; _i++) {
+					var atlasPage = atlasPages_1[_i];
+					_loop_1(atlasPage);
+				}
+			}, function (state, responseText) {
+				_this.errors[path] = "Couldn't load texture atlas " + path + ": status " + status + ", " + responseText;
+				if (error)
+					error(path, "Couldn't load texture atlas " + path + ": status " + status + ", " + responseText);
+				_this.toLoad--;
+				_this.loaded++;
+			});
 		};
 		AssetManager.prototype.get = function (path) {
 			path = this.pathPrefix + path;
@@ -2629,13 +2744,18 @@ var spine;
 				for (var i = 0, n = spacesCount - 1; i < n;) {
 					var bone = bones[i];
 					var setupLength = bone.data.length;
-					if (setupLength == 0)
-						setupLength = 0.0000001;
-					var x = setupLength * bone.a, y = setupLength * bone.c;
-					var length_1 = Math.sqrt(x * x + y * y);
-					if (scale)
-						lengths[i] = length_1;
-					spaces[++i] = (lengthSpacing ? setupLength + spacing : spacing) * length_1 / setupLength;
+					if (setupLength < PathConstraint.epsilon) {
+						if (scale)
+							lengths[i] = 0;
+						spaces[++i] = 0;
+					}
+					else {
+						var x = setupLength * bone.a, y = setupLength * bone.c;
+						var length_1 = Math.sqrt(x * x + y * y);
+						if (scale)
+							lengths[i] = length_1;
+						spaces[++i] = (lengthSpacing ? setupLength + spacing : spacing) * length_1 / setupLength;
+					}
 				}
 			}
 			else {
@@ -2943,6 +3063,7 @@ var spine;
 	PathConstraint.NONE = -1;
 	PathConstraint.BEFORE = -2;
 	PathConstraint.AFTER = -3;
+	PathConstraint.epsilon = 0.00001;
 	spine.PathConstraint = PathConstraint;
 })(spine || (spine = {}));
 var spine;
@@ -5025,6 +5146,17 @@ var spine;
 		return TextureRegion;
 	}());
 	spine.TextureRegion = TextureRegion;
+	var FakeTexture = (function (_super) {
+		__extends(FakeTexture, _super);
+		function FakeTexture() {
+			return _super !== null && _super.apply(this, arguments) || this;
+		}
+		FakeTexture.prototype.setFilters = function (minFilter, magFilter) { };
+		FakeTexture.prototype.setWraps = function (uWrap, vWrap) { };
+		FakeTexture.prototype.dispose = function () { };
+		return FakeTexture;
+	}(spine.Texture));
+	spine.FakeTexture = FakeTexture;
 })(spine || (spine = {}));
 var spine;
 (function (spine) {
@@ -6472,18 +6604,19 @@ var spine;
 (function (spine) {
 	var threejs;
 	(function (threejs) {
-		var MeshBatcher = (function () {
-			function MeshBatcher(mesh, maxVertices) {
+		var MeshBatcher = (function (_super) {
+			__extends(MeshBatcher, _super);
+			function MeshBatcher(maxVertices) {
 				if (maxVertices === void 0) { maxVertices = 10920; }
-				this.verticesLength = 0;
-				this.indicesLength = 0;
+				var _this = _super.call(this) || this;
+				_this.verticesLength = 0;
+				_this.indicesLength = 0;
 				if (maxVertices > 10920)
 					throw new Error("Can't have more than 10920 triangles per batch: " + maxVertices);
-				var vertices = this.vertices = new Float32Array(maxVertices * MeshBatcher.VERTEX_SIZE);
-				var indices = this.indices = new Uint16Array(maxVertices * 3);
-				this.mesh = mesh;
+				var vertices = _this.vertices = new Float32Array(maxVertices * MeshBatcher.VERTEX_SIZE);
+				var indices = _this.indices = new Uint16Array(maxVertices * 3);
 				var geo = new THREE.BufferGeometry();
-				var vertexBuffer = this.vertexBuffer = new THREE.InterleavedBuffer(vertices, MeshBatcher.VERTEX_SIZE);
+				var vertexBuffer = _this.vertexBuffer = new THREE.InterleavedBuffer(vertices, MeshBatcher.VERTEX_SIZE);
 				vertexBuffer.dynamic = true;
 				geo.addAttribute("position", new THREE.InterleavedBufferAttribute(vertexBuffer, 3, 0, false));
 				geo.addAttribute("color", new THREE.InterleavedBufferAttribute(vertexBuffer, 4, 3, false));
@@ -6492,11 +6625,26 @@ var spine;
 				geo.getIndex().dynamic = true;
 				geo.drawRange.start = 0;
 				geo.drawRange.count = 0;
-				mesh.geometry = geo;
+				_this.geometry = geo;
+				_this.material = new threejs.SkeletonMeshMaterial();
+				return _this;
 			}
+			MeshBatcher.prototype.clear = function () {
+				var geo = this.geometry;
+				geo.drawRange.start = 0;
+				geo.drawRange.count = 0;
+				this.material.uniforms.map.value = null;
+			};
 			MeshBatcher.prototype.begin = function () {
 				this.verticesLength = 0;
 				this.indicesLength = 0;
+			};
+			MeshBatcher.prototype.canBatch = function (verticesLength, indicesLength) {
+				if (this.indicesLength + indicesLength >= this.indices.byteLength / 2)
+					return false;
+				if (this.verticesLength + verticesLength >= this.vertices.byteLength / 2)
+					return false;
+				return true;
 			};
 			MeshBatcher.prototype.batch = function (vertices, verticesLength, indices, indicesLength, z) {
 				if (z === void 0) { z = 0; }
@@ -6525,7 +6673,7 @@ var spine;
 				this.vertexBuffer.needsUpdate = true;
 				this.vertexBuffer.updateRange.offset = 0;
 				this.vertexBuffer.updateRange.count = this.verticesLength;
-				var geo = this.mesh.geometry;
+				var geo = this.geometry;
 				geo.getIndex().needsUpdate = true;
 				geo.getIndex().updateRange.offset = 0;
 				geo.getIndex().updateRange.count = this.indicesLength;
@@ -6533,7 +6681,7 @@ var spine;
 				geo.drawRange.count = this.indicesLength;
 			};
 			return MeshBatcher;
-		}());
+		}(THREE.Mesh));
 		MeshBatcher.VERTEX_SIZE = 9;
 		threejs.MeshBatcher = MeshBatcher;
 	})(threejs = spine.threejs || (spine.threejs = {}));
@@ -6542,6 +6690,29 @@ var spine;
 (function (spine) {
 	var threejs;
 	(function (threejs) {
+		var SkeletonMeshMaterial = (function (_super) {
+			__extends(SkeletonMeshMaterial, _super);
+			function SkeletonMeshMaterial() {
+				var _this = this;
+				var vertexShader = "\n\t\t\t\tattribute vec4 color;\n\t\t\t\tvarying vec2 vUv;\n\t\t\t\tvarying vec4 vColor;\n\t\t\t\tvoid main() {\n\t\t\t\t\tvUv = uv;\n\t\t\t\t\tvColor = color;\n\t\t\t\t\tgl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0);\n\t\t\t\t}\n\t\t\t";
+				var fragmentShader = "\n\t\t\t\tuniform sampler2D map;\n\t\t\t\tvarying vec2 vUv;\n\t\t\t\tvarying vec4 vColor;\n\t\t\t\tvoid main(void) {\n\t\t\t\t\tgl_FragColor = texture2D(map, vUv)*vColor;\n\t\t\t\t}\n\t\t\t";
+				var parameters = {
+					uniforms: {
+						map: { type: "t", value: null }
+					},
+					vertexShader: vertexShader,
+					fragmentShader: fragmentShader,
+					side: THREE.DoubleSide,
+					transparent: true,
+					alphaTest: 0.5
+				};
+				_this = _super.call(this, parameters) || this;
+				return _this;
+			}
+			;
+			return SkeletonMeshMaterial;
+		}(THREE.ShaderMaterial));
+		threejs.SkeletonMeshMaterial = SkeletonMeshMaterial;
 		var SkeletonMesh = (function (_super) {
 			__extends(SkeletonMesh, _super);
 			function SkeletonMesh(skeletonData) {
@@ -6551,17 +6722,14 @@ var spine;
 				_this.tempLight = new spine.Color();
 				_this.tempDark = new spine.Color();
 				_this.zOffset = 0.1;
+				_this.batches = new Array();
+				_this.nextBatchIndex = 0;
 				_this.clipper = new spine.SkeletonClipping();
 				_this.vertices = spine.Utils.newFloatArray(1024);
 				_this.tempColor = new spine.Color();
 				_this.skeleton = new spine.Skeleton(skeletonData);
 				var animData = new spine.AnimationStateData(skeletonData);
 				_this.state = new spine.AnimationState(animData);
-				var material = _this.material = new THREE.MeshBasicMaterial();
-				material.side = THREE.DoubleSide;
-				material.transparent = true;
-				material.alphaTest = 0.5;
-				_this.batcher = new threejs.MeshBatcher(_this);
 				return _this;
 			}
 			SkeletonMesh.prototype.update = function (deltaTime) {
@@ -6572,12 +6740,29 @@ var spine;
 				skeleton.updateWorldTransform();
 				this.updateGeometry();
 			};
+			SkeletonMesh.prototype.clearBatches = function () {
+				for (var i = 0; i < this.batches.length; i++) {
+					this.batches[i].clear();
+					this.batches[i].visible = false;
+				}
+				this.nextBatchIndex = 0;
+			};
+			SkeletonMesh.prototype.nextBatch = function () {
+				if (this.batches.length == this.nextBatchIndex) {
+					var batch_1 = new threejs.MeshBatcher();
+					this.add(batch_1);
+					this.batches.push(batch_1);
+				}
+				var batch = this.batches[this.nextBatchIndex++];
+				batch.visible = true;
+				return batch;
+			};
 			SkeletonMesh.prototype.updateGeometry = function () {
+				this.clearBatches();
 				var tempPos = this.tempPos;
 				var tempUv = this.tempUv;
 				var tempLight = this.tempLight;
 				var tempDark = this.tempDark;
-				var geometry = this.geometry;
 				var numVertices = 0;
 				var verticesLength = 0;
 				var indicesLength = 0;
@@ -6587,8 +6772,8 @@ var spine;
 				var triangles = null;
 				var uvs = null;
 				var drawOrder = this.skeleton.drawOrder;
-				var batcher = this.batcher;
-				batcher.begin();
+				var batch = this.nextBatch();
+				batch.begin();
 				var z = 0;
 				var zOffset = this.zOffset;
 				for (var i = 0, n = drawOrder.length; i < n; i++) {
@@ -6629,17 +6814,16 @@ var spine;
 					else
 						continue;
 					if (texture != null) {
-						if (!this.material.map) {
-							var mat = this.material;
-							mat.map = texture.texture;
-							mat.needsUpdate = true;
-						}
 						var skeleton = slot.bone.skeleton;
 						var skeletonColor = skeleton.color;
 						var slotColor = slot.color;
 						var alpha = skeletonColor.a * slotColor.a * attachmentColor.a;
 						var color = this.tempColor;
 						color.set(skeletonColor.r * slotColor.r * attachmentColor.r, skeletonColor.g * slotColor.g * attachmentColor.g, skeletonColor.b * slotColor.b * attachmentColor.b, alpha);
+						var finalVertices = void 0;
+						var finalVerticesLength = void 0;
+						var finalIndices = void 0;
+						var finalIndicesLength = void 0;
 						if (clipper.isClipping()) {
 							clipper.clipTriangles(vertices, numFloats, triangles, triangles.length, uvs, color, null, false);
 							var clippedVertices = clipper.clippedVertices;
@@ -6665,7 +6849,10 @@ var spine;
 									verts[v + 7] = tempUv.y;
 								}
 							}
-							batcher.batch(clippedVertices, clippedVertices.length, clippedTriangles, clippedTriangles.length, z);
+							finalVertices = clippedVertices;
+							finalVerticesLength = clippedVertices.length;
+							finalIndices = clippedTriangles;
+							finalIndicesLength = clippedTriangles.length;
 						}
 						else {
 							var verts = vertices;
@@ -6699,15 +6886,40 @@ var spine;
 									verts[v + 5] = uvs[u + 1];
 								}
 							}
-							batcher.batch(vertices, numFloats, triangles, triangles.length, z);
+							finalVertices = vertices;
+							finalVerticesLength = numFloats;
+							finalIndices = triangles;
+							finalIndicesLength = triangles.length;
 						}
+						if (finalVerticesLength == 0 || finalIndicesLength == 0)
+							continue;
+						if (!batch.canBatch(finalVerticesLength, finalIndicesLength)) {
+							batch.end();
+							batch = this.nextBatch();
+							batch.begin();
+						}
+						var batchMaterial = batch.material;
+						if (batchMaterial.uniforms.map.value == null) {
+							batchMaterial.uniforms.map.value = texture.texture;
+						}
+						if (batchMaterial.uniforms.map.value != texture.texture) {
+							batch.end();
+							batch = this.nextBatch();
+							batch.begin();
+							batchMaterial = batch.material;
+							batchMaterial.uniforms.map.value = texture.texture;
+						}
+						batchMaterial.needsUpdate = true;
+						batch.batch(finalVertices, finalVerticesLength, finalIndices, finalIndicesLength, z);
 						z += zOffset;
 					}
+					clipper.clipEndWithSlot(slot);
 				}
-				batcher.end();
+				clipper.clipEnd();
+				batch.end();
 			};
 			return SkeletonMesh;
-		}(THREE.Mesh));
+		}(THREE.Object3D));
 		SkeletonMesh.QUAD_TRIANGLES = [0, 1, 2, 2, 3, 0];
 		SkeletonMesh.VERTEX_SIZE = 2 + 2 + 4;
 		threejs.SkeletonMesh = SkeletonMesh;

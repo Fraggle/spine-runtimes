@@ -652,41 +652,37 @@ var spine;
 			if (!(slotAttachment instanceof spine.VertexAttachment) || !slotAttachment.applyDeform(this.attachment))
 				return;
 			var verticesArray = slot.attachmentVertices;
+			if (verticesArray.length == 0)
+				alpha = 1;
 			var frameVertices = this.frameVertices;
 			var vertexCount = frameVertices[0].length;
-			var vertices = spine.Utils.setArraySize(verticesArray, vertexCount);
 			var frames = this.frames;
 			if (time < frames[0]) {
 				var vertexAttachment = slotAttachment;
 				switch (pose) {
 					case MixPose.setup:
-						var zeroVertices;
-						if (vertexAttachment.bones == null) {
-							zeroVertices = vertexAttachment.vertices;
-						}
-						else {
-							zeroVertices = zeros;
-							if (zeroVertices.length < vertexCount)
-								zeros = zeroVertices = spine.Utils.newFloatArray(vertexCount);
-						}
-						spine.Utils.arrayCopy(zeroVertices, 0, vertices, 0, vertexCount);
+						verticesArray.length = 0;
 						return;
 					case MixPose.current:
-						if (alpha == 1)
+						if (alpha == 1) {
+							verticesArray.length = 0;
 							break;
+						}
+						var vertices_1 = spine.Utils.setArraySize(verticesArray, vertexCount);
 						if (vertexAttachment.bones == null) {
 							var setupVertices = vertexAttachment.vertices;
 							for (var i = 0; i < vertexCount; i++)
-								vertices[i] += (setupVertices[i] - vertices[i]) * alpha;
+								vertices_1[i] += (setupVertices[i] - vertices_1[i]) * alpha;
 						}
 						else {
 							alpha = 1 - alpha;
 							for (var i = 0; i < vertexCount; i++)
-								vertices[i] *= alpha;
+								vertices_1[i] *= alpha;
 						}
 				}
 				return;
 			}
+			var vertices = spine.Utils.setArraySize(verticesArray, vertexCount);
 			if (time >= frames[frames.length - 1]) {
 				var lastVertices = frameVertices[frames.length - 1];
 				if (alpha == 1) {
@@ -1284,8 +1280,10 @@ var spine;
 			if (from.mixingFrom != null)
 				this.applyMixingFrom(from, skeleton, currentPose);
 			var mix = 0;
-			if (to.mixDuration == 0)
+			if (to.mixDuration == 0) {
 				mix = 1;
+				currentPose = spine.MixPose.setup;
+			}
 			else {
 				mix = to.mixTime / to.mixDuration;
 				if (mix > 1)
@@ -1523,8 +1521,13 @@ var spine;
 				last.next = entry;
 				if (delay <= 0) {
 					var duration = last.animationEnd - last.animationStart;
-					if (duration != 0)
-						delay += duration * (1 + ((last.trackTime / duration) | 0)) - this.data.getMix(last.animation, animation);
+					if (duration != 0) {
+						if (last.loop)
+							delay += duration * (1 + ((last.trackTime / duration) | 0));
+						else
+							delay += duration;
+						delay -= this.data.getMix(last.animation, animation);
+					}
 					else
 						delay = 0;
 				}
@@ -1864,11 +1867,11 @@ var spine;
 				throw new Error("from cannot be null.");
 			if (to == null)
 				throw new Error("to cannot be null.");
-			var key = from.name + to.name;
+			var key = from.name + "." + to.name;
 			this.animationToMixTime[key] = duration;
 		};
 		AnimationStateData.prototype.getMix = function (from, to) {
-			var key = from.name + to.name;
+			var key = from.name + "." + to.name;
 			var value = this.animationToMixTime[key];
 			return value === undefined ? this.defaultMix : value;
 		};
@@ -1888,31 +1891,58 @@ var spine;
 			this.textureLoader = textureLoader;
 			this.pathPrefix = pathPrefix;
 		}
+		AssetManager.downloadText = function (url, success, error) {
+			var request = new XMLHttpRequest();
+			request.open("GET", url, true);
+			request.onload = function () {
+				if (request.status == 200) {
+					success(request.responseText);
+				}
+				else {
+					error(request.status, request.responseText);
+				}
+			};
+			request.onerror = function () {
+				error(request.status, request.responseText);
+			};
+			request.send();
+		};
+		AssetManager.downloadBinary = function (url, success, error) {
+			var request = new XMLHttpRequest();
+			request.open("GET", url, true);
+			request.responseType = "arraybuffer";
+			request.onload = function () {
+				if (request.status == 200) {
+					success(new Uint8Array(request.response));
+				}
+				else {
+					error(request.status, request.responseText);
+				}
+			};
+			request.onerror = function () {
+				error(request.status, request.responseText);
+			};
+			request.send();
+		};
 		AssetManager.prototype.loadText = function (path, success, error) {
 			var _this = this;
 			if (success === void 0) { success = null; }
 			if (error === void 0) { error = null; }
 			path = this.pathPrefix + path;
 			this.toLoad++;
-			var request = new XMLHttpRequest();
-			request.onreadystatechange = function () {
-				if (request.readyState == XMLHttpRequest.DONE) {
-					if (request.status >= 200 && request.status < 300) {
-						_this.assets[path] = request.responseText;
-						if (success)
-							success(path, request.responseText);
-					}
-					else {
-						_this.errors[path] = "Couldn't load text " + path + ": status " + request.status + ", " + request.responseText;
-						if (error)
-							error(path, "Couldn't load text " + path + ": status " + request.status + ", " + request.responseText);
-					}
-					_this.toLoad--;
-					_this.loaded++;
-				}
-			};
-			request.open("GET", path, true);
-			request.send();
+			AssetManager.downloadText(path, function (data) {
+				_this.assets[path] = data;
+				if (success)
+					success(path, data);
+				_this.toLoad--;
+				_this.loaded++;
+			}, function (state, responseText) {
+				_this.errors[path] = "Couldn't load text " + path + ": status " + status + ", " + responseText;
+				if (error)
+					error(path, "Couldn't load text " + path + ": status " + status + ", " + responseText);
+				_this.toLoad--;
+				_this.loaded++;
+			});
 		};
 		AssetManager.prototype.loadTexture = function (path, success, error) {
 			var _this = this;
@@ -1962,6 +1992,91 @@ var spine;
 					error(path, "Couldn't load image " + path);
 			};
 			img.src = data;
+		};
+		AssetManager.prototype.loadTextureAtlas = function (path, success, error) {
+			var _this = this;
+			if (success === void 0) { success = null; }
+			if (error === void 0) { error = null; }
+			var parent = path.lastIndexOf("/") >= 0 ? path.substring(0, path.lastIndexOf("/")) : "";
+			path = this.pathPrefix + path;
+			this.toLoad++;
+			AssetManager.downloadText(path, function (atlasData) {
+				var pagesLoaded = { count: 0 };
+				var atlasPages = new Array();
+				try {
+					var atlas = new spine.TextureAtlas(atlasData, function (path) {
+						atlasPages.push(parent + "/" + path);
+						var image = document.createElement("img");
+						image.width = 16;
+						image.height = 16;
+						return new spine.FakeTexture(image);
+					});
+				}
+				catch (e) {
+					var ex = e;
+					_this.errors[path] = "Couldn't load texture atlas " + path + ": " + ex.message;
+					if (error)
+						error(path, "Couldn't load texture atlas " + path + ": " + ex.message);
+					_this.toLoad--;
+					_this.loaded++;
+					return;
+				}
+				var _loop_1 = function (atlasPage) {
+					var pageLoadError = false;
+					_this.loadTexture(atlasPage, function (imagePath, image) {
+						pagesLoaded.count++;
+						if (pagesLoaded.count == atlasPages.length) {
+							if (!pageLoadError) {
+								try {
+									var atlas = new spine.TextureAtlas(atlasData, function (path) {
+										return _this.get(parent + "/" + path);
+									});
+									_this.assets[path] = atlas;
+									if (success)
+										success(path, atlas);
+									_this.toLoad--;
+									_this.loaded++;
+								}
+								catch (e) {
+									var ex = e;
+									_this.errors[path] = "Couldn't load texture atlas " + path + ": " + ex.message;
+									if (error)
+										error(path, "Couldn't load texture atlas " + path + ": " + ex.message);
+									_this.toLoad--;
+									_this.loaded++;
+								}
+							}
+							else {
+								_this.errors[path] = "Couldn't load texture atlas page " + imagePath + "} of atlas " + path;
+								if (error)
+									error(path, "Couldn't load texture atlas page " + imagePath + " of atlas " + path);
+								_this.toLoad--;
+								_this.loaded++;
+							}
+						}
+					}, function (imagePath, errorMessage) {
+						pageLoadError = true;
+						pagesLoaded.count++;
+						if (pagesLoaded.count == atlasPages.length) {
+							_this.errors[path] = "Couldn't load texture atlas page " + imagePath + "} of atlas " + path;
+							if (error)
+								error(path, "Couldn't load texture atlas page " + imagePath + " of atlas " + path);
+							_this.toLoad--;
+							_this.loaded++;
+						}
+					});
+				};
+				for (var _i = 0, atlasPages_1 = atlasPages; _i < atlasPages_1.length; _i++) {
+					var atlasPage = atlasPages_1[_i];
+					_loop_1(atlasPage);
+				}
+			}, function (state, responseText) {
+				_this.errors[path] = "Couldn't load texture atlas " + path + ": status " + status + ", " + responseText;
+				if (error)
+					error(path, "Couldn't load texture atlas " + path + ": status " + status + ", " + responseText);
+				_this.toLoad--;
+				_this.loaded++;
+			});
 		};
 		AssetManager.prototype.get = function (path) {
 			path = this.pathPrefix + path;
@@ -2629,13 +2744,18 @@ var spine;
 				for (var i = 0, n = spacesCount - 1; i < n;) {
 					var bone = bones[i];
 					var setupLength = bone.data.length;
-					if (setupLength == 0)
-						setupLength = 0.0000001;
-					var x = setupLength * bone.a, y = setupLength * bone.c;
-					var length_1 = Math.sqrt(x * x + y * y);
-					if (scale)
-						lengths[i] = length_1;
-					spaces[++i] = (lengthSpacing ? setupLength + spacing : spacing) * length_1 / setupLength;
+					if (setupLength < PathConstraint.epsilon) {
+						if (scale)
+							lengths[i] = 0;
+						spaces[++i] = 0;
+					}
+					else {
+						var x = setupLength * bone.a, y = setupLength * bone.c;
+						var length_1 = Math.sqrt(x * x + y * y);
+						if (scale)
+							lengths[i] = length_1;
+						spaces[++i] = (lengthSpacing ? setupLength + spacing : spacing) * length_1 / setupLength;
+					}
 				}
 			}
 			else {
@@ -2943,6 +3063,7 @@ var spine;
 	PathConstraint.NONE = -1;
 	PathConstraint.BEFORE = -2;
 	PathConstraint.AFTER = -3;
+	PathConstraint.epsilon = 0.00001;
 	spine.PathConstraint = PathConstraint;
 })(spine || (spine = {}));
 var spine;
@@ -5025,6 +5146,17 @@ var spine;
 		return TextureRegion;
 	}());
 	spine.TextureRegion = TextureRegion;
+	var FakeTexture = (function (_super) {
+		__extends(FakeTexture, _super);
+		function FakeTexture() {
+			return _super !== null && _super.apply(this, arguments) || this;
+		}
+		FakeTexture.prototype.setFilters = function (minFilter, magFilter) { };
+		FakeTexture.prototype.setWraps = function (uWrap, vWrap) { };
+		FakeTexture.prototype.dispose = function () { };
+		return FakeTexture;
+	}(spine.Texture));
+	spine.FakeTexture = FakeTexture;
 })(spine || (spine = {}));
 var spine;
 (function (spine) {
@@ -7565,6 +7697,71 @@ var spine;
 				}
 				this.batcher.draw(texture, quad, this.QUAD_TRIANGLES);
 			};
+			SceneRenderer.prototype.drawTextureUV = function (texture, x, y, width, height, u, v, u2, v2, color) {
+				if (color === void 0) { color = null; }
+				this.enableRenderer(this.batcher);
+				if (color === null)
+					color = this.WHITE;
+				var quad = this.QUAD;
+				var i = 0;
+				quad[i++] = x;
+				quad[i++] = y;
+				quad[i++] = color.r;
+				quad[i++] = color.g;
+				quad[i++] = color.b;
+				quad[i++] = color.a;
+				quad[i++] = u;
+				quad[i++] = v;
+				if (this.twoColorTint) {
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+				}
+				quad[i++] = x + width;
+				quad[i++] = y;
+				quad[i++] = color.r;
+				quad[i++] = color.g;
+				quad[i++] = color.b;
+				quad[i++] = color.a;
+				quad[i++] = u2;
+				quad[i++] = v;
+				if (this.twoColorTint) {
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+				}
+				quad[i++] = x + width;
+				quad[i++] = y + height;
+				quad[i++] = color.r;
+				quad[i++] = color.g;
+				quad[i++] = color.b;
+				quad[i++] = color.a;
+				quad[i++] = u2;
+				quad[i++] = v2;
+				if (this.twoColorTint) {
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+				}
+				quad[i++] = x;
+				quad[i++] = y + height;
+				quad[i++] = color.r;
+				quad[i++] = color.g;
+				quad[i++] = color.b;
+				quad[i++] = color.a;
+				quad[i++] = u;
+				quad[i++] = v2;
+				if (this.twoColorTint) {
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+					quad[i++] = 0;
+				}
+				this.batcher.draw(texture, quad, this.QUAD_TRIANGLES);
+			};
 			SceneRenderer.prototype.drawTextureRotated = function (texture, x, y, width, height, pivotX, pivotY, angle, color, premultipliedAlpha) {
 				if (color === void 0) { color = null; }
 				if (premultipliedAlpha === void 0) { premultipliedAlpha = false; }
@@ -7881,6 +8078,8 @@ var spine;
 				this.tmp2x2 = new Float32Array(2 * 2);
 				this.tmp3x3 = new Float32Array(3 * 3);
 				this.tmp4x4 = new Float32Array(4 * 4);
+				this.vsSource = vertexShader;
+				this.fsSource = fragmentShader;
 				this.context = context instanceof webgl.ManagedWebGLRenderingContext ? context : new webgl.ManagedWebGLRenderingContext(context);
 				this.context.addRestorable(this);
 				this.compile();
@@ -7888,6 +8087,8 @@ var spine;
 			Shader.prototype.getProgram = function () { return this.program; };
 			Shader.prototype.getVertexShader = function () { return this.vertexShader; };
 			Shader.prototype.getFragmentShader = function () { return this.fragmentShader; };
+			Shader.prototype.getVertexShaderSource = function () { return this.vsSource; };
+			Shader.prototype.getFragmentSource = function () { return this.fsSource; };
 			Shader.prototype.compile = function () {
 				var gl = this.context.gl;
 				try {
@@ -8003,7 +8204,7 @@ var spine;
 			};
 			Shader.newTwoColoredTextured = function (context) {
 				var vs = "\n\t\t\t\tattribute vec4 " + Shader.POSITION + ";\n\t\t\t\tattribute vec4 " + Shader.COLOR + ";\n\t\t\t\tattribute vec4 " + Shader.COLOR2 + ";\n\t\t\t\tattribute vec2 " + Shader.TEXCOORDS + ";\n\t\t\t\tuniform mat4 " + Shader.MVP_MATRIX + ";\n\t\t\t\tvarying vec4 v_light;\n\t\t\t\tvarying vec4 v_dark;\n\t\t\t\tvarying vec2 v_texCoords;\n\n\t\t\t\tvoid main () {\n\t\t\t\t\tv_light = " + Shader.COLOR + ";\n\t\t\t\t\tv_dark = " + Shader.COLOR2 + ";\n\t\t\t\t\tv_texCoords = " + Shader.TEXCOORDS + ";\n\t\t\t\t\tgl_Position = " + Shader.MVP_MATRIX + " * " + Shader.POSITION + ";\n\t\t\t\t}\n\t\t\t";
-				var fs = "\n\t\t\t\t#ifdef GL_ES\n\t\t\t\t\t#define LOWP lowp\n\t\t\t\t\tprecision mediump float;\n\t\t\t\t#else\n\t\t\t\t\t#define LOWP\n\t\t\t\t#endif\n\t\t\t\tvarying LOWP vec4 v_light;\n\t\t\t\tvarying LOWP vec4 v_dark;\n\t\t\t\tvarying vec2 v_texCoords;\n\t\t\t\tuniform sampler2D u_texture;\n\n\t\t\t\tvoid main () {\n\t\t\t\t\tvec4 texColor = texture2D(u_texture, v_texCoords);\n\t\t\t\t\tfloat alpha = texColor.a * v_light.a;\n\t\t\t\t\tgl_FragColor.a = alpha;\n\t\t\t\t\tgl_FragColor.rgb = (1.0 - texColor.rgb) * v_dark.rgb * alpha + texColor.rgb * v_light.rgb;\n\t\t\t\t}\n\t\t\t";
+				var fs = "\n\t\t\t\t#ifdef GL_ES\n\t\t\t\t\t#define LOWP lowp\n\t\t\t\t\tprecision mediump float;\n\t\t\t\t#else\n\t\t\t\t\t#define LOWP\n\t\t\t\t#endif\n\t\t\t\tvarying LOWP vec4 v_light;\n\t\t\t\tvarying LOWP vec4 v_dark;\n\t\t\t\tvarying vec2 v_texCoords;\n\t\t\t\tuniform sampler2D u_texture;\n\n\t\t\t\tvoid main () {\n\t\t\t\t\tvec4 texColor = texture2D(u_texture, v_texCoords);\n\t\t\t\t\tgl_FragColor.a = texColor.a * v_light.a;\n\t\t\t\t\tgl_FragColor.rgb = ((texColor.a - 1.0) * v_dark.a + 1.0 - texColor.rgb) * v_dark.rgb + texColor.rgb * v_light.rgb;\n\t\t\t\t}\n\t\t\t";
 				return new Shader(context, vs, fs);
 			};
 			Shader.newColored = function (context) {
@@ -8638,9 +8839,18 @@ var spine;
 						}
 						var darkColor = this.tempColor2;
 						if (slot.darkColor == null)
-							darkColor.set(0, 0, 0, 1);
-						else
-							darkColor.setFromColor(slot.darkColor);
+							darkColor.set(0, 0, 0, 1.0);
+						else {
+							if (premultipliedAlpha) {
+								darkColor.r = slot.darkColor.r * finalColor.a;
+								darkColor.g = slot.darkColor.g * finalColor.a;
+								darkColor.b = slot.darkColor.b * finalColor.a;
+							}
+							else {
+								darkColor.setFromColor(slot.darkColor);
+							}
+							darkColor.a = premultipliedAlpha ? 1.0 : 0.0;
+						}
 						var slotBlendMode = slot.data.blendMode;
 						if (slotBlendMode != blendMode) {
 							blendMode = slotBlendMode;

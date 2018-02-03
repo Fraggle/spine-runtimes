@@ -191,9 +191,10 @@ module spine {
 			if (from.mixingFrom != null) this.applyMixingFrom(from, skeleton, currentPose);
 
 			let mix = 0;
-			if (to.mixDuration == 0) // Single frame mix to undo mixingFrom changes.
+			if (to.mixDuration == 0) { // Single frame mix to undo mixingFrom changes.
 				mix = 1;
-			else {
+				currentPose = MixPose.setup;
+			} else {
 				mix = to.mixTime / to.mixDuration;
 				if (mix > 1) mix = 1;
 			}
@@ -452,9 +453,13 @@ module spine {
 				last.next = entry;
 				if (delay <= 0) {
 					let duration = last.animationEnd - last.animationStart;
-					if (duration != 0)
-						delay += duration * (1 + ((last.trackTime / duration) | 0)) - this.data.getMix(last.animation, animation);
-					else
+					if (duration != 0) {
+						if (last.loop)
+							delay += duration * (1 + ((last.trackTime / duration) | 0));
+						else
+							delay += duration;
+						delay -= this.data.getMix(last.animation, animation);
+					} else
 						delay = 0;
 				}
 			}

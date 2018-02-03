@@ -57,6 +57,7 @@ import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.TextureAtlasData;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas.TextureAtlasData.Page;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
@@ -96,6 +97,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 	OrthographicCamera camera;
 	TwoColorPolygonBatch batch;
+	TextureAtlas atlas;
 	SkeletonRenderer renderer;
 	SkeletonRendererDebug debugRenderer;
 	SkeletonData skeletonData;
@@ -155,7 +157,20 @@ public class SkeletonViewer extends ApplicationAdapter {
 				}
 			}
 			TextureAtlasData data = !atlasFile.exists() ? null : new TextureAtlasData(atlasFile, atlasFile.parent(), false);
-			TextureAtlas atlas = new TextureAtlas(data) {
+
+			if (data != null) {
+				boolean linear = true;
+				for (int i = 0, n = data.getPages().size; i < n; i++) {
+					Page page = data.getPages().get(i);
+					if (page.minFilter != TextureFilter.Linear || page.magFilter != TextureFilter.Linear) {
+						linear = false;
+						break;
+					}
+				}
+				ui.linearCheckbox.setChecked(linear);
+			}
+
+			atlas = new TextureAtlas(data) {
 				public AtlasRegion findRegion (String name) {
 					AtlasRegion region = super.findRegion(name);
 					if (region == null) {
@@ -253,7 +268,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 	}
 
 	public void render () {
-		Gdx.gl.glClearColor(0.3f, 0.3f, 0.3f, 1);
+		Gdx.gl.glClearColor(112 / 255f, 111 / 255f, 118 / 255f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		float delta = Gdx.graphics.getDeltaTime();
@@ -291,6 +306,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 			// Pose and render skeleton.
 			state.getData().setDefaultMix(ui.mixSlider.getValue());
 			renderer.setPremultipliedAlpha(ui.premultipliedCheckbox.isChecked());
+			batch.setPremultipliedAlpha(ui.premultipliedCheckbox.isChecked());
 
 			skeleton.setFlip(ui.flipXCheckbox.isChecked(), ui.flipYCheckbox.isChecked());
 
@@ -415,6 +431,8 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 		CheckBox premultipliedCheckbox = new CheckBox("Premultiplied", skin);
 
+		CheckBox linearCheckbox = new CheckBox("Linear", skin);
+
 		TextButton bonesSetupPoseButton = new TextButton("Bones", skin);
 		TextButton slotsSetupPoseButton = new TextButton("Slots", skin);
 		TextButton setupPoseButton = new TextButton("Both", skin);
@@ -456,6 +474,8 @@ public class SkeletonViewer extends ApplicationAdapter {
 			animationList.getSelection().setRequired(false);
 
 			premultipliedCheckbox.setChecked(true);
+
+			linearCheckbox.setChecked(true);
 
 			loopCheckbox.setChecked(true);
 
@@ -518,7 +538,13 @@ public class SkeletonViewer extends ApplicationAdapter {
 			root.add();
 			root.add(table(debugMeshHullCheckbox, debugMeshTrianglesCheckbox)).row();
 			root.add("Atlas alpha:");
-			root.add(premultipliedCheckbox).row();
+			{
+				Table table = table();
+				table.add(premultipliedCheckbox);
+				table.add("Filtering:").growX().getActor().setAlignment(Align.right);
+				table.add(linearCheckbox);
+				root.add(table).fill().row();
+			}
 
 			root.add(new Image(skin.newDrawable("white", new Color(0x4e4e4eff)))).height(1).fillX().colspan(2).pad(-3, 0, 1, 0)
 				.row();
@@ -738,6 +764,15 @@ public class SkeletonViewer extends ApplicationAdapter {
 				}
 			});
 
+			linearCheckbox.addListener(new ChangeListener() {
+				public void changed (ChangeEvent event, Actor actor) {
+					if (atlas == null) return;
+					TextureFilter filter = linearCheckbox.isChecked() ? TextureFilter.Linear : TextureFilter.Nearest;
+					for (Texture texture : atlas.getTextures())
+						texture.setFilter(filter, filter);
+				}
+			});
+
 			skinList.addListener(new ChangeListener() {
 				public void changed (ChangeEvent event, Actor actor) {
 					if (skeleton != null) {
@@ -776,19 +811,19 @@ public class SkeletonViewer extends ApplicationAdapter {
 
 				public boolean touchDown (int screenX, int screenY, int pointer, int button) {
 					offsetX = screenX;
-					offsetY = Gdx.graphics.getHeight() - screenY;
+					offsetY = Gdx.graphics.getHeight() - 1 - screenY;
 					return false;
 				}
 
 				public boolean touchDragged (int screenX, int screenY, int pointer) {
 					float deltaX = screenX - offsetX;
-					float deltaY = Gdx.graphics.getHeight() - screenY - offsetY;
+					float deltaY = Gdx.graphics.getHeight() - 1 - screenY - offsetY;
 
 					camera.position.x -= deltaX * camera.zoom;
 					camera.position.y -= deltaY * camera.zoom;
 
 					offsetX = screenX;
-					offsetY = Gdx.graphics.getHeight() - screenY;
+					offsetY = Gdx.graphics.getHeight() - 1 - screenY;
 					return false;
 				}
 
@@ -833,7 +868,7 @@ public class SkeletonViewer extends ApplicationAdapter {
 		}
 
 		Table table (Actor... actors) {
-			Table table = new Table();
+			Table table = new Table(skin);
 			table.defaults().space(6);
 			table.add(actors);
 			return table;
@@ -904,26 +939,31 @@ public class SkeletonViewer extends ApplicationAdapter {
 		}
 
 		void loadPrefs () {
-			debugBonesCheckbox.setChecked(prefs.getBoolean("debugBones", true));
-			debugRegionsCheckbox.setChecked(prefs.getBoolean("debugRegions", false));
-			debugMeshHullCheckbox.setChecked(prefs.getBoolean("debugMeshHull", false));
-			debugMeshTrianglesCheckbox.setChecked(prefs.getBoolean("debugMeshTriangles", false));
-			debugPathsCheckbox.setChecked(prefs.getBoolean("debugPaths", true));
-			debugPointsCheckbox.setChecked(prefs.getBoolean("debugPoints", true));
-			debugClippingCheckbox.setChecked(prefs.getBoolean("debugClipping", true));
-			premultipliedCheckbox.setChecked(prefs.getBoolean("premultiplied", true));
-			loopCheckbox.setChecked(prefs.getBoolean("loop", false));
-			speedSlider.setValue(prefs.getFloat("speed", 0.3f));
-			mixSlider.setValue(prefs.getFloat("mix", 0.3f));
+			try {
+				debugBonesCheckbox.setChecked(prefs.getBoolean("debugBones", true));
+				debugRegionsCheckbox.setChecked(prefs.getBoolean("debugRegions", false));
+				debugMeshHullCheckbox.setChecked(prefs.getBoolean("debugMeshHull", false));
+				debugMeshTrianglesCheckbox.setChecked(prefs.getBoolean("debugMeshTriangles", false));
+				debugPathsCheckbox.setChecked(prefs.getBoolean("debugPaths", true));
+				debugPointsCheckbox.setChecked(prefs.getBoolean("debugPoints", true));
+				debugClippingCheckbox.setChecked(prefs.getBoolean("debugClipping", true));
+				premultipliedCheckbox.setChecked(prefs.getBoolean("premultiplied", true));
+				loopCheckbox.setChecked(prefs.getBoolean("loop", false));
+				speedSlider.setValue(prefs.getFloat("speed", 0.3f));
+				mixSlider.setValue(prefs.getFloat("mix", 0.3f));
 
-			zoomSlider.setValue(prefs.getFloat("zoom", 1));
-			camera.zoom = 1 / prefs.getFloat("zoom", 1);
-			camera.position.x = prefs.getFloat("x", 0);
-			camera.position.y = prefs.getFloat("y", 0);
+				zoomSlider.setValue(prefs.getFloat("zoom", 1));
+				camera.zoom = 1 / prefs.getFloat("zoom", 1);
+				camera.position.x = prefs.getFloat("x", 0);
+				camera.position.y = prefs.getFloat("y", 0);
 
-			scaleSlider.setValue(prefs.getFloat("scale", 1));
-			animationList.setSelected(prefs.getString("animationName", null));
-			skinList.setSelected(prefs.getString("skinName", null));
+				scaleSlider.setValue(prefs.getFloat("scale", 1));
+				animationList.setSelected(prefs.getString("animationName", null));
+				skinList.setSelected(prefs.getString("skinName", null));
+			} catch (Exception ex) {
+				System.out.println("Unable to read preferences:");
+				ex.printStackTrace();
+			}
 		}
 	}
 

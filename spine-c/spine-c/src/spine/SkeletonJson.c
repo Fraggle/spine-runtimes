@@ -30,7 +30,6 @@
 
 #include <spine/SkeletonJson.h>
 #include <stdio.h>
-#include <locale.h>
 #include "Json.h"
 #include <spine/extension.h>
 #include <spine/AtlasAttachmentLoader.h>
@@ -94,7 +93,8 @@ static float toColor (const char* value, int index) {
 	char *error;
 	int color;
 
-	if (strlen(value) / 2 < index) return -1;
+	if (index >= strlen(value) / 2)
+		return -1;
 	value += index * 2;
 
 	digits[0] = *value;
@@ -579,24 +579,13 @@ spSkeletonData* spSkeletonJson_readSkeletonData (spSkeletonJson* self, const cha
 	int i, ii;
 	spSkeletonData* skeletonData;
 	Json *root, *skeleton, *bones, *boneMap, *ik, *transform, *path, *slots, *skins, *animations, *events;
-	char* oldLocale;
 	_spSkeletonJson* internal = SUB_CAST(_spSkeletonJson, self);
 
 	FREE(self->error);
 	CONST_CAST(char*, self->error) = 0;
 	internal->linkedMeshCount = 0;
 
-#ifndef __ANDROID__
-	oldLocale = strdup(setlocale(LC_NUMERIC, NULL));
-	setlocale(LC_NUMERIC, "C");
-#endif
-
 	root = Json_create(json);
-
-#ifndef __ANDROID__
-	setlocale(LC_NUMERIC, oldLocale);
-	free(oldLocale);
-#endif
 
 	if (!root) {
 		_spSkeletonJson_setError(self, 0, "Invalid skeleton JSON: ", Json_getError());
@@ -743,7 +732,7 @@ spSkeletonData* spSkeletonJson_readSkeletonData (spSkeletonJson* self, const cha
 			data->target = spSkeletonData_findBone(skeletonData, targetName);
 			if (!data->target) {
 				spSkeletonData_dispose(skeletonData);
-				_spSkeletonJson_setError(self, root, "Target bone not found: ", boneMap->name);
+				_spSkeletonJson_setError(self, root, "Target bone not found: ", targetName);
 				return 0;
 			}
 
@@ -782,7 +771,7 @@ spSkeletonData* spSkeletonJson_readSkeletonData (spSkeletonJson* self, const cha
 			data->target = spSkeletonData_findBone(skeletonData, name);
 			if (!data->target) {
 				spSkeletonData_dispose(skeletonData);
-				_spSkeletonJson_setError(self, root, "Target bone not found: ", boneMap->name);
+				_spSkeletonJson_setError(self, root, "Target bone not found: ", name);
 				return 0;
 			}
 
@@ -833,7 +822,7 @@ spSkeletonData* spSkeletonJson_readSkeletonData (spSkeletonJson* self, const cha
 			data->target = spSkeletonData_findSlot(skeletonData, name);
 			if (!data->target) {
 				spSkeletonData_dispose(skeletonData);
-				_spSkeletonJson_setError(self, root, "Target slot not found: ", boneMap->name);
+				_spSkeletonJson_setError(self, root, "Target slot not found: ", name);
 				return 0;
 			}
 

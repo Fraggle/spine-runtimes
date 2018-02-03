@@ -180,6 +180,17 @@ void _spEventQueue_drain (_spEventQueue* self) {
 	self->drainDisabled = 0;
 }
 
+/* These two functions are needed in the UE4 runtime, see #1037 */
+void _spAnimationState_enableQueue(spAnimationState* self) {
+	_spAnimationState* internal = SUB_CAST(_spAnimationState, self);
+	internal->queue->drainDisabled = 0;
+}
+
+void _spAnimationState_disableQueue(spAnimationState* self) {
+	_spAnimationState* internal = SUB_CAST(_spAnimationState, self);
+	internal->queue->drainDisabled = 1;
+}
+
 void _spAnimationState_disposeTrackEntry (spTrackEntry* entry) {
 	spIntArray_dispose(entry->timelineData);
 	spTrackEntryArray_dispose(entry->timelineDipMix);
@@ -419,9 +430,10 @@ float _spAnimationState_applyMixingFrom (spAnimationState* self, spTrackEntry* t
 	spTrackEntry* from = to->mixingFrom;
 	if (from->mixingFrom) _spAnimationState_applyMixingFrom(self, from, skeleton, currentPose);
 
-	if (to->mixDuration == 0) /* Single frame mix to undo mixingFrom changes. */
+	if (to->mixDuration == 0) { /* Single frame mix to undo mixingFrom changes. */
 		mix = 1;
-	else {
+		currentPose = SP_MIX_POSE_SETUP;
+	} else {
 		mix = to->mixTime / to->mixDuration;
 		if (mix > 1) mix = 1;
 	}
@@ -708,9 +720,14 @@ spTrackEntry* spAnimationState_addAnimation (spAnimationState* self, int trackIn
 		last->next = entry;
 		if (delay <= 0) {
 			float duration = last->animationEnd - last->animationStart;
-			if (duration != 0)
-				delay += duration * (1 + (int)(last->trackTime / duration)) - spAnimationStateData_getMix(self->data, last->animation, animation);
-			else
+			if (duration != 0) {
+				if (last->loop) {
+					delay += duration * (1 + (int) (last->trackTime / duration));
+				} else {
+					delay += duration;
+				}
+				delay -= spAnimationStateData_getMix(self->data, last->animation, animation);
+			} else
 				delay = 0;
 		}
 	}
@@ -904,7 +921,9 @@ spTrackEntry* _spTrackEntry_setTimelineData(spTrackEntry* self, spTrackEntry* to
 	spTrackEntryArray_clear(self->timelineDipMix);
 	timelineDipMix = spTrackEntryArray_setSize(self->timelineDipMix, timelinesCount)->items;
 
-	for (i = 0; i < timelinesCount; i++) {
+	i = 0;
+	continue_outer:
+	for (; i < timelinesCount; i++) {
 		int id = spTimeline_getPropertyId(timelines[i]);
 		if (!_spAnimationState_addPropertyID(state, id))
 			timelineData[i] = SUBSEQUENT;
@@ -918,7 +937,7 @@ spTrackEntry* _spTrackEntry_setTimelineData(spTrackEntry* self, spTrackEntry* to
 						timelineData[i] = DIP_MIX;
 						timelineDipMix[i] = entry;
 						i++;
-						goto outer;
+						goto continue_outer;
 					}
 				}
 				break;
@@ -926,6 +945,5 @@ spTrackEntry* _spTrackEntry_setTimelineData(spTrackEntry* self, spTrackEntry* to
 			timelineData[i] = DIP;
 		}
 	}
-	outer:
 	return lastEntry;
 }

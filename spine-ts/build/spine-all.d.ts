@@ -373,9 +373,12 @@ declare module spine {
 		private toLoad;
 		private loaded;
 		constructor(textureLoader: (image: HTMLImageElement) => any, pathPrefix?: string);
+		private static downloadText(url, success, error);
+		private static downloadBinary(url, success, error);
 		loadText(path: string, success?: (path: string, text: string) => void, error?: (path: string, error: string) => void): void;
 		loadTexture(path: string, success?: (path: string, image: HTMLImageElement) => void, error?: (path: string, error: string) => void): void;
 		loadTextureData(path: string, data: string, success?: (path: string, image: HTMLImageElement) => void, error?: (path: string, error: string) => void): void;
+		loadTextureAtlas(path: string, success?: (path: string, atlas: TextureAtlas) => void, error?: (path: string, error: string) => void): void;
 		get(path: string): any;
 		remove(path: string): void;
 		removeAll(): void;
@@ -531,6 +534,7 @@ declare module spine {
 		static NONE: number;
 		static BEFORE: number;
 		static AFTER: number;
+		static epsilon: number;
 		data: PathConstraintData;
 		bones: Array<Bone>;
 		target: Slot;
@@ -825,6 +829,11 @@ declare module spine {
 		offsetY: number;
 		originalWidth: number;
 		originalHeight: number;
+	}
+	class FakeTexture extends spine.Texture {
+		setFilters(minFilter: spine.TextureFilter, magFilter: spine.TextureFilter): void;
+		setWraps(uWrap: spine.TextureWrap, vWrap: spine.TextureWrap): void;
+		dispose(): void;
 	}
 }
 declare module spine {
@@ -1474,8 +1483,8 @@ declare module spine.webgl {
 		private shapes;
 		private shapesShader;
 		private activeRenderer;
-		private skeletonRenderer;
-		private skeletonDebugRenderer;
+		skeletonRenderer: SkeletonRenderer;
+		skeletonDebugRenderer: SkeletonDebugRenderer;
 		private QUAD;
 		private QUAD_TRIANGLES;
 		private WHITE;
@@ -1484,6 +1493,7 @@ declare module spine.webgl {
 		drawSkeleton(skeleton: Skeleton, premultipliedAlpha?: boolean): void;
 		drawSkeletonDebug(skeleton: Skeleton, premultipliedAlpha?: boolean, ignoredBones?: Array<string>): void;
 		drawTexture(texture: GLTexture, x: number, y: number, width: number, height: number, color?: Color): void;
+		drawTextureUV(texture: GLTexture, x: number, y: number, width: number, height: number, u: number, v: number, u2: number, v2: number, color?: Color): void;
 		drawTextureRotated(texture: GLTexture, x: number, y: number, width: number, height: number, pivotX: number, pivotY: number, angle: number, color?: Color, premultipliedAlpha?: boolean): void;
 		drawRegion(region: TextureAtlasRegion, x: number, y: number, width: number, height: number, color?: Color, premultipliedAlpha?: boolean): void;
 		line(x: number, y: number, x2: number, y2: number, color?: Color, color2?: Color): void;
@@ -1517,7 +1527,9 @@ declare module spine.webgl {
 		static SAMPLER: string;
 		private context;
 		private vs;
+		private vsSource;
 		private fs;
+		private fsSource;
 		private program;
 		private tmp2x2;
 		private tmp3x3;
@@ -1525,6 +1537,8 @@ declare module spine.webgl {
 		getProgram(): WebGLProgram;
 		getVertexShader(): string;
 		getFragmentShader(): string;
+		getVertexShaderSource(): string;
+		getFragmentSource(): string;
 		constructor(context: ManagedWebGLRenderingContext | WebGLRenderingContext, vertexShader: string, fragmentShader: string);
 		private compile();
 		private compileShader(type, source);
@@ -1687,22 +1701,26 @@ declare module spine.threejs {
 	}
 }
 declare module spine.threejs {
-	class MeshBatcher {
-		mesh: THREE.Mesh;
+	class MeshBatcher extends THREE.Mesh {
 		private static VERTEX_SIZE;
 		private vertexBuffer;
 		private vertices;
 		private verticesLength;
 		private indices;
 		private indicesLength;
-		constructor(mesh: THREE.Mesh, maxVertices?: number);
+		constructor(maxVertices?: number);
+		clear(): void;
 		begin(): void;
+		canBatch(verticesLength: number, indicesLength: number): boolean;
 		batch(vertices: ArrayLike<number>, verticesLength: number, indices: ArrayLike<number>, indicesLength: number, z?: number): void;
 		end(): void;
 	}
 }
 declare module spine.threejs {
-	class SkeletonMesh extends THREE.Mesh {
+	class SkeletonMeshMaterial extends THREE.ShaderMaterial {
+		constructor();
+	}
+	class SkeletonMesh extends THREE.Object3D {
 		tempPos: Vector2;
 		tempUv: Vector2;
 		tempLight: Color;
@@ -1711,7 +1729,8 @@ declare module spine.threejs {
 		state: AnimationState;
 		zOffset: number;
 		vertexEffect: VertexEffect;
-		private batcher;
+		private batches;
+		private nextBatchIndex;
 		private clipper;
 		static QUAD_TRIANGLES: number[];
 		static VERTEX_SIZE: number;
@@ -1719,6 +1738,8 @@ declare module spine.threejs {
 		private tempColor;
 		constructor(skeletonData: SkeletonData);
 		update(deltaTime: number): void;
+		private clearBatches();
+		private nextBatch();
 		private updateGeometry();
 	}
 }

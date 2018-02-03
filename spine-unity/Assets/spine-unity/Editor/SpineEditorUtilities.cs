@@ -80,6 +80,7 @@ namespace Spine.Unity.Editor {
 			public static Texture2D skeletonUtility;
 			public static Texture2D hingeChain;
 			public static Texture2D subMeshRenderer;
+			public static Texture2D skeletonDataAssetIcon;
 
 			public static Texture2D info;
 
@@ -126,6 +127,7 @@ namespace Spine.Unity.Editor {
 				hingeChain = LoadIcon("icon-hingeChain.png");
 				subMeshRenderer = LoadIcon("icon-subMeshRenderer.png");
 
+				skeletonDataAssetIcon = LoadIcon("SkeletonDataAsset Icon.png");
 
 				info = EditorGUIUtility.FindTexture("console.infoicon.sml");
 				unity = EditorGUIUtility.FindTexture("SceneAsset Icon");
@@ -188,6 +190,8 @@ namespace Spine.Unity.Editor {
 		const string SHOW_HIERARCHY_ICONS_KEY = "SPINE_SHOW_HIERARCHY_ICONS";
 		public static bool showHierarchyIcons = DEFAULT_SHOW_HIERARCHY_ICONS;
 
+		internal const float DEFAULT_MIPMAPBIAS = -0.5f;
+
 		public const float DEFAULT_SCENE_ICONS_SCALE = 1f;
 		public const string SCENE_ICONS_SCALE_KEY = "SPINE_SCENE_ICONS_SCALE";
 
@@ -228,9 +232,16 @@ namespace Spine.Unity.Editor {
 			EditorApplication.hierarchyWindowItemOnGUI += HierarchyDragAndDrop;
 
 			// Hierarchy Icons
+			#if UNITY_2017_2_OR_NEWER
+			EditorApplication.playModeStateChanged -= HierarchyIconsOnPlaymodeStateChanged;
+			EditorApplication.playModeStateChanged += HierarchyIconsOnPlaymodeStateChanged;
+			HierarchyIconsOnPlaymodeStateChanged(PlayModeStateChange.EnteredEditMode);
+			#else
 			EditorApplication.playmodeStateChanged -= HierarchyIconsOnPlaymodeStateChanged;
 			EditorApplication.playmodeStateChanged += HierarchyIconsOnPlaymodeStateChanged;
 			HierarchyIconsOnPlaymodeStateChanged();
+			#endif
+
 
 			initialized = true;
 		}
@@ -253,7 +264,11 @@ namespace Spine.Unity.Editor {
 			showHierarchyIcons = EditorGUILayout.Toggle(new GUIContent("Show Hierarchy Icons", "Show relevant icons on GameObjects with Spine Components on them. Disable this if you have large, complex scenes."), showHierarchyIcons);
 			if (EditorGUI.EndChangeCheck()) {
 				EditorPrefs.SetBool(SHOW_HIERARCHY_ICONS_KEY, showHierarchyIcons);
+				#if UNITY_2017_2_OR_NEWER
+				HierarchyIconsOnPlaymodeStateChanged(PlayModeStateChange.EnteredEditMode);
+				#else
 				HierarchyIconsOnPlaymodeStateChanged();
+				#endif
 			}
 
 			EditorGUILayout.Separator();
@@ -329,7 +344,7 @@ namespace Spine.Unity.Editor {
 		static void SceneViewDragAndDrop (SceneView sceneview) {
 			var current = UnityEngine.Event.current;
 			var references = DragAndDrop.objectReferences;
-			if (current.type == EventType.Repaint || current.type == EventType.Layout) return;
+			if (current.type == EventType.Layout) return;
 
 			// Allow drag and drop of one SkeletonDataAsset.
 			if (references.Length == 1) {
@@ -347,7 +362,7 @@ namespace Spine.Unity.Editor {
 					} else {
 						DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
 						Handles.BeginGUI();
-						GUI.Label(new Rect(mousePos + new Vector2(20f, 20f), new Vector2(400f, 20f)), new GUIContent(string.Format("Create Spine GameObject ({0})", skeletonDataAsset.skeletonJSON.name), SpineEditorUtilities.Icons.spine));
+						GUI.Label(new Rect(mousePos + new Vector2(20f, 20f), new Vector2(400f, 20f)), new GUIContent(string.Format("Create Spine GameObject ({0})", skeletonDataAsset.skeletonJSON.name), SpineEditorUtilities.Icons.skeletonDataAssetIcon));
 						Handles.EndGUI();
 
 						if (current.type == EventType.DragPerform) {
@@ -494,7 +509,11 @@ namespace Spine.Unity.Editor {
 		#endregion
 
 		#region Hierarchy
+		#if UNITY_2017_2_OR_NEWER
+		static void HierarchyIconsOnPlaymodeStateChanged (PlayModeStateChange stateChange) {
+		#else
 		static void HierarchyIconsOnPlaymodeStateChanged () {
+		#endif
 			skeletonRendererTable.Clear();
 			skeletonUtilityBoneTable.Clear();
 			boundingBoxFollowerTable.Clear();

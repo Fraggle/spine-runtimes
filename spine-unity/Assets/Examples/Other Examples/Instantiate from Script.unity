@@ -224,11 +224,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb0837af7345d504db63d0c662fd12dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skeletonJson: {fileID: 4900000, guid: e3b64d7eaf0de4e45a00b7065166554d, type: 3}
-  atlasText: {fileID: 4900000, guid: 5c0a5c36970a46e4d8378760ab4a4cfc, type: 3}
+  skeletonJson: {fileID: 4900000, guid: 8160b67e4c41bd041b948b5e5a86e242, type: 3}
+  atlasText: {fileID: 4900000, guid: 9b2378ddc54f1c94fb80411958000a8c, type: 3}
   textures:
-  - {fileID: 2800000, guid: 49bb65eefe08e424bbf7a38bc98ec638, type: 3}
-  materialPropertySource: {fileID: 2100000, guid: 365eb017d7ae7134d820c8b808eeb121,
+  - {fileID: 2800000, guid: 4ea2c33e839afb34c98f66e892b3b2d2, type: 3}
+  materialPropertySource: {fileID: 2100000, guid: f89bbf05902e77242a3ad20f3c927353,
     type: 2}
 --- !u!4 &651278530
 Transform:

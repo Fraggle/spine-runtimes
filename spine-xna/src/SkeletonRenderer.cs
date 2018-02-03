@@ -45,6 +45,7 @@ namespace Spine {
 		SkeletonClipping clipper = new SkeletonClipping();	
 		GraphicsDevice device;
 		MeshBatcher batcher;
+		public MeshBatcher Batcher { get { return batcher; } }
 		RasterizerState rasterizerState;
 		float[] vertices = new float[8];
 		int[] quadTriangles = { 0, 1, 2, 2, 3, 0 };
@@ -163,11 +164,16 @@ namespace Spine {
 
 				Color darkColor = new Color();
 				if (slot.HasSecondColor) {
-					darkColor = new Color(slot.R2, slot.G2, slot.B2);
+					if (premultipliedAlpha) {
+						darkColor = new Color(slot.R2 * a, slot.G2 * a, slot.B2 * a);
+					} else {
+						darkColor = new Color(slot.R2 * a, slot.G2 * a, slot.B2 * a);
+					}
 				}
+				darkColor.A = premultipliedAlpha ? (byte)255 : (byte)0;
 
 				// clip
-				if (clipper.IsClipping()) {
+				if (clipper.IsClipping) {
 					clipper.ClipTriangles(vertices, verticesCount << 1, indices, indicesCount, uvs);
 					vertices = clipper.ClippedVertices.Items;
 					verticesCount = clipper.ClippedVertices.Count >> 1;

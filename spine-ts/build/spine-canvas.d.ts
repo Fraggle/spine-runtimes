@@ -373,9 +373,12 @@ declare module spine {
 		private toLoad;
 		private loaded;
 		constructor(textureLoader: (image: HTMLImageElement) => any, pathPrefix?: string);
+		private static downloadText(url, success, error);
+		private static downloadBinary(url, success, error);
 		loadText(path: string, success?: (path: string, text: string) => void, error?: (path: string, error: string) => void): void;
 		loadTexture(path: string, success?: (path: string, image: HTMLImageElement) => void, error?: (path: string, error: string) => void): void;
 		loadTextureData(path: string, data: string, success?: (path: string, image: HTMLImageElement) => void, error?: (path: string, error: string) => void): void;
+		loadTextureAtlas(path: string, success?: (path: string, atlas: TextureAtlas) => void, error?: (path: string, error: string) => void): void;
 		get(path: string): any;
 		remove(path: string): void;
 		removeAll(): void;
@@ -531,6 +534,7 @@ declare module spine {
 		static NONE: number;
 		static BEFORE: number;
 		static AFTER: number;
+		static epsilon: number;
 		data: PathConstraintData;
 		bones: Array<Bone>;
 		target: Slot;
@@ -825,6 +829,11 @@ declare module spine {
 		offsetY: number;
 		originalWidth: number;
 		originalHeight: number;
+	}
+	class FakeTexture extends spine.Texture {
+		setFilters(minFilter: spine.TextureFilter, magFilter: spine.TextureFilter): void;
+		setWraps(uWrap: spine.TextureWrap, vWrap: spine.TextureWrap): void;
+		dispose(): void;
 	}
 }
 declare module spine {

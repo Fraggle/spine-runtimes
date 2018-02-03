@@ -36,11 +36,34 @@
 #include <spine/Cocos2dAttachmentLoader.h>
 #include <algorithm>
 
+#define INITIAL_WORLD_VERTICES_LENGTH 1000
+// Used for transforming attachments for bounding boxes & debug rendering
+static float* worldVertices = nullptr;
+static size_t worldVerticesLength = 0;
+
+void ensureWorldVerticesCapacity(size_t capacity) {
+	if (worldVerticesLength < capacity) {
+		float* newWorldVertices = new float[capacity];
+		memcpy(newWorldVertices, worldVertices, capacity * sizeof(float));
+		delete[] worldVertices;
+		worldVertices = newWorldVertices;
+		worldVerticesLength = capacity;
+	}
+}
+
 USING_NS_CC;
 using std::min;
 using std::max;
 
 namespace spine {
+
+void SkeletonRenderer::destroyScratchBuffers() {
+	if (worldVertices) {
+		delete[] worldVertices;
+		worldVertices = nullptr;
+		worldVerticesLength = 0;
+	}
+}
 
 SkeletonRenderer* SkeletonRenderer::createWithData (spSkeletonData* skeletonData, bool ownsSkeletonData) {
 	SkeletonRenderer* node = new SkeletonRenderer(skeletonData, ownsSkeletonData);
@@ -61,14 +84,49 @@ SkeletonRenderer* SkeletonRenderer::createWithFile (const std::string& skeletonD
 }
 
 void SkeletonRenderer::initialize () {
-	_worldVertices = new float[1000]; // Max number of vertices per mesh.
+	if (!worldVertices) {
+		worldVertices = new float[INITIAL_WORLD_VERTICES_LENGTH];
+		worldVerticesLength = INITIAL_WORLD_VERTICES_LENGTH;
+	}
 
 	_clipper = spSkeletonClipping_create();
 
 	_blendFunc = BlendFunc::ALPHA_PREMULTIPLIED;
 	setOpacityModifyRGB(true);
 
-	setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP));
+	setupGLProgramState(false);
+}
+	
+void SkeletonRenderer::setupGLProgramState (bool twoColorTintEnabled) {
+	if (twoColorTintEnabled) {
+		setGLProgramState(SkeletonTwoColorBatch::getInstance()->getTwoColorTintProgramState());
+		return;
+	}
+	
+	Texture2D *texture = nullptr;
+	for (int i = 0, n = _skeleton->slotsCount; i < n; i++) {
+		spSlot* slot = _skeleton->drawOrder[i];
+		if (!slot->attachment) continue;
+		switch (slot->attachment->type) {
+			case SP_ATTACHMENT_REGION: {
+				spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
+				texture = static_cast<AttachmentVertices*>(attachment->rendererObject)->_texture;
+				break;
+			}
+			case SP_ATTACHMENT_MESH: {
+				spMeshAttachment* attachment = (spMeshAttachment*)slot->attachment;
+				texture = static_cast<AttachmentVertices*>(attachment->rendererObject)->_texture;
+				break;
+			}
+			default:
+				continue;
+		}
+
+		if (texture != nullptr) {
+			break;
+		}
+	}
+	setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP, texture));
 }
 
 void SkeletonRenderer::setSkeletonData (spSkeletonData *skeletonData, bool ownsSkeletonData) {
@@ -100,7 +158,6 @@ SkeletonRenderer::~SkeletonRenderer () {
 	spSkeleton_dispose(_skeleton);
 	if (_atlas) spAtlas_dispose(_atlas);
 	if (_attachmentLoader) spAttachmentLoader_dispose(_attachmentLoader);
-	delete [] _worldVertices;
 	spSkeletonClipping_dispose(_clipper);
 }
 
@@ -197,6 +254,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 
     Color4F color;
 	Color4F darkColor;
+	float darkPremultipliedAlpha = _premultipliedAlpha ? 255 : 0;
 	AttachmentVertices* attachmentVertices = nullptr;
 	TwoColorTrianglesCommand* lastTwoColorTrianglesCommand = nullptr;
 	for (int i = 0, n = _skeleton->slotsCount; i < n; ++i) {
@@ -273,6 +331,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 		case SP_ATTACHMENT_CLIPPING: {
 			spClippingAttachment* clip = (spClippingAttachment*)slot->attachment;
 			spSkeletonClipping_clipStart(_clipper, slot, clip);
+			continue;
 		}
 		default:
 			spSkeletonClipping_clipEnd(_clipper, slot);
@@ -288,6 +347,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			darkColor.g = 0;
 			darkColor.b = 0;
 		}
+		darkColor.a = darkPremultipliedAlpha;
 
 		color.a *= nodeColor.a * _skeleton->color.a * slot->color.a * 255;
 		// skip rendering if the color of this attachment is 0
@@ -458,7 +518,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 						vertex->color2.r = (GLubyte)(darkCopy.r * 255);
 						vertex->color2.g = (GLubyte)(darkCopy.g * 255);
 						vertex->color2.b = (GLubyte)(darkCopy.b * 255);
-						vertex->color2.a = 1;
+						vertex->color2.a = (GLubyte)darkColor.a;
 					}
 				} else {
 				for (int v = 0, vn = batchedTriangles->getTriangles().vertCount, vv = 0; v < vn; ++v, vv += 2) {
@@ -474,13 +534,12 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 					vertex->color2.r = (GLubyte)darkColor.r;
 					vertex->color2.g = (GLubyte)darkColor.g;
 					vertex->color2.b = (GLubyte)darkColor.b;
-					vertex->color2.a = 1;
+						vertex->color2.a = (GLubyte)darkColor.a;
 					}
 		}
 			} else {
 				TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture->getName(), _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
 				if (_effect) {
-
 					spColor light;
 					spColor dark;
 					light.r = color.r / 255.0f;
@@ -504,7 +563,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 						vertex->color2.r = (GLubyte)(darkCopy.r * 255);
 						vertex->color2.g = (GLubyte)(darkCopy.g * 255);
 						vertex->color2.b = (GLubyte)(darkCopy.b * 255);
-						vertex->color2.a = 1;
+						vertex->color2.a = (GLubyte)darkColor.a;
 					}
 				} else {
 				for (int v = 0, vn = batchedTriangles->getTriangles().vertCount; v < vn; ++v) {
@@ -516,7 +575,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 					vertex->color2.r = (GLubyte)darkColor.r;
 					vertex->color2.g = (GLubyte)darkColor.g;
 					vertex->color2.b = (GLubyte)darkColor.b;
-					vertex->color2.a = 1;
+						vertex->color2.a = (GLubyte)darkColor.a;
 					}
 				}
 			}
@@ -587,11 +646,11 @@ void SkeletonRenderer::drawDebug (Renderer* renderer, const Mat4 &transform, uin
             spSlot* slot = _skeleton->drawOrder[i];
             if (!slot->attachment || slot->attachment->type != SP_ATTACHMENT_REGION) continue;
             spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
-            spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices, 0, 2);
-            points[0] = Vec2(_worldVertices[0], _worldVertices[1]);
-            points[1] = Vec2(_worldVertices[2], _worldVertices[3]);
-            points[2] = Vec2(_worldVertices[4], _worldVertices[5]);
-            points[3] = Vec2(_worldVertices[6], _worldVertices[7]);
+            spRegionAttachment_computeWorldVertices(attachment, slot->bone, worldVertices, 0, 2);
+            points[0] = Vec2(worldVertices[0], worldVertices[1]);
+            points[1] = Vec2(worldVertices[2], worldVertices[3]);
+            points[2] = Vec2(worldVertices[4], worldVertices[5]);
+            points[3] = Vec2(worldVertices[6], worldVertices[7]);
             drawNode->drawPoly(points, 4, true, Color4F::BLUE);
         }
     }
@@ -620,11 +679,12 @@ void SkeletonRenderer::drawDebug (Renderer* renderer, const Mat4 &transform, uin
 			spSlot* slot = _skeleton->drawOrder[i];
 			if (!slot->attachment || slot->attachment->type != SP_ATTACHMENT_MESH) continue;
 			spMeshAttachment* attachment = (spMeshAttachment*)slot->attachment;			
-			spVertexAttachment_computeWorldVertices(SUPER(attachment), slot, 0, attachment->super.worldVerticesLength, _worldVertices, 0, 2);
+			ensureWorldVerticesCapacity(attachment->super.worldVerticesLength);
+			spVertexAttachment_computeWorldVertices(SUPER(attachment), slot, 0, attachment->super.worldVerticesLength, worldVertices, 0, 2);
 			for (int ii = 0; ii < attachment->trianglesCount;) {
-				Vec2 v1(_worldVertices + (attachment->triangles[ii++] * 2));
-				Vec2 v2(_worldVertices + (attachment->triangles[ii++] * 2));
-				Vec2 v3(_worldVertices + (attachment->triangles[ii++] * 2));
+				Vec2 v1(worldVertices + (attachment->triangles[ii++] * 2));
+				Vec2 v2(worldVertices + (attachment->triangles[ii++] * 2));
+				Vec2 v3(worldVertices + (attachment->triangles[ii++] * 2));
 				drawNode->drawLine(v1, v2, Color4F::YELLOW);
 				drawNode->drawLine(v2, v3, Color4F::YELLOW);
 				drawNode->drawLine(v3, v1, Color4F::YELLOW);
@@ -654,16 +714,17 @@ Rect SkeletonRenderer::getBoundingBox () const {
         int verticesCount;
         if (slot->attachment->type == SP_ATTACHMENT_REGION) {
             spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
-			spRegionAttachment_computeWorldVertices(attachment, slot->bone, _worldVertices, 0, 2);
+			spRegionAttachment_computeWorldVertices(attachment, slot->bone, worldVertices, 0, 2);
             verticesCount = 8;
         } else if (slot->attachment->type == SP_ATTACHMENT_MESH) {
             spMeshAttachment* mesh = (spMeshAttachment*)slot->attachment;
-			spVertexAttachment_computeWorldVertices(SUPER(mesh), slot, 0, mesh->super.worldVerticesLength, _worldVertices, 0, 2);
+			ensureWorldVerticesCapacity(mesh->super.worldVerticesLength);
+			spVertexAttachment_computeWorldVertices(SUPER(mesh), slot, 0, mesh->super.worldVerticesLength, worldVertices, 0, 2);
             verticesCount = mesh->super.worldVerticesLength;
         } else
             continue;
         for (int ii = 0; ii < verticesCount; ii += 2) {
-            float x = _worldVertices[ii] * scaleX, y = _worldVertices[ii + 1] * scaleY;
+			float x = worldVertices[ii] * scaleX, y = worldVertices[ii + 1] * scaleY;
             minX = min(minX, x);
             minY = min(minY, y);
             maxX = max(maxX, x);
@@ -717,10 +778,7 @@ bool SkeletonRenderer::setAttachment (const std::string& slotName, const char* a
 }
 
 void SkeletonRenderer::setTwoColorTint(bool enabled) {
-	if (enabled)
-		setGLProgramState(SkeletonTwoColorBatch::getInstance()->getTwoColorTintProgramState());
-	else
-		setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP));
+	setupGLProgramState(enabled);
 }
 
 bool SkeletonRenderer::isTwoColorTint() {

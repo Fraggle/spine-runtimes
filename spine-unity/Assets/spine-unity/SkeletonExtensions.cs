@@ -41,6 +41,8 @@ namespace Spine.Unity {
 		public static Color GetColor (this Skeleton s) { return new Color(s.r, s.g, s.b, s.a); }
 		public static Color GetColor (this RegionAttachment a) { return new Color(a.r, a.g, a.b, a.a); }
 		public static Color GetColor (this MeshAttachment a) { return new Color(a.r, a.g, a.b, a.a); }
+		public static Color GetColor (this Slot s) { return new Color(s.r, s.g, s.b, s.a); }
+		public static Color GetColorTintBlack (this Slot s) { return new Color(s.r2, s.g2, s.b2, 1f); }
 
 		public static void SetColor (this Skeleton skeleton, Color color) {
 			skeleton.A = color.a;
@@ -144,6 +146,12 @@ namespace Spine.Unity {
 			return new Quaternion(0, 0, Mathf.Sin(halfRotation), Mathf.Cos(halfRotation));
 		}
 
+		/// <summary>Gets a bone-local space UnityEngine.Quaternion representation of bone.rotation.</summary>
+		public static Quaternion GetLocalQuaternion (this Bone bone) {
+			var halfRotation = bone.rotation * Mathf.Deg2Rad * 0.5f;
+			return new Quaternion(0, 0, Mathf.Sin(halfRotation), Mathf.Cos(halfRotation));
+		}
+
 		/// <summary>Gets the PointAttachment's Unity World position using its Spine GameObject Transform.</summary>
 		public static Vector3 GetWorldPosition (this PointAttachment attachment, Slot slot, Transform spineGameObjectTransform) {
 			Vector3 skeletonSpacePosition;
@@ -204,14 +212,11 @@ namespace Spine.Unity {
 		#region Attachments
 		public static Material GetMaterial (this Attachment a) {
 			object rendererObject = null;
-			var regionAttachment = a as RegionAttachment;
-			if (regionAttachment != null)
-				rendererObject = regionAttachment.RendererObject;
-
-			var meshAttachment = a as MeshAttachment;
-			if (meshAttachment != null)
-				rendererObject = meshAttachment.RendererObject;
-
+			var renderableAttachment = a as IHasRendererObject;
+			if (renderableAttachment != null) {
+				rendererObject = renderableAttachment.RendererObject;
+			}
+			
 			if (rendererObject == null)
 				return null;
 			
@@ -286,6 +291,10 @@ namespace Spine {
 	public static class SkeletonExtensions {
 		public static bool IsWeighted (this VertexAttachment va) {
 			return va.bones != null && va.bones.Length > 0;
+		}
+
+		public static bool IsRenderable (this Attachment a) {
+			return a is IHasRendererObject;
 		}
 
 		#region Transform Modes
