@@ -41,6 +41,10 @@ class AttachmentVertices;
 /* Draws a skeleton. */
 class SkeletonRenderer: public cocos2d::Node, public cocos2d::BlendProtocol {
 public:
+    // Used for transforming attachments for bounding boxes & debug rendering
+    static float* worldVertices;
+    static size_t worldVerticesLength;
+
 	CREATE_FUNC(SkeletonRenderer);
 	static SkeletonRenderer* createWithSkeleton(spSkeleton* skeleton, bool ownsSkeleton = false, bool ownsSkeletonData = false);
 	static SkeletonRenderer* createWithData (spSkeletonData* skeletonData, bool ownsSkeletonData = false);

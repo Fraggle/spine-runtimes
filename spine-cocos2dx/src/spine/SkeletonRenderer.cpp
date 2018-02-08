@@ -37,17 +37,17 @@
 #include <algorithm>
 
 #define INITIAL_WORLD_VERTICES_LENGTH 1000
-// Used for transforming attachments for bounding boxes & debug rendering
-static float* worldVertices = nullptr;
-static size_t worldVerticesLength = 0;
+
+float* spine::SkeletonRenderer::worldVertices = nullptr;
+size_t spine::SkeletonRenderer::worldVerticesLength = 0;
 
 void ensureWorldVerticesCapacity(size_t capacity) {
-	if (worldVerticesLength < capacity) {
+    if (spine::SkeletonRenderer::worldVerticesLength < capacity) {
 		float* newWorldVertices = new float[capacity];
-		memcpy(newWorldVertices, worldVertices, capacity * sizeof(float));
-		delete[] worldVertices;
-		worldVertices = newWorldVertices;
-		worldVerticesLength = capacity;
+		memcpy(newWorldVertices, spine::SkeletonRenderer::worldVertices, capacity * sizeof(float));
+		delete[] spine::SkeletonRenderer::worldVertices;
+		spine::SkeletonRenderer::worldVertices = newWorldVertices;
+		spine::SkeletonRenderer::worldVerticesLength = capacity;
 	}
 }
 
