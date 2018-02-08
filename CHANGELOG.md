@@ -26,6 +26,7 @@
  * Added support for rotated regions in texture atlas loaded via StarlingAtlasAttachmentLoader.
  * Added support for vertex effects. See `RaptorExample.as`
  * Added 'getTexture()' method to 'StarlingTextureAtlasAttachmentLoader'
+ * Breaking change: if a skeleton requires two color tinting, you have to enable it via `SkeletonSprite.twoColorTint = true`. In this case the skeleton will use the `TwoColorMeshStyle`, which internally uses a different vertex layout and shader. This means that skeletons with two color tinting enabled will break batching and hence increase the number of draw calls in your app.
 
 ## C
  * **Breaking changes**
@@ -65,6 +66,7 @@
  * Added support for vertex effects. See `RaptorExample.cpp`.
  * Added ETC1 alpha support, thanks @halx99! Does not work when two color tint is enabled.
  * Added `spAtlasPage_setCustomTextureLoader()` which let's you do texture loading manually. Thanks @jareguo.
+ * Added `SkeletonRenderer:setSlotsRange()` and `SkeletonRenderer::createWithSkeleton()`. This allows you to split rendering of a skeleton up into multiple parts, and render other nodes in between. See `SkeletonRendererSeparatorExample.cpp` for an example.
 
 ### Cocos2d-Objc
  * Fixed renderer to work with 3.6 changes
