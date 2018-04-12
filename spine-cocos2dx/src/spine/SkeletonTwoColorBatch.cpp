@@ -148,7 +148,33 @@ void main() {
 }
 );
 
+/** PRETTY SIMPLE ADDITION **/
 
+// the above shader would not work properlly with pre-multiplied alpha textures
+    
+const char* TWO_COLOR_TINT_PMA_FRAGMENT_SHADER = STRINGIFY(
+\n#ifdef GL_ES\n
+precision lowp float;
+\n#endif\n
+                                                           
+varying vec4 v_light;
+varying vec4 v_dark;
+varying vec2 v_texCoord;
+                                                           
+void main() {
+    vec4 texColor = texture2D(CC_Texture0, v_texCoord);
+    float alpha = texColor.a * v_light.a;
+    gl_FragColor.a = alpha;
+    
+    float q = ( texColor.a - 1.0 ) * v_dark.a + 1.0;
+    
+    gl_FragColor.rgb = ((q * alpha) - (texColor.rgb * v_light.a)) * v_dark.rgb + (texColor.rgb * v_light.rgb * v_light.a);
+}
+);
+    
+//-----------
+    
+    
 static SkeletonTwoColorBatch* instance = nullptr;
 
 SkeletonTwoColorBatch* SkeletonTwoColorBatch::getInstance () {
@@ -178,7 +204,11 @@ SkeletonTwoColorBatch::SkeletonTwoColorBatch () {
 		this->update(0);
 	});;
 	
-	_twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
+#ifdef CC_ENABLE_PREMULTIPLIED_ALPHA
+    _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_PMA_FRAGMENT_SHADER);
+#else
+    _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
+#endif
 	_twoColorTintShaderState = GLProgramState::getOrCreateWithGLProgram(_twoColorTintShader);
 	_twoColorTintShaderState->retain();
 	
