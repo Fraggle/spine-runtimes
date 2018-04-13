@@ -30,6 +30,7 @@
 
 #include <spine/spine-cocos2dx.h>
 #include <spine/extension.h>
+#include <stdexcept>
 
 namespace spine {
 	static CustomTextureLoader _customTextureLoader = nullptr;
@@ -93,6 +94,8 @@ void _spAtlasPage_createTexture (spAtlasPage* self, const char* path) {
 		texture = Director::getInstance()->getTextureCache()->addImage(path);
 	}
 	CCASSERT(texture != nullptr, "Invalid image");
+    if ( !texture )
+        throw std::runtime_error("Missing or Invalid image for spine atlas");
 	texture->retain();
 
 	Texture2D::TexParams textureParams = {filter(self->minFilter), magFilter(self->magFilter), wrap(self->uWrap), wrap(self->vWrap)};
