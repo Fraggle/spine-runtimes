@@ -154,21 +154,23 @@ void main() {
     
 const char* TWO_COLOR_TINT_PMA_FRAGMENT_SHADER = STRINGIFY(
 \n#ifdef GL_ES\n
-precision lowp float;
+precision highp float;
 \n#endif\n
                                                            
-varying vec4 v_light;
-varying vec4 v_dark;
+varying vec4 v_light;   // a pma value (as skeletonRenderer opacityModifyRgb() must be true to work properly with pma)
+varying vec4 v_dark;    // a non-pma value (dark alpha should be one anyway)
 varying vec2 v_texCoord;
                                                            
 void main() {
-    vec4 texColor = texture2D(CC_Texture0, v_texCoord);
-    float alpha = texColor.a * v_light.a;
+    vec4 texColor = texture2D(CC_Texture0, v_texCoord);     // input PMA texture
+
+    float alpha = texColor.a * v_light.a;   // new alpha will be texture alpha * light.alpha
+
     gl_FragColor.a = alpha;
     
-    float q = ( texColor.a - 1.0 ) * v_dark.a + 1.0;
+    float q = ((( texColor.a - 1.0 ) * v_dark.a) + 1.0);
     
-    gl_FragColor.rgb = ((q * alpha) - (texColor.rgb * v_light.a)) * v_dark.rgb + (texColor.rgb * v_light.rgb * v_light.a);
+    gl_FragColor.rgb = clamp((q * texColor.a - texColor.rgb) * v_dark.rgb * v_light.a + (texColor.rgb * v_light.rgb), 0.0, 1.0);
 }
 );
     
