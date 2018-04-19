@@ -107,6 +107,10 @@ namespace spine {
 
         void update (float delta);
 
+        void init();
+
+        void onContextRecovered();
+
 		V3F_C4B_C4B_T2F* allocateVertices(uint32_t numVertices);
 		void deallocateVertices(uint32_t numVertices);
 		

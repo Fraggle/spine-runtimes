@@ -142,7 +142,7 @@ protected:
 	void setSkeletonData (spSkeletonData* skeletonData, bool ownsSkeletonData);
 	virtual AttachmentVertices* getAttachmentVertices (spRegionAttachment* attachment) const;
 	virtual AttachmentVertices* getAttachmentVertices (spMeshAttachment* attachment) const;
-	void setupGLProgramState(bool twoColorTintEnabled);
+	void setupGLProgramState();
 
 	bool _ownsSkeletonData;
 	bool _ownsSkeleton;
@@ -156,6 +156,7 @@ protected:
 	bool _debugSlots;
 	bool _debugBones;
 	bool _debugMeshes;
+    bool _twoColorTint;
 	spSkeletonClipping* _clipper;
 	spVertexEffect* _effect;
 	

@@ -191,37 +191,32 @@ void SkeletonTwoColorBatch::destroyInstance () {
 	}
 }
 
-SkeletonTwoColorBatch::SkeletonTwoColorBatch () {
-	for (unsigned int i = 0; i < INITIAL_SIZE; i++) {
-		_commandsPool.push_back(new TwoColorTrianglesCommand());
-	}
-	
-	_indices = spUnsignedShortArray_create(8);
-	
-	reset ();
-	
+SkeletonTwoColorBatch::SkeletonTwoColorBatch ()
+: _nextFreeCommand(0)
+, _numVertices(0)
+, _indices(nullptr)
+, _twoColorTintShader(nullptr)
+, _twoColorTintShaderState(nullptr)
+, _vertexBufferHandle(0)
+, _vertexBuffer(nullptr)
+, _numVerticesBuffer(0)
+, _indexBufferHandle(0)
+, _numIndicesBuffer(0)
+, _indexBuffer(nullptr)
+, _positionAttributeLocation(GL_INVALID_VALUE)
+, _colorAttributeLocation(GL_INVALID_VALUE)
+, _color2AttributeLocation(GL_INVALID_VALUE)
+, _texCoordsAttributeLocation(GL_INVALID_VALUE)
+, _lastCommand(nullptr)
+, _numBatches(0)
+{
 	// callback after drawing is finished so we can clear out the batch state
 	// for the next frame
 	Director::getInstance()->getEventDispatcher()->addCustomEventListener(EVENT_AFTER_DRAW_RESET_POSITION, [this](EventCustom* eventCustom){
 		this->update(0);
 	});;
 	
-#ifdef CC_ENABLE_PREMULTIPLIED_ALPHA
-    _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_PMA_FRAGMENT_SHADER);
-#else
-    _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
-#endif
-	_twoColorTintShaderState = GLProgramState::getOrCreateWithGLProgram(_twoColorTintShader);
-	_twoColorTintShaderState->retain();
-	
-	glGenBuffers(1, &_vertexBufferHandle);
-	_vertexBuffer = new V3F_C4B_C4B_T2F[MAX_VERTICES];
-	glGenBuffers(1, &_indexBufferHandle);
-	_indexBuffer = new unsigned short[MAX_INDICES];
-	_positionAttributeLocation = _twoColorTintShader->getAttribLocation("a_position");
-	_colorAttributeLocation = _twoColorTintShader->getAttribLocation("a_color");
-	_color2AttributeLocation = _twoColorTintShader->getAttribLocation("a_color2");
-	_texCoordsAttributeLocation = _twoColorTintShader->getAttribLocation("a_texCoords");
+    init();
 }
 
 SkeletonTwoColorBatch::~SkeletonTwoColorBatch () {
@@ -240,6 +235,65 @@ SkeletonTwoColorBatch::~SkeletonTwoColorBatch () {
 
 void SkeletonTwoColorBatch::update (float delta) {	
 	reset();
+}
+
+void SkeletonTwoColorBatch::init()
+{
+    if (_indices != nullptr)
+        spUnsignedShortArray_dispose(_indices);
+
+    for (unsigned int i = 0; i < _commandsPool.size(); i++) {
+        delete _commandsPool[i];
+        _commandsPool[i] = nullptr;
+    }
+    _commandsPool.clear();
+
+    for (unsigned int i = 0; i < INITIAL_SIZE; i++) {
+        _commandsPool.push_back(new TwoColorTrianglesCommand());
+    }
+
+    _indices = spUnsignedShortArray_create(8);
+
+    if (_twoColorTintShaderState != nullptr) {
+        _twoColorTintShaderState->release();
+        _twoColorTintShaderState = nullptr;
+        // _twoColorTintShader is released by the _twoColorTintShaderState destructor
+        _twoColorTintShader = nullptr;
+    }
+
+#ifdef CC_ENABLE_PREMULTIPLIED_ALPHA
+	_twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_PMA_FRAGMENT_SHADER);
+#else
+	_twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
+#endif
+
+	_twoColorTintShaderState = GLProgramState::getOrCreateWithGLProgram(_twoColorTintShader);
+	_twoColorTintShaderState->retain();
+
+	glGenBuffers(1, &_vertexBufferHandle);
+    if (_vertexBuffer != nullptr)
+    {
+        delete _vertexBuffer;
+        _vertexBuffer = nullptr;
+    }
+	_vertexBuffer = new V3F_C4B_C4B_T2F[MAX_VERTICES];
+	glGenBuffers(1, &_indexBufferHandle);
+    if (_indexBuffer != nullptr)
+    {
+        delete _indexBuffer;
+        _indexBuffer = nullptr;
+    }
+	_indexBuffer = new unsigned short[MAX_INDICES];
+	_positionAttributeLocation = _twoColorTintShader->getAttribLocation("a_position");
+	_colorAttributeLocation = _twoColorTintShader->getAttribLocation("a_color");
+	_color2AttributeLocation = _twoColorTintShader->getAttribLocation("a_color2");
+	_texCoordsAttributeLocation = _twoColorTintShader->getAttribLocation("a_texCoords");
+}
+
+void SkeletonTwoColorBatch::onContextRecovered()
+{
+    reset();
+    init();
 }
 
 V3F_C4B_C4B_T2F* SkeletonTwoColorBatch::allocateVertices(uint32_t numVertices) {
