@@ -85,16 +85,13 @@ TwoColorTrianglesCommand::~TwoColorTrianglesCommand() {
 }
 
 void TwoColorTrianglesCommand::generateMaterialID() {
-//    // do not batch if using custom uniforms (since we cannot batch) it
-//    if(_glProgramState->getUniformCount() > 1) {
-//        _materialID = Renderer::MATERIAL_ID_DO_NOT_BATCH;
-//        setSkipBatching(true);
-//    }
-//    else {
-//        int glProgram = (int)_glProgram->getProgram();
-//        _materialID = glProgram + (int)_textureID + (int)_blendType.src + (int)_blendType.dst;
-//    }
-    
+    // glProgramState is hashed because it contains:
+    //  *  uniforms/values
+    //  *  glProgram
+    //
+    // we safely can when the same glProgramState is being used then they share those states
+    // if they don't have the same glProgramState, they might still have the same
+    // uniforms/values and glProgram, but it would be too expensive to check the uniforms.
     struct {
         GLuint textureId;
         GLenum blendSrc;
