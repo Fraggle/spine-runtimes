@@ -30,6 +30,7 @@
 #include <spine/SkeletonTwoColorBatch.h>
 #include <spine/extension.h>
 #include <algorithm>
+#include <xxhash/xxhash.h>
 
 USING_NS_CC;
 #define EVENT_AFTER_DRAW_RESET_POSITION "director_after_draw"
@@ -84,15 +85,28 @@ TwoColorTrianglesCommand::~TwoColorTrianglesCommand() {
 }
 
 void TwoColorTrianglesCommand::generateMaterialID() {
-	// do not batch if using custom uniforms (since we cannot batch) it
-	if(_glProgramState->getUniformCount() > 0) {
-		_materialID = Renderer::MATERIAL_ID_DO_NOT_BATCH;
-		setSkipBatching(true);
-	}
-	else {
-		int glProgram = (int)_glProgram->getProgram();
-		_materialID = glProgram + (int)_textureID + (int)_blendType.src + (int)_blendType.dst;
-	}
+//    // do not batch if using custom uniforms (since we cannot batch) it
+//    if(_glProgramState->getUniformCount() > 1) {
+//        _materialID = Renderer::MATERIAL_ID_DO_NOT_BATCH;
+//        setSkipBatching(true);
+//    }
+//    else {
+//        int glProgram = (int)_glProgram->getProgram();
+//        _materialID = glProgram + (int)_textureID + (int)_blendType.src + (int)_blendType.dst;
+//    }
+    
+    struct {
+        GLuint textureId;
+        GLenum blendSrc;
+        GLenum blendDst;
+        void* glProgramState;
+    } hashMe;
+    
+    hashMe.textureId = _textureID;
+    hashMe.blendSrc = _blendType.src;
+    hashMe.blendDst = _blendType.dst;
+    hashMe.glProgramState = _glProgramState;
+    _materialID = XXH32((const void*)&hashMe, sizeof(hashMe), 0);
 }
 
 void TwoColorTrianglesCommand::useMaterial() const {
