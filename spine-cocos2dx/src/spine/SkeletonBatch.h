@@ -32,43 +32,46 @@
 #define SPINE_SKELETONBATCH_H_
 
 #include <spine/spine.h>
+#include <spine/pool_allocator.hpp>
+
 #include "cocos2d.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <unordered_map>
 #include <vector>
 
-namespace spine {
+namespace spine
+{
     
-    class SkeletonBatch {
+    class SkeletonBatch final
+    {
+        pool_allocator<cocos2d::TrianglesCommand> _pool_commands;
+        pool_allocator<cocos2d::V3F_C4B_T2F> _pool_vertices;
+        pool_allocator<std::uint16_t> _pool_indices;
+
     public:
-        static SkeletonBatch* getInstance ();
+        static SkeletonBatch& getInstance();
+		
+		cocos2d::V3F_C4B_T2F* allocateVertices(std::uint32_t numVertices);
+		void deallocateVertices(cocos2d::V3F_C4B_T2F* data, uint32_t numVertices);
+
+        std::uint16_t* allocateIndices(std::uint32_t numIndices);
+		void deallocateIndices(std::uint16_t* data, uint32_t numIndices);
+
+		cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, std::uint32_t flags);
         
-        static void destroyInstance ();
-        
-        void update (float delta);
+    private:
+        SkeletonBatch();
+        SkeletonBatch(SkeletonBatch const&) = delete;
+        SkeletonBatch& operator=(SkeletonBatch const&) = delete;
+        SkeletonBatch(SkeletonBatch &&) noexcept = delete;
+        SkeletonBatch& operator=(SkeletonBatch &&) noexcept = delete;
+        ~SkeletonBatch();
+
+        void reset();
 		
-		cocos2d::V3F_C4B_T2F* allocateVertices(uint32_t numVertices);
-		void deallocateVertices(uint32_t numVertices);
-		unsigned short* allocateIndices(uint32_t numIndices);
-		void deallocateIndices(uint32_t numVertices);
-		cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
-        
-    protected:
-        SkeletonBatch ();
-        virtual ~SkeletonBatch ();
-		
-		void reset ();
-		
-		cocos2d::TrianglesCommand* nextFreeCommand ();
-		
-		// pool of commands
-		std::vector<cocos2d::TrianglesCommand*> _commandsPool;
-		uint32_t _nextFreeCommand;
-		
-		// pool of vertices
-		std::vector<cocos2d::V3F_C4B_T2F> _vertices;
-		uint32_t _numVertices;
-		
-		// pool of indices
-		spUnsignedShortArray* _indices;
+		cocos2d::TrianglesCommand* allocateCommand();
     };
 	
 }

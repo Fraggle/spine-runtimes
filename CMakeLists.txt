@@ -18,8 +18,7 @@ target_include_directories(spineruntime PUBLIC
     spine-cocos2dx/src
     spine-c/spine-c/include
     spine-c/spine-c/src
-    spine-c/spine-c/src/spine
-    ../cocos2d-x/cocos)
+    spine-c/spine-c/src/spine)
 
 if(ANDROID)
 

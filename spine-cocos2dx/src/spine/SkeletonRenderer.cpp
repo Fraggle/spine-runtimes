@@ -105,7 +105,7 @@ void SkeletonRenderer::initialize () {
 	
 void SkeletonRenderer::setupGLProgramState () {
 	if (_twoColorTint) {
-		setGLProgramState(SkeletonTwoColorBatch::getInstance()->getTwoColorTintProgramState());
+        setGLProgramState(SkeletonTwoColorBatch::getInstance().getTwoColorTintProgramState());
 		return;
 	}
 	
@@ -259,8 +259,8 @@ void SkeletonRenderer::update (float deltaTime) {
 }
 
 void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t transformFlags) {
-	SkeletonBatch* batch = SkeletonBatch::getInstance();
-	SkeletonTwoColorBatch* twoColorBatch = SkeletonTwoColorBatch::getInstance();
+	SkeletonBatch& batch = SkeletonBatch::getInstance();
+	SkeletonTwoColorBatch& twoColorBatch = SkeletonTwoColorBatch::getInstance();
 	bool isTwoColorTint = this->isTwoColorTint();
 
 	if (_effect) _effect->begin(_effect, _skeleton);
@@ -311,14 +311,14 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			if (!isTwoColorTint) {
 				triangles.indices = attachmentVertices->_triangles->indices;
 				triangles.indexCount = attachmentVertices->_triangles->indexCount;
-				triangles.verts = batch->allocateVertices(attachmentVertices->_triangles->vertCount);
+				triangles.verts = batch.allocateVertices(attachmentVertices->_triangles->vertCount);
 				triangles.vertCount = attachmentVertices->_triangles->vertCount;
 				memcpy(triangles.verts, attachmentVertices->_triangles->verts, sizeof(cocos2d::V3F_C4B_T2F) * attachmentVertices->_triangles->vertCount);
 				spRegionAttachment_computeWorldVertices(attachment, slot->bone, (float*)triangles.verts, 0, 6);
 			} else {
 				trianglesTwoColor.indices = attachmentVertices->_triangles->indices;
 				trianglesTwoColor.indexCount = attachmentVertices->_triangles->indexCount;
-				trianglesTwoColor.verts = twoColorBatch->allocateVertices(attachmentVertices->_triangles->vertCount);
+				trianglesTwoColor.verts = twoColorBatch.allocateVertices(attachmentVertices->_triangles->vertCount);
 				trianglesTwoColor.vertCount = attachmentVertices->_triangles->vertCount;
 				for (int i = 0; i < trianglesTwoColor.vertCount; i++) {
 					trianglesTwoColor.verts[i].texCoords = attachmentVertices->_triangles->verts[i].texCoords;
@@ -342,14 +342,14 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 			if (!isTwoColorTint) {
 				triangles.indices = attachmentVertices->_triangles->indices;
 				triangles.indexCount = attachmentVertices->_triangles->indexCount;
-				triangles.verts = batch->allocateVertices(attachmentVertices->_triangles->vertCount);
+				triangles.verts = batch.allocateVertices(attachmentVertices->_triangles->vertCount);
 				triangles.vertCount = attachmentVertices->_triangles->vertCount;
 				memcpy(triangles.verts, attachmentVertices->_triangles->verts, sizeof(cocos2d::V3F_C4B_T2F) * attachmentVertices->_triangles->vertCount);
 				spVertexAttachment_computeWorldVertices(SUPER(attachment), slot, 0, triangles.vertCount * sizeof(cocos2d::V3F_C4B_T2F) / 4, (float*)triangles.verts, 0, 6);
 			} else {
 				trianglesTwoColor.indices = attachmentVertices->_triangles->indices;
 				trianglesTwoColor.indexCount = attachmentVertices->_triangles->indexCount;
-				trianglesTwoColor.verts = twoColorBatch->allocateVertices(attachmentVertices->_triangles->vertCount);
+				trianglesTwoColor.verts = twoColorBatch.allocateVertices(attachmentVertices->_triangles->vertCount);
 				trianglesTwoColor.vertCount = attachmentVertices->_triangles->vertCount;
 				for (int i = 0; i < trianglesTwoColor.vertCount; i++) {
 					trianglesTwoColor.verts[i].texCoords = attachmentVertices->_triangles->verts[i].texCoords;
@@ -423,7 +423,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 		if (!isTwoColorTint) {
 			if (spSkeletonClipping_isClipping(_clipper)) {
 				spSkeletonClipping_clipTriangles(_clipper, (float*)&triangles.verts[0].vertices, triangles.vertCount * sizeof(cocos2d::V3F_C4B_T2F) / 4, triangles.indices, triangles.indexCount, (float*)&triangles.verts[0].texCoords, 6);
-				batch->deallocateVertices(triangles.vertCount);
+				batch.deallocateVertices(triangles.verts, triangles.vertCount);
 				
 				if (_clipper->clippedTriangles->size == 0){
 					spSkeletonClipping_clipEnd(_clipper, slot);
@@ -431,12 +431,12 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 				}
 				
 				triangles.vertCount = _clipper->clippedVertices->size >> 1;
-				triangles.verts = batch->allocateVertices(triangles.vertCount);
+				triangles.verts = batch.allocateVertices(triangles.vertCount);
 				triangles.indexCount = _clipper->clippedTriangles->size;
-				triangles.indices = batch->allocateIndices(triangles.indexCount);
+				triangles.indices = batch.allocateIndices(triangles.indexCount);
 				memcpy(triangles.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 				
-				cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
+				cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
 				
 				float* verts = _clipper->clippedVertices->items;
 				float* uvs = _clipper->clippedUVs->items;
@@ -476,7 +476,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 					}
 				}
 			} else {
-				cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
 				
 				if (_effect) {
 					spColor light;
@@ -509,7 +509,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 		} else {
 			if (spSkeletonClipping_isClipping(_clipper)) {
 				spSkeletonClipping_clipTriangles(_clipper, (float*)&trianglesTwoColor.verts[0].position, trianglesTwoColor.vertCount * sizeof(V3F_C4B_C4B_T2F) / 4, trianglesTwoColor.indices, trianglesTwoColor.indexCount, (float*)&trianglesTwoColor.verts[0].texCoords, 7);
-				twoColorBatch->deallocateVertices(trianglesTwoColor.vertCount);
+                twoColorBatch.deallocateVertices(trianglesTwoColor.verts, trianglesTwoColor.vertCount);
 				
 				if (_clipper->clippedTriangles->size == 0){
 					spSkeletonClipping_clipEnd(_clipper, slot);
@@ -517,12 +517,12 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 				}
 				
 				trianglesTwoColor.vertCount = _clipper->clippedVertices->size >> 1;
-				trianglesTwoColor.verts = twoColorBatch->allocateVertices(trianglesTwoColor.vertCount);
+				trianglesTwoColor.verts = twoColorBatch.allocateVertices(trianglesTwoColor.vertCount);
 				trianglesTwoColor.indexCount = _clipper->clippedTriangles->size;
-				trianglesTwoColor.indices = twoColorBatch->allocateIndices(trianglesTwoColor.indexCount);
+				trianglesTwoColor.indices = twoColorBatch.allocateIndices(trianglesTwoColor.indexCount);
 				memcpy(trianglesTwoColor.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 				
-				TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
+				TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
 				
 				float* verts = _clipper->clippedVertices->items;
 				float* uvs = _clipper->clippedUVs->items;
@@ -574,7 +574,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 					}
 		}
 			} else {
-				TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
+				TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
 				if (_effect) {
 					spColor light;
 					spColor dark;

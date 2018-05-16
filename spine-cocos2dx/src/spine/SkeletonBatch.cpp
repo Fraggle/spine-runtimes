@@ -34,123 +34,67 @@
 
 USING_NS_CC;
 #define EVENT_AFTER_DRAW_RESET_POSITION "director_after_draw"
-using std::max;
-#define INITIAL_SIZE (10000)
 
-namespace spine {
+namespace spine
+{
 
-    static SkeletonBatch* instance = nullptr;
-
-    SkeletonBatch* SkeletonBatch::getInstance () {
-        if (!instance) instance = new SkeletonBatch();
+    SkeletonBatch& SkeletonBatch::getInstance()
+    {
+        static SkeletonBatch instance;
         return instance;
     }
 
-    void SkeletonBatch::destroyInstance () {
-        if (instance) {
-            delete instance;
-            instance = nullptr;
-        }
+    SkeletonBatch::SkeletonBatch()
+    {
+        // callback after drawing is finished so we can clear out the batch state
+        // for the next frame
+        Director::getInstance()->getEventDispatcher()->addCustomEventListener(EVENT_AFTER_DRAW_RESET_POSITION, [this](EventCustom* eventCustom) {
+            reset();
+        });
     }
 
-SkeletonBatch::SkeletonBatch () {
-	for (unsigned int i = 0; i < INITIAL_SIZE; i++) {
-		_commandsPool.push_back(new TrianglesCommand());
-	}
-	
-	_indices = spUnsignedShortArray_create(8);
-
-	reset ();
-
-	// callback after drawing is finished so we can clear out the batch state
-	// for the next frame
-        Director::getInstance()->getEventDispatcher()->addCustomEventListener(EVENT_AFTER_DRAW_RESET_POSITION, [this](EventCustom* eventCustom){
-            this->update(0);
-        });;
-    }
-
-    SkeletonBatch::~SkeletonBatch () {
+    SkeletonBatch::~SkeletonBatch()
+    {
         Director::getInstance()->getEventDispatcher()->removeCustomEventListeners(EVENT_AFTER_DRAW_RESET_POSITION);
-
-	spUnsignedShortArray_dispose(_indices);
-
-	for (unsigned int i = 0; i < _commandsPool.size(); i++) {
-		delete _commandsPool[i];
-		_commandsPool[i] = nullptr;
-        }
     }
 
-    void SkeletonBatch::update (float delta) {
-	reset();
-}
-	
-cocos2d::V3F_C4B_T2F* SkeletonBatch::allocateVertices(uint32_t numVertices) {
-	if (_vertices.size() - _numVertices < numVertices) {
-		cocos2d::V3F_C4B_T2F* oldData = _vertices.data();
-		_vertices.resize((_vertices.size() + numVertices) * 2 + 1);
-		cocos2d::V3F_C4B_T2F* newData = _vertices.data();
-		for (uint32_t i = 0; i < this->_nextFreeCommand; i++) {
-			TrianglesCommand* command = _commandsPool[i];
-			cocos2d::TrianglesCommand::Triangles& triangles = (cocos2d::TrianglesCommand::Triangles&)command->getTriangles();
-			triangles.verts = newData + (triangles.verts - oldData);
-		}
+    void SkeletonBatch::reset()
+    {
+        _pool_commands.deallocate_all();
+        _pool_vertices.deallocate_all();
+        _pool_indices.deallocate_all();
     }
 
-	cocos2d::V3F_C4B_T2F* vertices = _vertices.data() + _numVertices;
-	_numVertices += numVertices;
-	return vertices;
-        }
-        
-void SkeletonBatch::deallocateVertices(uint32_t numVertices) {
-	_numVertices -= numVertices;
-}
-        
-        
-unsigned short* SkeletonBatch::allocateIndices(uint32_t numIndices) {	
-	if (_indices->capacity - _indices->size < numIndices) {
-		unsigned short* oldData = _indices->items;
-		int oldSize = _indices->size;
-		spUnsignedShortArray_ensureCapacity(_indices, _indices->size + numIndices);
-		unsigned short* newData = _indices->items;
-		for (uint32_t i = 0; i < this->_nextFreeCommand; i++) {
-			TrianglesCommand* command = _commandsPool[i];
-			cocos2d::TrianglesCommand::Triangles& triangles = (cocos2d::TrianglesCommand::Triangles&)command->getTriangles();
-			if (triangles.indices >= oldData && triangles.indices < oldData + oldSize) {
-				triangles.indices = newData + (triangles.indices - oldData);
-			}
-		}
-	}
-        
-	unsigned short* indices = _indices->items + _indices->size;
-	_indices->size += numIndices;
-	return indices;
+    cocos2d::V3F_C4B_T2F* SkeletonBatch::allocateVertices(uint32_t numVertices)
+    {
+        return _pool_vertices.allocate(numVertices);
     }
 
-void SkeletonBatch::deallocateIndices(uint32_t numIndices) {
-	_indices->size -= numIndices;
+    void SkeletonBatch::deallocateVertices(cocos2d::V3F_C4B_T2F* data, uint32_t numVertices)
+    {
+        _pool_vertices.deallocate(data, numVertices);
     }
 
-
-cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags) {
-	TrianglesCommand* command = nextFreeCommand();
-	command->init(globalOrder, texture, glProgramState, blendType, triangles, mv, flags);
-	renderer->addCommand(command);
-	return command;
-        }
-
-void SkeletonBatch::reset() {
-	_nextFreeCommand = 0;
-	_numVertices = 0;
-	_indices->size = 0;
+    std::uint16_t* SkeletonBatch::allocateIndices(uint32_t numIndices)
+    {
+        return _pool_indices.allocate(numIndices);
     }
 
-cocos2d::TrianglesCommand* SkeletonBatch::nextFreeCommand() {
-	if (_commandsPool.size() <= _nextFreeCommand) {
-		unsigned int newSize = _commandsPool.size() * 2 + 1;
-		for (int i = _commandsPool.size();  i < newSize; i++) {
-			_commandsPool.push_back(new TrianglesCommand());
-		}
-	}
-	return _commandsPool[_nextFreeCommand++];
-}
+    void SkeletonBatch::deallocateIndices(std::uint16_t* data, uint32_t numIndices)
+    {
+        _pool_indices.deallocate(data, numIndices);
+    }
+
+    cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags)
+    {
+        TrianglesCommand* command = allocateCommand();
+        command->init(globalOrder, texture, glProgramState, blendType, triangles, mv, flags);
+        renderer->addCommand(command);
+        return command;
+    }
+
+    cocos2d::TrianglesCommand* SkeletonBatch::allocateCommand()
+    {
+        return _pool_commands.allocate(1);
+    }
 }
