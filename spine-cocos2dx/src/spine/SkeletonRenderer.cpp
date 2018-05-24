@@ -101,6 +101,9 @@ void SkeletonRenderer::initialize () {
 	setOpacityModifyRGB(true);
 
 	setupGLProgramState();
+	
+	spSkeleton_setToSetupPose(_skeleton);
+	spSkeleton_updateWorldTransform(_skeleton);
 }
 	
 void SkeletonRenderer::setupGLProgramState () {
@@ -815,7 +818,7 @@ bool SkeletonRenderer::setAttachment (const std::string& slotName, const char* a
 
 void SkeletonRenderer::setTwoColorTint(bool enabled) {
     _twoColorTint = enabled;
-	setupGLProgramState();
+    setupGLProgramState();
 }
 
 bool SkeletonRenderer::isTwoColorTint() {
