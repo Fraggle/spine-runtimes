@@ -12,6 +12,7 @@
 #include "chunk_meta.hpp"
 #include "page.hpp"
 
+#include <cassert>
 #include <deque>
 #include <type_traits>
 
