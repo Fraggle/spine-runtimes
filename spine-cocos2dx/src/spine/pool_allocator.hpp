@@ -13,7 +13,7 @@
 #include "page.hpp"
 
 #include <cassert>
-#include <deque>
+#include <list>
 #include <type_traits>
 
 namespace spine
@@ -25,10 +25,7 @@ namespace spine
         using pointer = T*;
 
     private:
-        std::deque<page> _small;
-        std::deque<page> _large;
-        std::deque<page> _huge;
-
+        std::list<page> _pages;
         std::unordered_map<pointer, chunk_meta> _pointers;
 
     public:
@@ -80,23 +77,7 @@ namespace spine
     private:
         pointer _allocate(std::size_t n)
         {
-            if (n <= (1024 * 4))
-            {
-                return _allocate(_small, n);
-            }
-            else if (n > (1024 * 4) && n <= (1024 * 1024 * 4))
-            {
-                return _allocate(_large, n);
-            }
-            else
-            {
-                return _allocate(_huge, n);
-            }
-        }
-
-        pointer _allocate(decltype(_small)& data, std::size_t n)
-        {
-            for (auto& page : data)
+            for (auto& page : _pages)
             {
                 if (pointer ret = reinterpret_cast<pointer>(page.allocate(n * sizeof(T), alignof(T))); ret != nullptr)
                 {
@@ -106,9 +87,10 @@ namespace spine
                 }
             }
 
-            data.emplace_back(page{n});
-            pointer ret = reinterpret_cast<pointer>(data.back().allocate(n * sizeof(T), alignof(T)));
-            auto it = _pointers.emplace(ret, chunk_meta{std::ref(data.back()), n});
+            _pages.emplace_back(page{n * sizeof(T)});
+            auto& page = _pages.back();
+            pointer ret = reinterpret_cast<pointer>(page.allocate(n * sizeof(T), alignof(T)));
+            auto it = _pointers.emplace(ret, chunk_meta{std::ref(page), n});
             assert(it.second == true);
             return ret;
         }
