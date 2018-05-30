@@ -1,6 +1,6 @@
 //
 //  pool_allocator.hpp
-//  pool_allocator
+//  Spine
 //
 //  Created by Mathieu Garaud on 06/05/2018.
 //  Copyright © 2018 Pretty Simple. All rights reserved.
@@ -9,12 +9,12 @@
 #ifndef SPINE_POOL_ALLOCATOR_HPP
 #define SPINE_POOL_ALLOCATOR_HPP
 
-#include "chunk_meta.hpp"
 #include "page.hpp"
 
 #include <cassert>
-#include <list>
-#include <type_traits>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace spine
 {
@@ -23,10 +23,11 @@ namespace spine
     {
     public:
         using pointer = T*;
+        using value_type = page;
 
     private:
-        std::list<page> _pages;
-        std::unordered_map<pointer, chunk_meta> _pointers;
+        std::vector<std::unique_ptr<value_type>> _pages;
+        std::unordered_map<pointer, std::size_t> _pointers;
 
     public:
         pointer allocate(std::size_t n)
@@ -44,56 +45,56 @@ namespace spine
 
         void deallocate(pointer p, std::size_t n)
         {
-            if (auto search = _pointers.find(p); search != _pointers.end())
-            {
-                if constexpr(std::is_destructible<T>::value)
-                {
-                    for (std::size_t i = 0; i < search->second.size; ++i)
-                    {
-                        (p+i)->~T();
-                    }
-                }
-                search->second.page.get().deallocate(reinterpret_cast<page::pointer>(p), search->second.size * sizeof(T));
-                _pointers.erase(search);
-            }
         }
 
         void deallocate_all()
         {
-            for (auto& d : _pointers)
+            if constexpr(std::is_destructible<T>::value)
             {
-                if constexpr(std::is_destructible<T>::value)
+                for (auto& d : _pointers)
                 {
-                    for (std::size_t i = 0; i < d.second.size; ++i)
+                    for (std::size_t i = 0; i < d.second; ++i)
                     {
                         (d.first+i)->~T();
                     }
                 }
-                d.second.page.get().deallocate(reinterpret_cast<page::pointer>(d.first), d.second.size * sizeof(T));
+                _pointers.clear();
             }
-            _pointers.clear();
+
+            for (auto const& page : _pages)
+            {
+                page->deallocate_all();
+            }
         }
 
     private:
         pointer _allocate(std::size_t n)
         {
-            for (auto& page : _pages)
+            auto const byte_size = n * sizeof(T);
+            static constexpr auto const align = alignof(T);
+            for(std::size_t i = 0, max = _pages.size(); i < max; ++i)
             {
-                if (pointer ret = reinterpret_cast<pointer>(page.allocate(n * sizeof(T), alignof(T))); ret != nullptr)
+                if (pointer ret = reinterpret_cast<pointer>(_pages[i]->allocate(byte_size, align)); ret != nullptr)
                 {
-                    auto it = _pointers.emplace(ret, chunk_meta{std::ref(page), n});
-                    assert(it.second == true);
+                    if constexpr(std::is_destructible<T>::value)
+                    {
+                        auto it = _pointers.emplace(ret, n);
+                        assert(it.second == true);
+                    }
                     return ret;
                 }
             }
 
-            _pages.emplace_back(page{n * sizeof(T)});
-            auto& page = _pages.back();
-            pointer ret = reinterpret_cast<pointer>(page.allocate(n * sizeof(T), alignof(T)));
-            auto it = _pointers.emplace(ret, chunk_meta{std::ref(page), n});
-            assert(it.second == true);
+            _pages.emplace_back(std::make_unique<value_type>(byte_size));
+            pointer ret = reinterpret_cast<pointer>(_pages.back()->allocate(byte_size, align));
+            if constexpr(std::is_destructible<T>::value)
+            {
+                auto it = _pointers.emplace(ret, n);
+                assert(it.second == true);
+            }
             return ret;
         }
+
     };
 }
 
