@@ -11,9 +11,10 @@
 
 #include "page.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <memory>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace spine
@@ -27,7 +28,7 @@ namespace spine
 
     private:
         std::vector<std::unique_ptr<value_type>> _pages;
-        std::unordered_map<pointer, std::size_t> _pointers;
+        std::vector<std::pair<pointer, std::size_t>> _pointers;
 
     public:
         pointer allocate(std::size_t n)
@@ -51,11 +52,11 @@ namespace spine
         {
             if constexpr(std::is_destructible<T>::value)
             {
-                for (auto& d : _pointers)
+                for (auto const& [ptr, size] : _pointers)
                 {
-                    for (std::size_t i = 0; i < d.second; ++i)
+                    for (std::size_t i = 0; i < size; ++i)
                     {
-                        (d.first+i)->~T();
+                        (ptr + i)->~T();
                     }
                 }
                 _pointers.clear();
@@ -72,16 +73,23 @@ namespace spine
         {
             auto const byte_size = n * sizeof(T);
             static constexpr auto const align = alignof(T);
-            for(std::size_t i = 0, max = _pages.size(); i < max; ++i)
+            for(std::size_t i = 0, max = _pages.size(); i < max;)
             {
                 if (pointer ret = reinterpret_cast<pointer>(_pages[i]->allocate(byte_size, align)); ret != nullptr)
                 {
                     if constexpr(std::is_destructible<T>::value)
                     {
-                        auto it = _pointers.emplace(ret, n);
-                        assert(it.second == true);
+                        _pointers.emplace_back(ret, n);
                     }
                     return ret;
+                }
+                else if (max > 1 && (i + 1) < max && _pages[i]->usage() > 0.90f && _pages[i + 1]->usage() < 0.90f)
+                {
+                    std::rotate(_pages.begin() + i, _pages.begin() + i + 1, _pages.end());
+                }
+                else
+                {
+                    ++i;
                 }
             }
 
@@ -89,8 +97,7 @@ namespace spine
             pointer ret = reinterpret_cast<pointer>(_pages.back()->allocate(byte_size, align));
             if constexpr(std::is_destructible<T>::value)
             {
-                auto it = _pointers.emplace(ret, n);
-                assert(it.second == true);
+                _pointers.emplace_back(ret, n);
             }
             return ret;
         }

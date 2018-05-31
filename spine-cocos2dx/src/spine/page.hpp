@@ -38,6 +38,8 @@ namespace spine
         pointer allocate(std::size_t n, std::size_t align);
 
         void deallocate_all();
+
+        inline float usage() const noexcept { return static_cast<float>(_used_memory) / _size; }
     };
 }
 
