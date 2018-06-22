@@ -371,11 +371,11 @@ void main()
         glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferHandle);
         glBufferData(GL_ARRAY_BUFFER, sizeof(V3F_C4B_C4B_T2F) * _numVerticesBuffer , _vertexBuffer.data(), GL_DYNAMIC_DRAW);
 
-        glEnableVertexAttribArray(_positionAttributeLocation);
-        glEnableVertexAttribArray(_colorAttributeLocation);
-        glEnableVertexAttribArray(_color2AttributeLocation);
-        glEnableVertexAttribArray(_texCoordsAttributeLocation);
-
+        // Use the cocos GL cache to set the attrib otherwise every following render call will be impacted!
+        GL::enableVertexAttribs((1 << _positionAttributeLocation) |
+                                (1 << _colorAttributeLocation) |
+                                (1 << _color2AttributeLocation) |
+                                (1 << _texCoordsAttributeLocation));
         glVertexAttribPointer(_positionAttributeLocation, 3, GL_FLOAT, GL_FALSE, sizeof(V3F_C4B_C4B_T2F), (GLvoid*)offsetof(V3F_C4B_C4B_T2F, position));
         glVertexAttribPointer(_colorAttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(V3F_C4B_C4B_T2F), (GLvoid*)offsetof(V3F_C4B_C4B_T2F, color));
         glVertexAttribPointer(_color2AttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(V3F_C4B_C4B_T2F), (GLvoid*)offsetof(V3F_C4B_C4B_T2F, color2));
