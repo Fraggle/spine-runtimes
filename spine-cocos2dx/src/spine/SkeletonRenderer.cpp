@@ -638,7 +638,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 		} else {
 			Vector<Node*>& children = parent->getChildren();
 			Node* sibling = nullptr;
-			for (ssize_t i = 0; i < children.size(); i++) {
+            for (std::size_t i = 0; i < children.size(); i++) {
 				if (children.at(i) == this) {
 					if (i < children.size() - 1) {
 						sibling = children.at(i+1);
@@ -745,7 +745,8 @@ AttachmentVertices* SkeletonRenderer::getAttachmentVertices (spMeshAttachment* a
 }
 
 Rect SkeletonRenderer::getBoundingBox () const {
-    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+    static constexpr auto const max = std::numeric_limits<float>::max();
+    float minX = max, minY = max, maxX = -max, maxY = -max;
     float scaleX = getScaleX(), scaleY = getScaleY();
     for (int i = 0; i < _skeleton->slotsCount; ++i) {
         spSlot* slot = _skeleton->slots[i];
@@ -764,14 +765,14 @@ Rect SkeletonRenderer::getBoundingBox () const {
             continue;
         for (int ii = 0; ii < verticesCount; ii += 2) {
 			float x = worldVertices[ii] * scaleX, y = worldVertices[ii + 1] * scaleY;
-            minX = min(minX, x);
-            minY = min(minY, y);
-            maxX = max(maxX, x);
-            maxY = max(maxY, y);
+            minX = std::min(minX, x);
+            minY = std::min(minY, y);
+            maxX = std::max(maxX, x);
+            maxY = std::max(maxY, y);
         }
     }
     Vec2 position = getPosition();
-    if (minX == FLT_MAX) minX = minY = maxX = maxY = 0;    
+    if (minX == max) minX = minY = maxX = maxY = 0;
     return Rect(position.x + minX, position.y + minY, maxX - minX, maxY - minY);
 }
 

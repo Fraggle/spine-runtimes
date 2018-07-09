@@ -116,7 +116,7 @@ char* _spUtil_readFile (const char* path, int* length) {
 
 	// avoid buffer overflow (int is shorter than ssize_t in certain platforms)
 #if COCOS2D_VERSION >= 0x00031200
-	ssize_t tmpLen;
+    std::size_t tmpLen;
 	char *ret = (char*)data.takeBuffer(&tmpLen);
 	*length = static_cast<int>(tmpLen);
 	return ret;

@@ -33,11 +33,12 @@
 
 #include <spine/dll.h>
 #include <spine/Attachment.h>
-#include "uthash.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "uthash.h"
 
 struct spSkeleton;
 

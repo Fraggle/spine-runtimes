@@ -341,7 +341,7 @@ void main()
         const Mat4& modelView = command->getModelView();
         for (int i = _numVerticesBuffer; i < _numVerticesBuffer + command->getTriangles().vertCount; i++)
         {
-            modelView.transformPoint(&_vertexBuffer[i].position);
+            modelView.transformPoint(_vertexBuffer[i].position);
         }
 
         unsigned short vertexOffset = (unsigned short)_numVerticesBuffer;

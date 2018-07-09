@@ -49,7 +49,7 @@ namespace spine {
 		cocos2d::Color4B color;
 		cocos2d::Color4B color2;
 		cocos2d::Tex2F texCoords;
-	};
+    };
 
 	struct TwoColorTriangles {
 		V3F_C4B_C4B_T2F* verts = nullptr;
