@@ -31,14 +31,15 @@
 #ifndef SPINE_BONE_H_
 #define SPINE_BONE_H_
 
-#include <spine/dll.h>
 #include <spine/BoneData.h>
+#include <spine/dll.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct spSkeleton;
+typedef struct spBone spBone;
+typedef struct spSkeleton spSkeleton;
 
 typedef struct spBone spBone;
 struct spBone {

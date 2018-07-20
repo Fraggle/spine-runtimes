@@ -29,8 +29,12 @@
 *****************************************************************************/
 
 #include <spine/Atlas.h>
-#include <ctype.h>
+
 #include <spine/extension.h>
+
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 spAtlasPage* spAtlasPage_create(spAtlas* atlas, const char* name) {
 	spAtlasPage* self = NEW(spAtlasPage);

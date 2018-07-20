@@ -29,7 +29,15 @@
  *****************************************************************************/
 
 #include <spine/Skin.h>
+
 #include <spine/extension.h>
+#include <spine/Attachment.h>
+#include <spine/Skeleton.h>
+#include <spine/Slot.h>
+
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 _Entry* _Entry_create (int slotIndex, const char* name, spAttachment* attachment) {
     size_t sz = sizeof(_Entry) + strlen(name) + 1;

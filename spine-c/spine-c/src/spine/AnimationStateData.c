@@ -29,9 +29,15 @@
  *****************************************************************************/
 
 #include <spine/AnimationStateData.h>
-#include <spine/extension.h>
 
+#include <spine/extension.h>
+#include <spine/Animation.h>
+#include <spine/SkeletonData.h>
+
+typedef struct _FromEntry _FromEntry;
 typedef struct _ToEntry _ToEntry;
+typedef struct _ToEntry _ToEntry;
+
 struct _ToEntry {
 	spAnimation* animation;
 	float duration;

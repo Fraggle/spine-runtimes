@@ -32,12 +32,15 @@
 #define SPINE_ATLAS_H_
 
 #include <spine/dll.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct spAtlas spAtlas;
+typedef struct spAtlasPage spAtlasPage;
+typedef struct spAtlasRegion spAtlasRegion;
 
 typedef enum {
 	SP_ATLAS_UNKNOWN_FORMAT,

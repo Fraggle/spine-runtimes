@@ -29,8 +29,12 @@
  *****************************************************************************/
 
 #include <spine/AttachmentLoader.h>
-#include <stdio.h>
+
 #include <spine/extension.h>
+#include <spine/Attachment.h>
+#include <spine/Skin.h>
+
+#include <stdio.h>
 
 typedef struct _spAttachmentLoaderVtable {
 	spAttachment* (*createAttachment) (spAttachmentLoader* self, spSkin* skin, spAttachmentType type, const char* name,

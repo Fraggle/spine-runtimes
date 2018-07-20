@@ -29,9 +29,26 @@
  *****************************************************************************/
 
 #include <spine/Skeleton.h>
+
+#include <spine/BoneData.h>
+#include <spine/IkConstraint.h>
+#include <spine/IkConstraintData.h>
+#include <spine/PathAttachment.h>
+#include <spine/PathConstraint.h>
+#include <spine/PathConstraintData.h>
+#include <spine/SkeletonData.h>
+#include <spine/Skin.h>
+#include <spine/Slot.h>
+#include <spine/SlotData.h>
+#include <spine/TransformConstraint.h>
+#include <spine/TransformConstraintData.h>
+#include <spine/VertexAttachment.h>
+#include <spine/extension.h>
+
+#include "uthash.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include <spine/extension.h>
 
 typedef enum {
 	SP_UPDATE_BONE, SP_UPDATE_IK_CONSTRAINT, SP_UPDATE_PATH_CONSTRAINT, SP_UPDATE_TRANSFORM_CONSTRAINT

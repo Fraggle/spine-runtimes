@@ -29,8 +29,18 @@
  *****************************************************************************/
 
 #include <spine/SkeletonData.h>
-#include <string.h>
+
 #include <spine/extension.h>
+#include <spine/Animation.h>
+#include <spine/BoneData.h>
+#include <spine/EventData.h>
+#include <spine/IkConstraintData.h>
+#include <spine/PathConstraintData.h>
+#include <spine/Skin.h>
+#include <spine/SlotData.h>
+#include <spine/TransformConstraintData.h>
+
+#include <string.h>
 
 spSkeletonData* spSkeletonData_create () {
 	return NEW(spSkeletonData);

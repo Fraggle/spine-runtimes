@@ -29,7 +29,10 @@
  *****************************************************************************/
 
 #include <spine/MeshAttachment.h>
+
 #include <spine/extension.h>
+#include <spine/Attachment.h>
+#include <spine/VertexAttachment.h>
 
 void _spMeshAttachment_dispose (spAttachment* attachment) {
 	spMeshAttachment* self = SUB_CAST(spMeshAttachment, attachment);

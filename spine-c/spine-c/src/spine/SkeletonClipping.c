@@ -29,7 +29,13 @@
  *****************************************************************************/
 
 #include <spine/SkeletonClipping.h>
+
 #include <spine/extension.h>
+#include <spine/Array.h>
+#include <spine/ClippingAttachment.h>
+#include <spine/Slot.h>
+#include <spine/Triangulator.h>
+#include <spine/VertexAttachment.h>
 
 spSkeletonClipping* spSkeletonClipping_create() {
 	spSkeletonClipping* clipping = CALLOC(spSkeletonClipping, 1);

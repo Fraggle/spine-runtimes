@@ -29,7 +29,11 @@
  *****************************************************************************/
 
 #include <spine/VertexAttachment.h>
+
 #include <spine/extension.h>
+#include <spine/Bone.h>
+#include <spine/Skeleton.h>
+#include <spine/Slot.h>
 
 /* FIXME this is not thread-safe */
 static int nextID = 0;

@@ -29,9 +29,27 @@
  *****************************************************************************/
 
 #include <spine/Animation.h>
+
+#include <spine/Attachment.h>
+#include <spine/Bone.h>
+#include <spine/BoneData.h>
+#include <spine/Color.h>
+#include <spine/Event.h>
 #include <spine/IkConstraint.h>
-#include <limits.h>
+#include <spine/IkConstraintData.h>
+#include <spine/MeshAttachment.h>
+#include <spine/PathConstraint.h>
+#include <spine/PathConstraintData.h>
+#include <spine/Skeleton.h>
+#include <spine/Slot.h>
+#include <spine/SlotData.h>
+#include <spine/TransformConstraint.h>
+#include <spine/TransformConstraintData.h>
+#include <spine/VertexAttachment.h>
 #include <spine/extension.h>
+
+#include <limits.h>
+#include <string.h>
 
 spAnimation* spAnimation_create (const char* name, int timelinesCount) {
 	spAnimation* self = NEW(spAnimation);

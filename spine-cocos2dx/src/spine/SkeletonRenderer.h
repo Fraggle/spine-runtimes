@@ -31,8 +31,32 @@
 #ifndef SPINE_SKELETONRENDERER_H_
 #define SPINE_SKELETONRENDERER_H_
 
-#include <spine/spine.h>
-#include "cocos2d.h"
+#include <spine/Atlas.h>
+#include <spine/Attachment.h>
+#include <spine/AttachmentLoader.h>
+#include <spine/Bone.h>
+#include <spine/MeshAttachment.h>
+#include <spine/RegionAttachment.h>
+#include <spine/Skeleton.h>
+#include <spine/SkeletonClipping.h>
+#include <spine/SkeletonData.h>
+#include <spine/Slot.h>
+#include <spine/VertexEffect.h>
+
+#include "2d/CCNode.h"
+#include "base/CCProtocols.h"
+#include "base/ccConfig.h"
+#include "base/ccTypes.h"
+#include "math/CCGeometry.h"
+#include "math/Mat4.h"
+#include "platform/CCPlatformMacros.h"
+#include "renderer/CCCustomCommand.h"
+
+#include <cstdint>
+#include <cstddef>
+#include <iosfwd>
+
+namespace cocos2d { class Renderer; }
 
 namespace spine {
 

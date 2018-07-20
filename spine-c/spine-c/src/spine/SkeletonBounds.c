@@ -29,8 +29,16 @@
  *****************************************************************************/
 
 #include <spine/SkeletonBounds.h>
-#include <limits.h>
+
+#include <spine/Attachment.h>
+#include <spine/BoundingBoxAttachment.h>
+#include <spine/Skeleton.h>
+#include <spine/Slot.h>
+#include <spine/VertexAttachment.h>
 #include <spine/extension.h>
+
+#include <string.h>
+#include <limits.h>
 
 spPolygon* spPolygon_create (int capacity) {
 	spPolygon* self = NEW(spPolygon);

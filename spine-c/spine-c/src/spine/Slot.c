@@ -29,7 +29,12 @@
  *****************************************************************************/
 
 #include <spine/Slot.h>
+
 #include <spine/extension.h>
+#include <spine/Attachment.h>
+#include <spine/Bone.h>
+#include <spine/Skeleton.h>
+#include <spine/SlotData.h>
 
 typedef struct {
 	spSlot super;

@@ -31,11 +31,10 @@
 #ifndef SPINE_CLIPPINGATTACHMENT_H_
 #define SPINE_CLIPPINGATTACHMENT_H_
 
-#include <spine/dll.h>
 #include <spine/Attachment.h>
 #include <spine/VertexAttachment.h>
-#include <spine/Atlas.h>
-#include <spine/Slot.h>
+#include <spine/dll.h>
+#include <spine/SlotData.h>
 
 #ifdef __cplusplus
 extern "C" {

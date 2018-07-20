@@ -31,15 +31,16 @@
 #ifndef SPINE_VERTEXATTACHMENT_H_
 #define SPINE_VERTEXATTACHMENT_H_
 
-#include <spine/dll.h>
 #include <spine/Attachment.h>
 #include <spine/Slot.h>
+#include <spine/dll.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct spVertexAttachment spVertexAttachment;
+
 struct spVertexAttachment {
 	spAttachment super;
 

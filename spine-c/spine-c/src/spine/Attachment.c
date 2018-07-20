@@ -29,8 +29,9 @@
  *****************************************************************************/
 
 #include <spine/Attachment.h>
+
 #include <spine/extension.h>
-#include <spine/Slot.h>
+#include <spine/AttachmentLoader.h>
 
 typedef struct _spAttachmentVtable {
 	void (*dispose) (spAttachment* self);

@@ -29,8 +29,13 @@
  *****************************************************************************/
 
 #include <spine/Bone.h>
+
 #include <spine/extension.h>
-#include <stdio.h>
+#include <spine/BoneData.h>
+#include <spine/Skeleton.h>
+
+#include <math.h>
+
 static int yDown;
 
 void spBone_setYDown (int value) {

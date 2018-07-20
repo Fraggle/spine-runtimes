@@ -29,7 +29,9 @@
  *****************************************************************************/
 
 #include <spine/extension.h>
+
 #include <stdio.h>
+#include <string.h>
 
 float _spInternalRandom () {
 	return rand() / (float)RAND_MAX;

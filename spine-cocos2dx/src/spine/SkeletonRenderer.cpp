@@ -29,12 +29,41 @@
  *****************************************************************************/
 
 #include <spine/SkeletonRenderer.h>
-#include <spine/extension.h>
-#include <spine/SkeletonBatch.h>
-#include <spine/SkeletonTwoColorBatch.h>
+
+#include <spine/Array.h>
 #include <spine/AttachmentVertices.h>
+#include <spine/BoneData.h>
+#include <spine/ClippingAttachment.h>
 #include <spine/Cocos2dAttachmentLoader.h>
+#include <spine/Color.h>
+#include <spine/SkeletonBatch.h>
+#include <spine/SkeletonBinary.h>
+#include <spine/SkeletonJson.h>
+#include <spine/SkeletonTwoColorBatch.h>
+#include <spine/SlotData.h>
+#include <spine/VertexAttachment.h>
+#include <spine/extension.h>
+
+#include "platform/CCGL.h"
+#include "2d/CCDrawNode.h"
+#include "base/CCDirector.h"
+#include "base/CCVector.h"
+#include "base/ccMacros.h"
+#include "math/Vec2.h"
+#include "math/Vec3.h"
+#include "renderer/CCGLProgram.h"
+#include "renderer/CCGLProgramState.h"
+#include "renderer/CCTrianglesCommand.h"
+
+#include <cstring>
 #include <algorithm>
+#include <limits>
+
+namespace cocos2d
+{
+    class Renderer;
+    class Texture2D;
+}
 
 #define INITIAL_WORLD_VERTICES_LENGTH 1000
 

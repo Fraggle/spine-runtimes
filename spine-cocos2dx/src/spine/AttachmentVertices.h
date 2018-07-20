@@ -31,7 +31,12 @@
 #ifndef SPINE_ATTACHMENTVERTICES_H_
 #define SPINE_ATTACHMENTVERTICES_H_
 
-#include "cocos2d.h"
+#include "renderer/CCTrianglesCommand.h"
+
+namespace cocos2d
+{
+    class Texture2D;
+}
 
 namespace spine {
 

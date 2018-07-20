@@ -31,13 +31,16 @@
 #ifndef SPINE_SKELETON_H_
 #define SPINE_SKELETON_H_
 
-#include <spine/dll.h>
-#include <spine/SkeletonData.h>
-#include <spine/Slot.h>
-#include <spine/Skin.h>
 #include <spine/IkConstraint.h>
-#include <spine/TransformConstraint.h>
 #include <spine/PathConstraint.h>
+#include <spine/SkeletonData.h>
+#include <spine/Skin.h>
+#include <spine/Slot.h>
+#include <spine/TransformConstraint.h>
+#include <spine/dll.h>
+#include <spine/Attachment.h>
+#include <spine/Bone.h>
+#include <spine/Color.h>
 
 #ifdef __cplusplus
 extern "C" {

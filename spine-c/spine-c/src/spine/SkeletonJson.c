@@ -29,11 +29,35 @@
  *****************************************************************************/
 
 #include <spine/SkeletonJson.h>
-#include <stdio.h>
+
 #include "Json.h"
-#include <spine/extension.h>
-#include <spine/AtlasAttachmentLoader.h>
+#include <spine/Animation.h>
 #include <spine/Array.h>
+#include <spine/Atlas.h>
+#include <spine/AtlasAttachmentLoader.h>
+#include <spine/Attachment.h>
+#include <spine/AttachmentLoader.h>
+#include <spine/BoneData.h>
+#include <spine/BoundingBoxAttachment.h>
+#include <spine/ClippingAttachment.h>
+#include <spine/Color.h>
+#include <spine/Event.h>
+#include <spine/EventData.h>
+#include <spine/IkConstraintData.h>
+#include <spine/MeshAttachment.h>
+#include <spine/PathAttachment.h>
+#include <spine/PathConstraintData.h>
+#include <spine/PointAttachment.h>
+#include <spine/RegionAttachment.h>
+#include <spine/SkeletonData.h>
+#include <spine/Skin.h>
+#include <spine/SlotData.h>
+#include <spine/TransformConstraintData.h>
+#include <spine/VertexAttachment.h>
+#include <spine/extension.h>
+
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #define strdup _strdup

@@ -31,15 +31,19 @@
 #ifndef SPINE_ANIMATIONSTATE_H_
 #define SPINE_ANIMATIONSTATE_H_
 
-#include <spine/dll.h>
 #include <spine/Animation.h>
 #include <spine/AnimationStateData.h>
-#include <spine/Event.h>
 #include <spine/Array.h>
+#include <spine/Event.h>
+#include <spine/dll.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct spAnimationState spAnimationState;
+typedef struct spSkeleton spSkeleton;
+typedef struct spTrackEntry spTrackEntry;
 
 typedef enum {
 	SP_ANIMATION_START, SP_ANIMATION_INTERRUPT, SP_ANIMATION_END, SP_ANIMATION_COMPLETE, SP_ANIMATION_DISPOSE, SP_ANIMATION_EVENT

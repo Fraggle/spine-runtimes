@@ -31,17 +31,14 @@
 #ifndef SPINE_SKELETONBINARY_H_
 #define SPINE_SKELETONBINARY_H_
 
-#include <spine/dll.h>
-#include <spine/Attachment.h>
+#include <spine/Atlas.h>
 #include <spine/AttachmentLoader.h>
 #include <spine/SkeletonData.h>
-#include <spine/Atlas.h>
+#include <spine/dll.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct spAtlasAttachmentLoader;
 
 typedef struct spSkeletonBinary {
 	float scale;

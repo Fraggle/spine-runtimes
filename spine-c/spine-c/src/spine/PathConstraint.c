@@ -29,8 +29,19 @@
  *****************************************************************************/
 
 #include <spine/PathConstraint.h>
+
+#include <spine/Attachment.h>
+#include <spine/Bone.h>
+#include <spine/BoneData.h>
+#include <spine/PathAttachment.h>
+#include <spine/PathConstraintData.h>
 #include <spine/Skeleton.h>
+#include <spine/Slot.h>
+#include <spine/SlotData.h>
+#include <spine/VertexAttachment.h>
 #include <spine/extension.h>
+
+#include <string.h>
 
 #define PATHCONSTRAINT_NONE -1
 #define PATHCONSTRAINT_BEFORE -2

@@ -31,9 +31,19 @@
 #ifndef SPINE_SKELETONANIMATION_H_
 #define SPINE_SKELETONANIMATION_H_
 
-#include <spine/spine.h>
 #include <spine/SkeletonRenderer.h>
-#include "cocos2d.h"
+#include <spine/Animation.h>
+#include <spine/AnimationState.h>
+#include <spine/AnimationStateData.h>
+#include <spine/Atlas.h>
+#include <spine/Event.h>
+#include <spine/SkeletonData.h>
+
+#include "base/ccConfig.h"
+#include "platform/CCPlatformMacros.h"
+
+#include <functional>
+#include <iosfwd>
 
 namespace spine {
 

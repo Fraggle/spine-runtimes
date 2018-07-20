@@ -31,16 +31,16 @@
 #ifndef SPINE_ANIMATION_H_
 #define SPINE_ANIMATION_H_
 
-#include <spine/dll.h>
-#include <spine/Event.h>
 #include <spine/Attachment.h>
+#include <spine/Event.h>
+#include <spine/dll.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct spTimeline spTimeline;
-struct spSkeleton;
+typedef struct spSkeleton spSkeleton;
 
 typedef struct spAnimation {
 	const char* const name;

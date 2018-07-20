@@ -29,7 +29,9 @@
  *****************************************************************************/
 
 #include <spine/RegionAttachment.h>
+
 #include <spine/extension.h>
+#include <spine/Attachment.h>
 
 typedef enum {
 	BLX = 0, BLY, ULX, ULY, URX, URY, BRX, BRY

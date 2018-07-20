@@ -31,17 +31,16 @@
 #ifndef SPINE_MESHATTACHMENT_H_
 #define SPINE_MESHATTACHMENT_H_
 
-#include <spine/dll.h>
-#include <spine/Attachment.h>
 #include <spine/VertexAttachment.h>
-#include <spine/Atlas.h>
-#include <spine/Slot.h>
+#include <spine/dll.h>
+#include <spine/Color.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct spMeshAttachment spMeshAttachment;
+
 struct spMeshAttachment {
 	spVertexAttachment super;
 

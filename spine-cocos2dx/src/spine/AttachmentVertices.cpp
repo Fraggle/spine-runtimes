@@ -30,6 +30,14 @@
 
 #include <spine/AttachmentVertices.h>
 
+#include "base/ccTypes.h"
+#include "platform/CCPlatformMacros.h"
+
+namespace cocos2d
+{
+    class Texture2D;
+}
+
 USING_NS_CC;
 
 namespace spine {

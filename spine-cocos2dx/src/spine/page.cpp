@@ -8,6 +8,8 @@
 
 #include "page.hpp"
 
+#include <cstdint>
+
 inline std::uint8_t* next_aligned(std::uint8_t* p, std::size_t a) noexcept
 {
     return reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(p) + reinterpret_cast<std::uintptr_t>(a - 1)) & ~(static_cast<std::uintptr_t>(a - 1)));

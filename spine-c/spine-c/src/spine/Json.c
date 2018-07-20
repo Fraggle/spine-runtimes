@@ -35,11 +35,12 @@
 #endif
 
 #include "Json.h"
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h> /* strtod (C89), strtof (C99) */
-#include <string.h> /* strcasecmp (4.4BSD - compatibility), _stricmp (_WIN32) */
+
 #include <spine/extension.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <strings.h>
 
 #ifndef SPINE_JSON_DEBUG
 /* Define this to do extra NULL and expected-character checking */

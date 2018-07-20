@@ -31,13 +31,11 @@
 #ifndef SPINE_ATTACHMENT_H_
 #define SPINE_ATTACHMENT_H_
 
-#include <spine/dll.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct spAttachmentLoader;
+typedef struct spAttachmentLoader spAttachmentLoader;
 
 typedef enum {
 	SP_ATTACHMENT_REGION,

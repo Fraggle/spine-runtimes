@@ -29,8 +29,9 @@
  *****************************************************************************/
 
 #include <spine/Triangulator.h>
+
 #include <spine/extension.h>
-#include <stdio.h>
+#include <spine/Array.h>
 
 spTriangulator* spTriangulator_create() {
 	spTriangulator* triangulator = CALLOC(spTriangulator, 1);

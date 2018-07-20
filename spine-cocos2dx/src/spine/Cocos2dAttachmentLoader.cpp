@@ -29,8 +29,24 @@
  *****************************************************************************/
 
 #include <spine/Cocos2dAttachmentLoader.h>
-#include <spine/extension.h>
+
+#include <spine/AtlasAttachmentLoader.h>
+#include <spine/Attachment.h>
 #include <spine/AttachmentVertices.h>
+#include <spine/MeshAttachment.h>
+#include <spine/RegionAttachment.h>
+#include <spine/Skin.h>
+#include <spine/VertexAttachment.h>
+#include <spine/extension.h>
+
+#include "base/ccTypes.h"
+#include "platform/CCPlatformMacros.h"
+#include "renderer/CCTrianglesCommand.h"
+
+namespace cocos2d
+{
+    class Texture2D;
+}
 
 USING_NS_CC;
 using namespace spine;

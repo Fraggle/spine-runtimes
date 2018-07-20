@@ -29,9 +29,15 @@
  *****************************************************************************/
 
 #include <spine/SkeletonAnimation.h>
-#include <spine/spine-cocos2dx.h>
-#include <spine/extension.h>
+
+#include <spine/Skeleton.h>
+#include <spine/SkeletonRenderer.h>
+
+#include "base/CCConsole.h"
+#include "base/ccMacros.h"
+
 #include <algorithm>
+#include <vector>
 
 USING_NS_CC;
 using std::min;

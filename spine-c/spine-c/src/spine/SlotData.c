@@ -29,7 +29,10 @@
  *****************************************************************************/
 
 #include <spine/SlotData.h>
+
 #include <spine/extension.h>
+#include <spine/BoneData.h>
+#include <spine/Color.h>
 
 spSlotData* spSlotData_create (const int index, const char* name, spBoneData* boneData) {
 	spSlotData* self = NEW(spSlotData);

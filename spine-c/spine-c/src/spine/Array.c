@@ -29,6 +29,7 @@
  *****************************************************************************/
 
 #include <spine/Array.h>
+
 #include <spine/extension.h>
 
 _SP_ARRAY_IMPLEMENT_TYPE(spFloatArray, float)

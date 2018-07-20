@@ -29,9 +29,12 @@
  *****************************************************************************/
 
 #include <spine/IkConstraint.h>
+
+#include <spine/Bone.h>
+#include <spine/BoneData.h>
+#include <spine/IkConstraintData.h>
 #include <spine/Skeleton.h>
 #include <spine/extension.h>
-#include <float.h>
 
 spIkConstraint *spIkConstraint_create(spIkConstraintData *data, const spSkeleton *skeleton) {
 	int i;

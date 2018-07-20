@@ -29,11 +29,33 @@
  *****************************************************************************/
 
 #include <spine/SkeletonBinary.h>
-#include <stdio.h>
-#include <spine/extension.h>
-#include <spine/AtlasAttachmentLoader.h>
-#include <spine/Animation.h>
+
 #include "kvec.h"
+#include <spine/Animation.h>
+#include <spine/Atlas.h>
+#include <spine/AtlasAttachmentLoader.h>
+#include <spine/Attachment.h>
+#include <spine/AttachmentLoader.h>
+#include <spine/BoneData.h>
+#include <spine/ClippingAttachment.h>
+#include <spine/Color.h>
+#include <spine/Event.h>
+#include <spine/EventData.h>
+#include <spine/IkConstraintData.h>
+#include <spine/MeshAttachment.h>
+#include <spine/PathAttachment.h>
+#include <spine/PathConstraintData.h>
+#include <spine/PointAttachment.h>
+#include <spine/RegionAttachment.h>
+#include <spine/SkeletonData.h>
+#include <spine/Skin.h>
+#include <spine/SlotData.h>
+#include <spine/TransformConstraintData.h>
+#include <spine/VertexAttachment.h>
+#include <spine/extension.h>
+
+#include <stdint.h>
+#include <string.h>
 
 typedef struct {
 	const unsigned char* cursor; 

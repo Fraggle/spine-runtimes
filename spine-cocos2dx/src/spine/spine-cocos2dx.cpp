@@ -29,8 +29,22 @@
  *****************************************************************************/
 
 #include <spine/spine-cocos2dx.h>
+
+#include <spine/Atlas.h>
 #include <spine/extension.h>
+
+#include "base/CCData.h"
+#include "base/CCDirector.h"
+#include "base/ccMacros.h"
+#include "platform/CCFileUtils.h"
+#include "platform/CCGL.h"
+#include "platform/CCPlatformMacros.h"
+#include "renderer/CCTexture2D.h"
+#include "renderer/CCTextureCache.h"
+
+#include <cstddef>
 #include <stdexcept>
+
 
 namespace spine {
 	static CustomTextureLoader _customTextureLoader = nullptr;

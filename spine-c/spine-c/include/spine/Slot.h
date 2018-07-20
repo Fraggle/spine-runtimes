@@ -31,10 +31,11 @@
 #ifndef SPINE_SLOT_H_
 #define SPINE_SLOT_H_
 
-#include <spine/dll.h>
-#include <spine/Bone.h>
 #include <spine/Attachment.h>
+#include <spine/Bone.h>
 #include <spine/SlotData.h>
+#include <spine/dll.h>
+#include <spine/Color.h>
 
 #ifdef __cplusplus
 extern "C" {

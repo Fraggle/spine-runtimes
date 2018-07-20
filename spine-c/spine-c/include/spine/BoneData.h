@@ -37,6 +37,8 @@
 extern "C" {
 #endif
 
+typedef struct spBoneData spBoneData;
+
 typedef enum {
 	SP_TRANSFORMMODE_NORMAL,
 	SP_TRANSFORMMODE_ONLYTRANSLATION,

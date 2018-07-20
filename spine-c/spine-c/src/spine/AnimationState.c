@@ -29,8 +29,19 @@
  *****************************************************************************/
 
 #include <spine/AnimationState.h>
+
 #include <spine/extension.h>
+#include <spine/Animation.h>
+#include <spine/AnimationStateData.h>
+#include <spine/Array.h>
+#include <spine/Bone.h>
+#include <spine/BoneData.h>
+#include <spine/Event.h>
+#include <spine/Skeleton.h>
+#include <spine/SkeletonData.h>
+
 #include <limits.h>
+#include <string.h>
 
 #define SUBSEQUENT 0
 #define FIRST 1

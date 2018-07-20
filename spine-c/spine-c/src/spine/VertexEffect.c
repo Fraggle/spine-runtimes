@@ -29,7 +29,10 @@
  *****************************************************************************/
 
 #include <spine/VertexEffect.h>
+
 #include <spine/extension.h>
+#include <spine/Color.h>
+#include <spine/Skeleton.h>
 
 void _spJitterVertexEffect_begin(spVertexEffect* self, spSkeleton* skeleton) {
 }
