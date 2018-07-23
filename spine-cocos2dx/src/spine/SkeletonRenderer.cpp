@@ -44,16 +44,16 @@
 #include <spine/VertexAttachment.h>
 #include <spine/extension.h>
 
-#include "platform/CCGL.h"
-#include "2d/CCDrawNode.h"
-#include "base/CCDirector.h"
-#include "base/CCVector.h"
-#include "base/ccMacros.h"
-#include "math/Vec2.h"
-#include "math/Vec3.h"
-#include "renderer/CCGLProgram.h"
-#include "renderer/CCGLProgramState.h"
-#include "renderer/CCTrianglesCommand.h"
+#include <cocos/platform/CCGL.h>
+#include <cocos/2d/CCDrawNode.h>
+#include <cocos/base/CCDirector.h>
+#include <cocos/base/CCVector.h>
+#include <cocos/base/ccMacros.h>
+#include <cocos/math/Vec2.h>
+#include <cocos/math/Vec3.h>
+#include <cocos/renderer/CCGLProgram.h>
+#include <cocos/renderer/CCGLProgramState.h>
+#include <cocos/renderer/CCTrianglesCommand.h>
 
 #include <cstring>
 #include <algorithm>

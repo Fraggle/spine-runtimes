@@ -33,14 +33,14 @@
 #include <spine/Atlas.h>
 #include <spine/extension.h>
 
-#include "base/CCData.h"
-#include "base/CCDirector.h"
-#include "base/ccMacros.h"
-#include "platform/CCFileUtils.h"
-#include "platform/CCGL.h"
-#include "platform/CCPlatformMacros.h"
-#include "renderer/CCTexture2D.h"
-#include "renderer/CCTextureCache.h"
+#include <cocos/base/CCData.h>
+#include <cocos/base/CCDirector.h>
+#include <cocos/base/ccMacros.h>
+#include <cocos/platform/CCFileUtils.h>
+#include <cocos/platform/CCGL.h>
+#include <cocos/platform/CCPlatformMacros.h>
+#include <cocos/renderer/CCTexture2D.h>
+#include <cocos/renderer/CCTextureCache.h>
 
 #include <cstddef>
 #include <stdexcept>

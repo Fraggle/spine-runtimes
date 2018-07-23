@@ -31,7 +31,7 @@
 #ifndef SPINE_ATTACHMENTVERTICES_H_
 #define SPINE_ATTACHMENTVERTICES_H_
 
-#include "renderer/CCTrianglesCommand.h"
+#include <cocos/renderer/CCTrianglesCommand.h>
 
 namespace cocos2d
 {

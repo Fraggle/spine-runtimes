@@ -30,8 +30,8 @@
 
 #include <spine/AttachmentVertices.h>
 
-#include "base/ccTypes.h"
-#include "platform/CCPlatformMacros.h"
+#include <cocos/base/ccTypes.h>
+#include <cocos/platform/CCPlatformMacros.h>
 
 namespace cocos2d
 {

@@ -43,14 +43,14 @@
 #include <spine/Slot.h>
 #include <spine/VertexEffect.h>
 
-#include "2d/CCNode.h"
-#include "base/CCProtocols.h"
-#include "base/ccConfig.h"
-#include "base/ccTypes.h"
-#include "math/CCGeometry.h"
-#include "math/Mat4.h"
-#include "platform/CCPlatformMacros.h"
-#include "renderer/CCCustomCommand.h"
+#include <cocos/2d/CCNode.h>
+#include <cocos/base/CCProtocols.h>
+#include <cocos/base/ccConfig.h>
+#include <cocos/base/ccTypes.h>
+#include <cocos/math/CCGeometry.h>
+#include <cocos/math/Mat4.h>
+#include <cocos/platform/CCPlatformMacros.h>
+#include <cocos/renderer/CCCustomCommand.h>
 
 #include <cstdint>
 #include <cstddef>

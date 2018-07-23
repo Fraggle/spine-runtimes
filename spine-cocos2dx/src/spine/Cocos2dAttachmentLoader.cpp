@@ -39,9 +39,9 @@
 #include <spine/VertexAttachment.h>
 #include <spine/extension.h>
 
-#include "base/ccTypes.h"
-#include "platform/CCPlatformMacros.h"
-#include "renderer/CCTrianglesCommand.h"
+#include <cocos/base/ccTypes.h>
+#include <cocos/platform/CCPlatformMacros.h>
+#include <cocos/renderer/CCTrianglesCommand.h>
 
 namespace cocos2d
 {

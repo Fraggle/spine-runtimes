@@ -39,8 +39,8 @@
 #include <spine/Event.h>
 #include <spine/SkeletonData.h>
 
-#include "base/ccConfig.h"
-#include "platform/CCPlatformMacros.h"
+#include <cocos/base/ccConfig.h>
+#include <cocos/platform/CCPlatformMacros.h>
 
 #include <functional>
 #include <iosfwd>

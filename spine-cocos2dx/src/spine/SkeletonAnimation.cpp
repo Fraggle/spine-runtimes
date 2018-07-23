@@ -33,8 +33,8 @@
 #include <spine/Skeleton.h>
 #include <spine/SkeletonRenderer.h>
 
-#include "base/CCConsole.h"
-#include "base/ccMacros.h"
+#include <cocos/base/CCConsole.h>
+#include <cocos/base/ccMacros.h>
 
 #include <algorithm>
 #include <vector>
