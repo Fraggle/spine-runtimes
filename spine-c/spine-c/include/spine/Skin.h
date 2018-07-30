@@ -38,7 +38,7 @@
 extern "C" {
 #endif
 
-#include "uthash.h"
+#include <spine/uthash.h>
 
 typedef struct _Entry _Entry;
 typedef struct spSkeleton spSkeleton;

@@ -32,6 +32,7 @@
 
 #include <cocos/base/ccTypes.h>
 #include <cocos/platform/CCPlatformMacros.h>
+#include <cocos/renderer/CCTrianglesCommand.h>
 
 namespace cocos2d
 {

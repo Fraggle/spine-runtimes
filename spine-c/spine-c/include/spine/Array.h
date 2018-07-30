@@ -33,6 +33,8 @@
 
 #include <spine/dll.h>
 
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

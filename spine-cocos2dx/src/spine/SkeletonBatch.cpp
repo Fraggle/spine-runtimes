@@ -29,7 +29,14 @@
  *****************************************************************************/
 
 #include <spine/SkeletonBatch.h>
+
 #include <spine/extension.h>
+
+#include <cocos/base/CCDirector.h>
+#include <cocos/base/CCEventCustom.h>
+#include <cocos/base/CCEventDispatcher.h>
+#include <cocos/renderer/CCRenderer.h>
+
 #include <algorithm>
 
 USING_NS_CC;

@@ -34,12 +34,22 @@
 #include <spine/spine.h>
 #include <spine/pool_allocator.hpp>
 
-#include "cocos2d.h"
+#include <cocos/renderer/CCTrianglesCommand.h>
+#include <cocos/base/ccTypes.h>
+#include <cocos/math/Mat4.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+
+namespace cocos2d
+{
+    class Renderer;
+    class Texture2D;
+    class GLProgramState;
+    class Mat4;
+}
 
 namespace spine
 {

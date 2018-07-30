@@ -30,7 +30,11 @@
 
 #include <spine/Skeleton.h>
 
+#include <spine/AnimationState.h>
+#include <spine/Attachment.h>
+#include <spine/Bone.h>
 #include <spine/BoneData.h>
+#include <spine/Color.h>
 #include <spine/IkConstraint.h>
 #include <spine/IkConstraintData.h>
 #include <spine/PathAttachment.h>
@@ -44,8 +48,7 @@
 #include <spine/TransformConstraintData.h>
 #include <spine/VertexAttachment.h>
 #include <spine/extension.h>
-
-#include "uthash.h"
+#include <spine/uthash.h>
 
 #include <stdlib.h>
 #include <string.h>

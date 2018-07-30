@@ -30,6 +30,7 @@
 
 #include <spine/SkeletonBounds.h>
 
+#include <spine/AnimationState.h>
 #include <spine/Attachment.h>
 #include <spine/BoundingBoxAttachment.h>
 #include <spine/Skeleton.h>

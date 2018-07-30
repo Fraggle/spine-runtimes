@@ -34,7 +34,11 @@
 #include <spine/spine.h>
 #include <spine/pool_allocator.hpp>
 
-#include "cocos2d.h"
+#include <cocos/base/ccTypes.h>
+#include <cocos/math/Mat4.h>
+#include <cocos/math/Vec3.h>
+#include <cocos/platform/CCGL.h>
+#include <cocos/renderer/CCCustomCommand.h>
 
 #include <array>
 #include <cstddef>
@@ -42,6 +46,14 @@
 #include <limits>
 #include <unordered_map>
 #include <vector>
+
+namespace cocos2d
+{
+    class Texture2D;
+    class GLProgramState;
+    class GLProgram;
+    class Renderer;
+}
 
 namespace spine {
 	struct V3F_C4B_C4B_T2F {

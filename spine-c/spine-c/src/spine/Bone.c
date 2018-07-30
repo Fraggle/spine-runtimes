@@ -30,9 +30,10 @@
 
 #include <spine/Bone.h>
 
-#include <spine/extension.h>
+#include <spine/AnimationState.h>
 #include <spine/BoneData.h>
 #include <spine/Skeleton.h>
+#include <spine/extension.h>
 
 #include <math.h>
 

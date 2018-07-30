@@ -35,6 +35,7 @@
 #include <spine/AnimationStateData.h>
 #include <spine/Array.h>
 #include <spine/Event.h>
+#include <spine/Skeleton.h>
 #include <spine/dll.h>
 
 #ifdef __cplusplus
@@ -42,15 +43,11 @@ extern "C" {
 #endif
 
 typedef struct spAnimationState spAnimationState;
-typedef struct spSkeleton spSkeleton;
 typedef struct spTrackEntry spTrackEntry;
 
 typedef enum {
 	SP_ANIMATION_START, SP_ANIMATION_INTERRUPT, SP_ANIMATION_END, SP_ANIMATION_COMPLETE, SP_ANIMATION_DISPOSE, SP_ANIMATION_EVENT
 } spEventType;
-
-typedef struct spAnimationState spAnimationState;
-typedef struct spTrackEntry spTrackEntry;
 
 typedef void (*spAnimationStateListener) (spAnimationState* state, spEventType type, spTrackEntry* entry, spEvent* event);
 

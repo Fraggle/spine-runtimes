@@ -30,8 +30,10 @@
 
 #include <spine/RegionAttachment.h>
 
-#include <spine/extension.h>
 #include <spine/Attachment.h>
+#include <spine/Bone.h>
+#include <spine/Color.h>
+#include <spine/extension.h>
 
 typedef enum {
 	BLX = 0, BLY, ULX, ULY, URX, URY, BRX, BRY

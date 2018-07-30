@@ -30,10 +30,12 @@
 
 #include <spine/Skin.h>
 
-#include <spine/extension.h>
+#include <spine/AnimationState.h>
 #include <spine/Attachment.h>
 #include <spine/Skeleton.h>
 #include <spine/Slot.h>
+#include <spine/extension.h>
+#include <spine/uthash.h>
 
 #include <stddef.h>
 #include <stdlib.h>

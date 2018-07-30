@@ -30,14 +30,20 @@
 
 #include <spine/SkeletonAnimation.h>
 
+#include <spine/Animation.h>
+#include <spine/AnimationState.h>
+#include <spine/AnimationStateData.h>
+#include <spine/Atlas.h>
+#include <spine/Event.h>
 #include <spine/Skeleton.h>
+#include <spine/SkeletonData.h>
 #include <spine/SkeletonRenderer.h>
 
 #include <cocos/base/CCConsole.h>
 #include <cocos/base/ccMacros.h>
+#include <cocos/platform/CCPlatformMacros.h>
 
 #include <algorithm>
-#include <vector>
 
 USING_NS_CC;
 using std::min;

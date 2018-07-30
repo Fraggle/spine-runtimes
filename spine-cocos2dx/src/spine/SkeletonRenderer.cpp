@@ -30,27 +30,44 @@
 
 #include <spine/SkeletonRenderer.h>
 
+#include <spine/AnimationState.h>
 #include <spine/Array.h>
+#include <spine/Atlas.h>
+#include <spine/Attachment.h>
+#include <spine/AttachmentLoader.h>
 #include <spine/AttachmentVertices.h>
+#include <spine/Bone.h>
 #include <spine/BoneData.h>
 #include <spine/ClippingAttachment.h>
 #include <spine/Cocos2dAttachmentLoader.h>
 #include <spine/Color.h>
+#include <spine/MeshAttachment.h>
+#include <spine/RegionAttachment.h>
+#include <spine/Skeleton.h>
 #include <spine/SkeletonBatch.h>
 #include <spine/SkeletonBinary.h>
+#include <spine/SkeletonClipping.h>
+#include <spine/SkeletonData.h>
 #include <spine/SkeletonJson.h>
 #include <spine/SkeletonTwoColorBatch.h>
+#include <spine/Slot.h>
 #include <spine/SlotData.h>
 #include <spine/VertexAttachment.h>
+#include <spine/VertexEffect.h>
 #include <spine/extension.h>
 
-#include <cocos/platform/CCGL.h>
 #include <cocos/2d/CCDrawNode.h>
+#include <cocos/2d/CCNode.h>
 #include <cocos/base/CCDirector.h>
 #include <cocos/base/CCVector.h>
 #include <cocos/base/ccMacros.h>
+#include <cocos/base/ccTypes.h>
+#include <cocos/math/CCGeometry.h>
+#include <cocos/math/Mat4.h>
 #include <cocos/math/Vec2.h>
 #include <cocos/math/Vec3.h>
+#include <cocos/platform/CCGL.h>
+#include <cocos/platform/CCPlatformMacros.h>
 #include <cocos/renderer/CCGLProgram.h>
 #include <cocos/renderer/CCGLProgramState.h>
 #include <cocos/renderer/CCTrianglesCommand.h>

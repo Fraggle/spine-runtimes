@@ -30,6 +30,7 @@
 
 #include <spine/PathConstraint.h>
 
+#include <spine/AnimationState.h>
 #include <spine/Attachment.h>
 #include <spine/Bone.h>
 #include <spine/BoneData.h>

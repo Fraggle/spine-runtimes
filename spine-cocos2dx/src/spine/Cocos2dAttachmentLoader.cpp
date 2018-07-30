@@ -30,8 +30,10 @@
 
 #include <spine/Cocos2dAttachmentLoader.h>
 
+#include <spine/Atlas.h>
 #include <spine/AtlasAttachmentLoader.h>
 #include <spine/Attachment.h>
+#include <spine/AttachmentLoader.h>
 #include <spine/AttachmentVertices.h>
 #include <spine/MeshAttachment.h>
 #include <spine/RegionAttachment.h>

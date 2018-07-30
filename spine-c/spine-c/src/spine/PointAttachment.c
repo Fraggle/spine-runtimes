@@ -30,9 +30,10 @@
 
 #include <spine/PointAttachment.h>
 
-#include <spine/extension.h>
 #include <spine/Attachment.h>
+#include <spine/Bone.h>
 #include <spine/PathAttachment.h>
+#include <spine/extension.h>
 
 void _spPointAttachment_dispose (spAttachment* attachment) {
 	spPathAttachment* self = SUB_CAST(spPathAttachment, attachment);

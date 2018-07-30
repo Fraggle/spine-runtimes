@@ -30,6 +30,7 @@
 
 #include <spine/IkConstraint.h>
 
+#include <spine/AnimationState.h>
 #include <spine/Bone.h>
 #include <spine/BoneData.h>
 #include <spine/IkConstraintData.h>
