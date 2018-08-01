@@ -201,12 +201,40 @@ void main()
 
     // the above shader would not work properlly with pre-multiplied alpha textures
 
+    // ABOVE SHADER (spine one)
+    // when pma v_dark.a = 1
+    // when not pma v_dark.a = 0    => color = ((tex.a - 1.0) * dark.a + 1.0 - tex.rgb) * dark.rgb + tex.rgb * light.rgb
+    //                              => color = (1.0 - tex.rgb) * dark.rgb + tex.rgb * light.rgb
+    // which is an interpolation    => color = dark.rgb + tex.rgb * (light.rgb - dark.rgb)
+    // all this in non-PMA mode
+    
+    // in pma mode tex.rgb has tex.a applyed tex.rgb(pma) = tex.rgb(non-pma) * tex.a right from the texture source
+    // in pma mode light.rgb has light.a applyed light.rgb(pma) = light.rgb(non-pma) * light.a right from the uniform source
+
+    // if your shader is outputing in non-pma mode but your texture is,
+    // the common way is to divide tex.rgb by tex.a and divide light.rgb by light.a,
+    // compute the color like the non-pma shader (above),
+    // and output vec4(computedColor, alpha) if in non-PMA      (blend source factor is gl_SOURCE_ALPHA)
+    // or output vec4(computedColor * alpha, alpha) if in PMA   (blend source factor is gl_ONE)
+
+    // so if we take the default/above shader and do just that, we'll have the shader output the same thing whatever mode it is in
+    
+    // and to avoid the divisions....
+    
+    // color = dark.rgb + tex.rgb * (light.rgb - dark.rgb)
+    //
+    // colorPma = (dark.rgb + (tex.rgb / tex.a) * ((light.rgb / light.a) - dark.rgb)) * (tex.a * light.a)
+    //
+    // and we simplify to
+    // colorPma = darg.rgb * tex.a * light.a + tex.rgb * (light.rgb - dark.rgb * light.a)
+    
+
     const char* TWO_COLOR_TINT_PMA_FRAGMENT_SHADER = R"(
 #ifdef GL_ES
 precision lowp float;
 
 varying lowp vec4 v_light; // a pma value (as skeletonRenderer opacityModifyRgb() must be true to work properly with pma)
-varying lowp vec4 v_dark; // a non-pma value (dark alpha should be one anyway)
+varying lowp vec4 v_dark; // (dark alpha should be one)
 varying lowp vec2 v_texCoord;
 varying mediump vec2 v_mipTexCoord; // DEBUG_TEXTURE_SIZE
 #else
@@ -221,20 +249,20 @@ void main()
 #ifdef DEBUG_TEXTURE_SIZE
     if (CC_Debug == 1)
     {
-        vec4 texColor = texture2D(CC_Texture0, v_texCoord);
-        float alpha = texColor.a * v_light.a;
-        float q = (((texColor.a - 1.0) * v_dark.a) + 1.0);
-        vec4 col = vec4(clamp((q * texColor.a - texColor.rgb) * v_dark.rgb * v_light.a + (texColor.rgb * v_light.rgb), 0.0, 1.0), alpha);
+        vec4 texColor = texture2D(CC_Texture0, v_texCoord); // texture is PMA
+        float alpha = texColor.a * v_light.a;               // light color is PMA / new alpha will be texture alpha * light.alpha
+        vec4 col = vec4(v_dark.rgb * alpha + texColor.rgb * (v_light.rgb - v_dark.rgb * v_light.a), alpha);
         vec4 mip = texture2D(CC_Texture3, v_mipTexCoord);
         gl_FragColor = vec4(mix(col.rgb, mip.rgb, mip.a).rgb, col.a);
     }
     else
 #endif
     {
-        vec4 texColor = texture2D(CC_Texture0, v_texCoord); // input PMA texture
-        float alpha = texColor.a * v_light.a; // new alpha will be texture alpha * light.alpha
-        float q = (((texColor.a - 1.0) * v_dark.a) + 1.0);
-        gl_FragColor = vec4(clamp((q * texColor.a - texColor.rgb) * v_dark.rgb * v_light.a + (texColor.rgb * v_light.rgb), 0.0, 1.0), alpha);
+        vec4 texColor = texture2D(CC_Texture0, v_texCoord); // texture is PMA
+
+        float alpha = texColor.a * v_light.a;               // light color is PMA / new alpha will be texture alpha * light.alpha
+        
+        gl_FragColor = vec4(v_dark.rgb * alpha + texColor.rgb * (v_light.rgb - v_dark.rgb * v_light.a), alpha);
     }
 }
 
