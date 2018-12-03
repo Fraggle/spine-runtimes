@@ -38,10 +38,10 @@
 extern "C" {
 #endif
 
-#include <spine/uthash.h>
+/* Size of hashtable used in skin structure for fast attachment lookup. */
+#define SKIN_ENTRIES_HASH_TABLE_SIZE 100
 
-typedef struct _Entry _Entry;
-typedef struct spSkeleton spSkeleton;
+struct spSkeleton;
 
 typedef struct spSkin {
 	const char* const name;
@@ -56,15 +56,22 @@ typedef struct spSkin {
 /* Private structs, needed by Skeleton */
 typedef struct _Entry _Entry;
 struct _Entry {
+	int slotIndex;
+	const char* name;
 	spAttachment* attachment;
-    UT_hash_handle hh; /* make this hashable */
-    int slotIndex;
-    char name[];
+	_Entry* next;
+};
+
+typedef struct _SkinHashTableEntry _SkinHashTableEntry;
+struct _SkinHashTableEntry {
+	_Entry* entry;
+	_SkinHashTableEntry* next;  /* list for elements with same hashes */
 };
     
 typedef struct {
 	spSkin super;
-    _Entry* entries;
+	_Entry* entries; /* entries list stored for getting attachment name by attachment index */
+	_SkinHashTableEntry* entriesHashTable[SKIN_ENTRIES_HASH_TABLE_SIZE];  /* hashtable for fast attachment lookup */
 } _spSkin;
 
 SP_API spSkin* spSkin_create (const char* name);

@@ -35,25 +35,32 @@
 #include <spine/Skeleton.h>
 #include <spine/Slot.h>
 #include <spine/extension.h>
-#include <spine/uthash.h>
 
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
 _Entry* _Entry_create (int slotIndex, const char* name, spAttachment* attachment) {
-    size_t sz = sizeof(_Entry) + strlen(name) + 1;
-    _Entry* self = (_Entry*)malloc(sz);
-    memset(self, 0, sz); // zero fill
-    
+	_Entry* self = NEW(_Entry);
+	self->slotIndex = slotIndex;
+	MALLOC_STR(self->name, name);
     self->attachment = attachment;
-    self->slotIndex = slotIndex;
-    strcpy(self->name, name);
     return self;
 }
 
 void _Entry_dispose (_Entry* self) {
     spAttachment_dispose(self->attachment);
+	FREE(self->name);
+	FREE(self);
+}
+
+static _SkinHashTableEntry* _SkinHashTableEntry_create (_Entry* entry) {
+	_SkinHashTableEntry* self = NEW(_SkinHashTableEntry);
+	self->entry = entry;
+	return self;
+}
+
+static void _SkinHashTableEntry_dispose (_SkinHashTableEntry* self) {
     FREE(self);
 }
 
@@ -62,39 +69,57 @@ void _Entry_dispose (_Entry* self) {
 spSkin* spSkin_create (const char* name) {
     spSkin* self = SUPER(NEW(_spSkin));
     MALLOC_STR(self->name, name);
-    SUB_CAST(_spSkin, self)->entries = NULL;
     return self;
 }
 
 void spSkin_dispose (spSkin* self) {
-    _Entry *entry, *tmp;
-    HASH_ITER(hh, SUB_CAST(_spSkin, self)->entries, entry, tmp) {
-        HASH_DEL(SUB_CAST(_spSkin, self)->entries, entry);
+	_Entry* entry = SUB_CAST(_spSkin, self)->entries;
+
+	while (entry) {
+		_Entry* nextEntry = entry->next;
         _Entry_dispose(entry);
+		entry = nextEntry;
+	}
+
+	{
+		_SkinHashTableEntry** currentHashtableEntry = SUB_CAST(_spSkin, self)->entriesHashTable;
+		int i;
+
+		for (i = 0; i < SKIN_ENTRIES_HASH_TABLE_SIZE; ++i, ++currentHashtableEntry) {
+			_SkinHashTableEntry* hashtableEntry = *currentHashtableEntry;
+
+			while (hashtableEntry) {
+				_SkinHashTableEntry* nextEntry = hashtableEntry->next;
+				_SkinHashTableEntry_dispose(hashtableEntry);
+				hashtableEntry = nextEntry;
     }
+		}
+	}
+
     FREE(self->name);
     FREE(self);
 }
 
-void spSkin_addAttachment (spSkin* self, int p_slotIndex, const char* name, spAttachment* attachment) {
-    _Entry* newEntry = _Entry_create(p_slotIndex, name, attachment);
-    unsigned long keylen = offsetof(_Entry, name) + strlen(name) + 1 - offsetof(_Entry, slotIndex);
-    HASH_ADD(hh, SUB_CAST(_spSkin, self)->entries, slotIndex, keylen, newEntry);
+void spSkin_addAttachment (spSkin* self, int slotIndex, const char* name, spAttachment* attachment) {
+	_Entry* newEntry = _Entry_create(slotIndex, name, attachment);
+	newEntry->next = SUB_CAST(_spSkin, self)->entries;
+	SUB_CAST(_spSkin, self)->entries = newEntry;
+
+	{
+		unsigned int hashTableIndex = (unsigned int)slotIndex % SKIN_ENTRIES_HASH_TABLE_SIZE;
+
+		_SkinHashTableEntry* newHashEntry = _SkinHashTableEntry_create(newEntry);
+		newHashEntry->next = SUB_CAST(_spSkin, self)->entriesHashTable[hashTableIndex];
+		SUB_CAST(_spSkin, self)->entriesHashTable[hashTableIndex] = newHashEntry;
+	}
 }
 
 spAttachment* spSkin_getAttachment (const spSkin* self, int slotIndex, const char* name) {
-    //Create the key to search for in the hash.
-    //This is a bit hacky, would prefer to use a struct, but clang doesn't support VLA in structs, but at least doing it this way avoids a malloc/free
-    unsigned long sz = strlen(name) + 1;
-    char key[sizeof(slotIndex) + sz];
-    memcpy(key, &slotIndex, sizeof(slotIndex));
-    memcpy(key+sizeof(slotIndex), name, sz);
-    
-    _Entry* entry = NULL;
-    HASH_FIND(hh, SUB_CAST(_spSkin, self)->entries, &key, sizeof(key), entry);
-
-    if (entry) return entry->attachment;
-    
+	const _SkinHashTableEntry* hashEntry = SUB_CAST(_spSkin, self)->entriesHashTable[(unsigned int)slotIndex % SKIN_ENTRIES_HASH_TABLE_SIZE];
+	while (hashEntry) {
+		if (hashEntry->entry->slotIndex == slotIndex && strcmp(hashEntry->entry->name, name) == 0) return hashEntry->entry->attachment;
+		hashEntry = hashEntry->next;
+	}
     return 0;
 }
 
@@ -106,7 +131,7 @@ const char* spSkin_getAttachmentName (const spSkin* self, int slotIndex, int att
             if (i == attachmentIndex) return entry->name;
             i++;
         }
-        entry = entry->hh.next;
+		entry = entry->next;
     }
     return 0;
 }
@@ -119,6 +144,6 @@ void spSkin_attachAll (const spSkin* self, spSkeleton* skeleton, const spSkin* o
             spAttachment *attachment = spSkin_getAttachment(self, entry->slotIndex, entry->name);
             if (attachment) spSlot_setAttachment(slot, attachment);
         }
-        entry = entry->hh.next;
+		entry = entry->next;
     }
 }

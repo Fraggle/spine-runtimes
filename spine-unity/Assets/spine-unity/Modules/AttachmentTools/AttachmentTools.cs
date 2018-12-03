@@ -211,6 +211,8 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		internal const bool UseMipMaps = false;
 		internal const float DefaultScale = 0.01f;
 
+		const int NonrenderingRegion = -1;
+
 		public static AtlasRegion ToAtlasRegion (this Texture2D t, Material materialPropertySource, float scale = DefaultScale) {
 			return t.ToAtlasRegion(materialPropertySource.shader, scale, materialPropertySource);
 		}
@@ -395,7 +397,7 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		/// <param name = "outputAttachments">The List(Attachment) to populate with the newly created Attachment objects.</param>
 		/// 
 		/// <param name="materialPropertySource">May be null. If no Material property source is provided, no special </param>
-		public static void GetRepackedAttachments (List<Attachment> sourceAttachments, List<Attachment> outputAttachments, Material materialPropertySource, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps, string newAssetName = "Repacked Attachments", bool clearCache = false) {
+		public static void GetRepackedAttachments (List<Attachment> sourceAttachments, List<Attachment> outputAttachments, Material materialPropertySource, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps, string newAssetName = "Repacked Attachments", bool clearCache = false, bool useOriginalNonrenderables = true) {
 			if (sourceAttachments == null) throw new System.ArgumentNullException("sourceAttachments");
 			if (outputAttachments == null) throw new System.ArgumentNullException("outputAttachments");
 
@@ -411,9 +413,9 @@ namespace Spine.Unity.Modules.AttachmentTools {
 			int newRegionIndex = 0;
 			for (int i = 0, n = sourceAttachments.Count; i < n; i++) {
 				var originalAttachment = sourceAttachments[i];
-				var newAttachment = originalAttachment.GetClone(true);
-				if (IsRenderable(newAttachment)) {
-
+				
+				if (IsRenderable(originalAttachment)) {
+					var newAttachment = originalAttachment.GetClone(true);
 					var region = newAttachment.GetRegion();
 					int existingIndex;
 					if (existingRegions.TryGetValue(region, out existingIndex)) {
@@ -427,6 +429,9 @@ namespace Spine.Unity.Modules.AttachmentTools {
 					}
 
 					outputAttachments[i] = newAttachment;
+				} else {
+					outputAttachments[i] = useOriginalNonrenderables ? originalAttachment : originalAttachment.GetClone(true);
+					regionIndexes.Add(NonrenderingRegion); // Output attachments pairs with regionIndexes list 1:1. Pad with a sentinel if the attachment doesn't have a region.
 				}
 			}
 
@@ -460,7 +465,8 @@ namespace Spine.Unity.Modules.AttachmentTools {
 			// Map the cloned attachments to the repacked atlas.
 			for (int i = 0, n = outputAttachments.Count; i < n; i++) {
 				var a = outputAttachments[i];
-				a.SetRegion(repackedRegions[regionIndexes[i]]);
+				if (IsRenderable(a))
+					a.SetRegion(repackedRegions[regionIndexes[i]]);
 			}
 
 			// Clean up.
@@ -474,14 +480,14 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		/// <summary>
 		/// Creates and populates a duplicate skin with cloned attachments that are backed by a new packed texture atlas comprised of all the regions from the original skin.</summary>
 		/// <remarks>No Spine.Atlas object is created so there is no way to find AtlasRegions except through the Attachments using them.</remarks>
-		public static Skin GetRepackedSkin (this Skin o, string newName, Material materialPropertySource, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps) {
-			return GetRepackedSkin(o, newName, materialPropertySource.shader, out outputMaterial, out outputTexture, maxAtlasSize, padding, textureFormat, mipmaps, materialPropertySource);
+		public static Skin GetRepackedSkin (this Skin o, string newName, Material materialPropertySource, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps, bool useOriginalNonrenderables = true) {
+			return GetRepackedSkin(o, newName, materialPropertySource.shader, out outputMaterial, out outputTexture, maxAtlasSize, padding, textureFormat, mipmaps, materialPropertySource, useOriginalNonrenderables);
 		}
 
 		/// <summary>
 		/// Creates and populates a duplicate skin with cloned attachments that are backed by a new packed texture atlas comprised of all the regions from the original skin.</summary>
 		/// <remarks>No Spine.Atlas object is created so there is no way to find AtlasRegions except through the Attachments using them.</remarks>
-		public static Skin GetRepackedSkin (this Skin o, string newName, Shader shader, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps, Material materialPropertySource = null, bool clearCache = false) {
+		public static Skin GetRepackedSkin (this Skin o, string newName, Shader shader, out Material outputMaterial, out Texture2D outputTexture, int maxAtlasSize = 1024, int padding = 2, TextureFormat textureFormat = SpineTextureFormat, bool mipmaps = UseMipMaps, Material materialPropertySource = null, bool clearCache = false, bool useOriginalNonrenderables = true) {
 			if (o == null) throw new System.NullReferenceException("Skin was null");
 			var skinAttachments = o.Attachments;
 			var newSkin = new Skin(newName);
@@ -495,10 +501,13 @@ namespace Spine.Unity.Modules.AttachmentTools {
 			var texturesToPack = new List<Texture2D>();
 			var originalRegions = new List<AtlasRegion>();
 			int newRegionIndex = 0;
-			foreach (var kvp in skinAttachments) {
-				var newAttachment = kvp.Value.GetClone(true);
-				if (IsRenderable(newAttachment)) {
+			foreach (var skinEntry in skinAttachments) {
+				var originalKey = skinEntry.Key;
+				var originalAttachment = skinEntry.Value;
 
+				Attachment newAttachment;
+				if (IsRenderable(originalAttachment)) {
+					newAttachment = originalAttachment.GetClone(true);
 					var region = newAttachment.GetRegion();
 					int existingIndex;
 					if (existingRegions.TryGetValue(region, out existingIndex)) {
@@ -512,9 +521,10 @@ namespace Spine.Unity.Modules.AttachmentTools {
 					}
 
 					repackedAttachments.Add(newAttachment);
-				}
-				var key = kvp.Key;
-				newSkin.AddAttachment(key.slotIndex, key.name, newAttachment);
+					newSkin.AddAttachment(originalKey.slotIndex, originalKey.name, newAttachment);
+				} else {
+					newSkin.AddAttachment(originalKey.slotIndex, originalKey.name, useOriginalNonrenderables ? originalAttachment : originalAttachment.GetClone(true));
+				}	
 			}
 
 			// Fill a new texture with the collected attachment textures.
@@ -546,7 +556,8 @@ namespace Spine.Unity.Modules.AttachmentTools {
 			// Map the cloned attachments to the repacked atlas.
 			for (int i = 0, n = repackedAttachments.Count; i < n; i++) {
 				var a = repackedAttachments[i];
-				a.SetRegion(repackedRegions[regionIndexes[i]]);
+				if (IsRenderable(a))
+					a.SetRegion(repackedRegions[regionIndexes[i]]);
 			}
 
 			// Clean up.
@@ -945,7 +956,7 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		}
 
 		public static MeshAttachment GetLinkedClone (this MeshAttachment o, bool inheritDeform = true) {
-			return o.GetLinkedMesh(o.Name, o.RendererObject as AtlasRegion, inheritDeform);
+			return o.GetLinkedMesh(o.Name, o.RendererObject as AtlasRegion, inheritDeform, copyOriginalProperties: true);
 		}
 
 		/// <summary>
@@ -1019,7 +1030,7 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		#region Runtime Linked MeshAttachments
 		/// <summary>
 		/// Returns a new linked mesh linked to this MeshAttachment. It will be mapped to the AtlasRegion provided.</summary>
-		public static MeshAttachment GetLinkedMesh (this MeshAttachment o, string newLinkedMeshName, AtlasRegion region, bool inheritDeform = true) {
+		public static MeshAttachment GetLinkedMesh (this MeshAttachment o, string newLinkedMeshName, AtlasRegion region, bool inheritDeform = true, bool copyOriginalProperties = false) {
 			//if (string.IsNullOrEmpty(attachmentName)) throw new System.ArgumentException("attachmentName cannot be null or empty", "attachmentName");
 			if (region == null) throw new System.ArgumentNullException("region");
 
@@ -1033,10 +1044,17 @@ namespace Spine.Unity.Modules.AttachmentTools {
 
 			// 2. (SkeletonJson.cs::ReadAttachment. case: LinkedMesh)
 			mesh.Path = newLinkedMeshName;
-			mesh.r = 1f;
-			mesh.g = 1f;
-			mesh.b = 1f;
-			mesh.a = 1f;
+			if (copyOriginalProperties) {
+				mesh.r = o.r;
+				mesh.g = o.g;
+				mesh.b = o.b;
+				mesh.a = o.a;
+			} else {
+				mesh.r = 1f;
+				mesh.g = 1f;
+				mesh.b = 1f;
+				mesh.a = 1f;
+			}
 			//mesh.ParentMesh property call below sets mesh.Width and mesh.Height
 
 			// 3. Link mesh with parent. (SkeletonJson.cs)
@@ -1078,7 +1096,7 @@ namespace Spine.Unity.Modules.AttachmentTools {
 		/// <param name="cloneMeshAsLinked">If <c>true</c> MeshAttachments will be cloned as linked meshes and will inherit animation from the original attachment.</param>
 		/// <param name="useOriginalRegionSize">If <c>true</c> the size of the original attachment will be followed, instead of using the Sprite size.</param>
 		public static Attachment GetRemappedClone (this Attachment o, Sprite sprite, Material sourceMaterial, bool premultiplyAlpha = true, bool cloneMeshAsLinked = true, bool useOriginalRegionSize = false) {
-			var atlasRegion = premultiplyAlpha ? sprite.ToAtlasRegionPMAClone(sourceMaterial) : sprite.ToAtlasRegion(false);
+			var atlasRegion = premultiplyAlpha ? sprite.ToAtlasRegionPMAClone(sourceMaterial) : sprite.ToAtlasRegion(new Material(sourceMaterial) { mainTexture = sprite.texture });
 			return o.GetRemappedClone(atlasRegion, cloneMeshAsLinked, useOriginalRegionSize, 1f/sprite.pixelsPerUnit);
 		}
 
