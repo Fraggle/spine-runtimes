@@ -312,11 +312,11 @@ void main()
         CC_SAFE_RELEASE_NULL(_twoColorTintShaderState);
         // _twoColorTintShader is released by the _twoColorTintShaderState destructor
         _twoColorTintShader = nullptr;
-#ifdef CC_ENABLE_PREMULTIPLIED_ALPHA
-        _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_PMA_FRAGMENT_SHADER);
-#else
+//#ifdef CC_ENABLE_PREMULTIPLIED_ALPHA
+//        _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_PMA_FRAGMENT_SHADER);
+//#else
         _twoColorTintShader = cocos2d::GLProgram::createWithByteArrays(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
-#endif
+//#endif
         _twoColorTintShaderState = GLProgramState::getOrCreateWithGLProgram(_twoColorTintShader);
         _twoColorTintShaderState->retain();
 

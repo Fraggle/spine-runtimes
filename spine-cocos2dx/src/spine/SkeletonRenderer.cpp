@@ -152,7 +152,7 @@ void SkeletonRenderer::initialize () {
     spSkeleton_updateWorldTransform(_skeleton);
 }
 
-void SkeletonRenderer::setupGLProgramState () {
+void SkeletonRenderer::setupGLProgramState() {
     if (_twoColorTint) {
         setGLProgramState(SkeletonTwoColorBatch::getInstance().getTwoColorTintProgramState());
         return;
@@ -329,7 +329,6 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
 
     Color4F color;
     Color4F darkColor;
-    float darkPremultipliedAlpha = _premultipliedAlpha ? 255 : 0;
     AttachmentVertices* attachmentVertices = nullptr;
     TwoColorTrianglesCommand* lastTwoColorTrianglesCommand = nullptr;
     bool inRange = _startSlotIndex != -1 || _endSlotIndex != -1 ? false : true;
@@ -448,27 +447,33 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                 continue;
         }
 
+        float alpha = nodeColor.a * _skeleton->color.a * slot->color.a * color.a * 255;
+        // skip rendering if the color of this attachment is 0
+        if (alpha == 0 && mask == false) {
+            spSkeletonClipping_clipEnd(_clipper, slot);
+            continue;
+        }
+        float multiplier = _premultipliedAlpha ? alpha : 255;
+
+        float red = nodeColor.r * _skeleton->color.r * slot->color.r * multiplier;
+        float green = nodeColor.g * _skeleton->color.g * slot->color.g * multiplier;
+        float blue = nodeColor.b * _skeleton->color.b * slot->color.b * multiplier;
+
+        color.r = red * color.r;
+        color.g = green * color.g;
+        color.b = blue * color.b;
+        color.a = alpha;
+
         if (slot->darkColor) {
-            darkColor.r = slot->darkColor->r * 255;
-            darkColor.g = slot->darkColor->g * 255;
-            darkColor.b = slot->darkColor->b * 255;
+            darkColor.r = red * slot->darkColor->r;
+            darkColor.g = green * slot->darkColor->g;
+            darkColor.b = blue * slot->darkColor->b;
         } else {
             darkColor.r = 0;
             darkColor.g = 0;
             darkColor.b = 0;
         }
-        darkColor.a = darkPremultipliedAlpha;
-
-        color.a *= nodeColor.a * _skeleton->color.a * slot->color.a * 255;
-        // skip rendering if the color of this attachment is 0
-        if (color.a == 0 && mask == false) {
-            spSkeletonClipping_clipEnd(_clipper, slot);
-            continue;
-        }
-        float multiplier = _premultipliedAlpha ? color.a : 255;
-        color.r *= nodeColor.r * _skeleton->color.r * slot->color.r * multiplier;
-        color.g *= nodeColor.g * _skeleton->color.g * slot->color.g * multiplier;
-        color.b *= nodeColor.b * _skeleton->color.b * slot->color.b * multiplier;
+        darkColor.a = _premultipliedAlpha ? 255 : 0;
 
         BlendFunc blendFunc;
         switch (slot->data->blendMode) {
@@ -611,7 +616,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                     dark.r = darkColor.r / 255.0f;
                     dark.g = darkColor.g / 255.0f;
                     dark.b = darkColor.b / 255.0f;
-                    dark.a = darkColor.a / 255.0f;
+                    // dark.a = darkColor.a / 255.0f;
                     for (int v = 0, vn = batchedTriangles->getTriangles().vertCount, vv = 0; v < vn; ++v, vv += 2) {
                         V3F_C4B_C4B_T2F* vertex = batchedTriangles->getTriangles().verts + v;
                         spColor lightCopy = light;
@@ -673,7 +678,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                         vertex->color2.r = (GLubyte)(darkCopy.r * 255);
                         vertex->color2.g = (GLubyte)(darkCopy.g * 255);
                         vertex->color2.b = (GLubyte)(darkCopy.b * 255);
-                        vertex->color2.a = (GLubyte)darkColor.a;
+                        // vertex->color2.a = (GLubyte)darkColor.a;
                     }
                 } else {
                     for (int v = 0, vn = batchedTriangles->getTriangles().vertCount; v < vn; ++v) {
