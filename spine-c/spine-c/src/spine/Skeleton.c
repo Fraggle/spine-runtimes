@@ -48,7 +48,6 @@
 #include <spine/TransformConstraintData.h>
 #include <spine/VertexAttachment.h>
 #include <spine/extension.h>
-#include <spine/uthash.h>
 
 #include <stdlib.h>
 #include <string.h>
