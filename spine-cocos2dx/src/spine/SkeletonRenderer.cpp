@@ -313,18 +313,15 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
     bool isTwoColorTint = this->isTwoColorTint();
     // Early exit if the skeleton is invisible
 
-    if (getDisplayedOpacity() == 0 || _skeleton->color.a == 0){
+    auto const displayedOpacity = getDisplayedOpacity();
+    if (displayedOpacity == 0 || _skeleton->color.a == 0){
         return;
     }
 
     if (_effect) _effect->begin(_effect, _skeleton);
 
-    Color4F nodeColor;
-    nodeColor.r = getDisplayedColor().r / (float)255;
-    nodeColor.g = getDisplayedColor().g / (float)255;
-    nodeColor.b = getDisplayedColor().b / (float)255;
-    nodeColor.a = getDisplayedOpacity() / (float)255;
-
+    auto const displayedColor = getDisplayedColor();
+    Color4F nodeColor{static_cast<float>(displayedColor.r)/255.f, static_cast<float>(displayedColor.g)/255.f, static_cast<float>(displayedColor.b)/255.f, static_cast<float>(displayedOpacity)/255.f };
     bool mask = false;
 
     Color4F color;
@@ -465,9 +462,9 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
         color.a = alpha;
 
         if (slot->darkColor) {
-            darkColor.r = red * slot->darkColor->r;
-            darkColor.g = green * slot->darkColor->g;
-            darkColor.b = blue * slot->darkColor->b;
+            darkColor.r = 255 * slot->darkColor->r;
+            darkColor.g = 255 * slot->darkColor->g;
+            darkColor.b = 255 * slot->darkColor->b;
         } else {
             darkColor.r = 0;
             darkColor.g = 0;
