@@ -452,19 +452,19 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
         }
         float multiplier = _premultipliedAlpha ? alpha : 255;
 
-        float red = nodeColor.r * _skeleton->color.r * slot->color.r * multiplier;
-        float green = nodeColor.g * _skeleton->color.g * slot->color.g * multiplier;
-        float blue = nodeColor.b * _skeleton->color.b * slot->color.b * multiplier;
+			float red = nodeColor.r * _skeleton->color.r * color.r * multiplier;
+			float green = nodeColor.g * _skeleton->color.g * color.g * multiplier;
+			float blue = nodeColor.b * _skeleton->color.b * color.b * multiplier;
 
-        color.r = red * color.r;
-        color.g = green * color.g;
-        color.b = blue * color.b;
+			color.r = red * slot->color.r;
+			color.g = green * slot->color.g;
+			color.b = blue * slot->color.b;
         color.a = alpha;
 
         if (slot->darkColor) {
-            darkColor.r = 255 * slot->darkColor->r;
-            darkColor.g = 255 * slot->darkColor->g;
-            darkColor.b = 255 * slot->darkColor->b;
+				darkColor.r = red * slot->darkColor->r;
+				darkColor.g = green * slot->darkColor->g;
+				darkColor.b = blue * slot->darkColor->b;
         } else {
             darkColor.r = 0;
             darkColor.g = 0;
