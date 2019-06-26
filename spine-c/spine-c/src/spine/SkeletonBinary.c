@@ -831,7 +831,8 @@ spAttachment* spSkeletonBinary_readAttachment(spSkeletonBinary* self, _dataInput
 			spClippingAttachment* clip = SUB_CAST(spClippingAttachment, attachment);
 			_readVertices(self, input, SUB_CAST(spVertexAttachment, attachment), vertexCount);
 			if (nonessential) readInt(input); /* Skip color. */
-			clip->endSlot = skeletonData->slots[endSlotIndex];
+            if (endSlotIndex > 0)
+                clip->endSlot = skeletonData->slots[endSlotIndex];
 			spAttachmentLoader_configureAttachment(self->attachmentLoader, attachment);
 			if (freeName) FREE(name);
 			return attachment;
