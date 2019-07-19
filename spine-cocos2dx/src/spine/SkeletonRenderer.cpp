@@ -879,6 +879,14 @@ bool SkeletonRenderer::setSkin (const std::string& skinName) {
 bool SkeletonRenderer::setSkin (const char* skinName) {
     return spSkeleton_setSkinByName(_skeleton, skinName) ? true : false;
 }
+    
+std::vector<std::string> SkeletonRenderer::listSkins() {
+    std::vector<std::string> res;
+    for( int i=0; i<_skeleton->data->skinsCount; i++ ){
+        res.push_back(_skeleton->data->skins[i]->name);
+    }
+    return res;
+}
 
 spAttachment* SkeletonRenderer::getAttachment (const std::string& slotName, const std::string& attachmentName) const {
     return spSkeleton_getAttachmentForSlotName(_skeleton, slotName.c_str(), attachmentName.c_str());

@@ -116,6 +116,9 @@ public:
 	/** @param skin May be 0 for no skin.*/
 	bool setSkin (const char* skinName);
 	
+    /* Lists all the skins in the skeleton */
+    std::vector<std::string> listSkins();
+    
 	/* Returns 0 if the slot or attachment was not found. */
 	spAttachment* getAttachment (const std::string& slotName, const std::string& attachmentName) const;
 	/* Returns false if the slot or attachment was not found.
