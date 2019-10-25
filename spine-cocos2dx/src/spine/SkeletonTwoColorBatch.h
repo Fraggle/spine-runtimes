@@ -50,8 +50,9 @@
 namespace cocos2d
 {
     class Texture2D;
-    class GLProgramState;
-    class GLProgram;
+    namespace backend {
+        class ProgramState;
+    }
     class Renderer;
 }
 
@@ -79,13 +80,13 @@ namespace spine {
         TwoColorTrianglesCommand& operator=(TwoColorTrianglesCommand &&) noexcept = delete;
 		~TwoColorTrianglesCommand() = default;
 
-		void init(float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const TwoColorTriangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
+        void init(float globalOrder, cocos2d::Texture2D* texture, cocos2d::backend::ProgramState *programState, cocos2d::BlendFunc blendType, const TwoColorTriangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
 
-		void useMaterial() const;
+		void useMaterial();
 
         inline std::size_t getMaterialID() const noexcept { return _materialID; }
 
-		inline GLuint getTextureID() const noexcept { return _textureID; }
+		inline cocos2d::backend::TextureBackend *getTextureID() const noexcept { return _textureID; }
 
 		inline TwoColorTriangles const& getTriangles() const noexcept { return _triangles; }
 
@@ -97,7 +98,7 @@ namespace spine {
 
 		inline unsigned short const* getIndices() const noexcept { return _triangles.indices; }
 
-		inline cocos2d::GLProgramState* getGLProgramState() const noexcept { return _glProgramState; }
+        cocos2d::backend::ProgramState* getProgramState() const { return _programState; }
 
 		inline cocos2d::BlendFunc getBlendType() const noexcept { return _blendType; }
 
@@ -105,20 +106,25 @@ namespace spine {
 
 		void draw();
 
-		inline void setForceFlush(bool forceFlush) noexcept { _forceFlush = forceFlush; }
+		inline void setForceFlush(bool forceFlush) noexcept {
+            _forceFlush = forceFlush;
+            if (_forceFlush)
+                draw();
+        }
 
 		inline bool isForceFlush() const noexcept { return _forceFlush; };
 
 	protected:
 		void generateMaterialID();
         std::size_t _materialID = std::numeric_limits<std::size_t>::max();
-		GLuint _textureID = 0;
-		cocos2d::GLProgramState* _glProgramState = nullptr;
-		cocos2d::GLProgram* _glProgram = 0;
+        cocos2d::backend::UniformLocation _textureLocation;
+        cocos2d::backend::UniformLocation _mvpMatrixLocation;
+        cocos2d::backend::TextureBackend *_textureID = nullptr;
+        cocos2d::backend::ProgramState *_programState = nullptr;
         cocos2d::BlendFunc _blendType = cocos2d::BlendFunc::DISABLE;
 		TwoColorTriangles _triangles;
 		cocos2d::Mat4 _mv;
-		GLuint _alphaTextureID = 0;
+		cocos2d::backend::TextureBackend  *_alphaTextureID = nullptr;
 		bool _forceFlush = false;
 #ifdef DEBUG_TEXTURE_SIZE
         cocos2d::Vec2 _texSize = cocos2d::Vec2::ZERO;
@@ -135,22 +141,12 @@ namespace spine {
         pool_allocator<V3F_C4B_C4B_T2F> _pool_vertices;
         pool_allocator<std::uint16_t> _pool_indices;
 
-        // two color tint shader and state
-        cocos2d::GLProgram* _twoColorTintShader = nullptr;
-        cocos2d::GLProgramState* _twoColorTintShaderState = nullptr;
-
         // VBO handles & attribute locations
-        GLuint _vertexBufferHandle = 0;
         std::array<V3F_C4B_C4B_T2F, MAX_VERTICES> _vertexBuffer;
         uint32_t _numVerticesBuffer = 0;
-        GLuint _indexBufferHandle = 0;
         uint32_t _numIndicesBuffer = 0;
         std::array<std::uint16_t, MAX_INDICES> _indexBuffer;
-        GLint _positionAttributeLocation = GL_INVALID_VALUE;
-        GLint _colorAttributeLocation = GL_INVALID_VALUE;
-        GLint _color2AttributeLocation = GL_INVALID_VALUE;
-        GLint _texCoordsAttributeLocation = GL_INVALID_VALUE;
-
+        
         // last batched command, needed for flushing to set material
         TwoColorTrianglesCommand* _lastCommand = nullptr;
 
@@ -170,9 +166,9 @@ namespace spine {
 		std::uint16_t* allocateIndices(uint32_t numIndices);
 		void deallocateIndices(std::uint16_t* data, uint32_t numIndices);
 
-		TwoColorTrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const TwoColorTriangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
+        TwoColorTrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::backend::ProgramState *programState, cocos2d::BlendFunc blendType, const TwoColorTriangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
 
-		inline cocos2d::GLProgramState* getTwoColorTintProgramState() const noexcept { return _twoColorTintShaderState; }
+        static cocos2d::backend::ProgramState* getTwoColorTintProgramState();
 
 		void batch(TwoColorTrianglesCommand* command);
 

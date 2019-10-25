@@ -92,10 +92,19 @@ namespace spine
         _pool_indices.deallocate(data, numIndices);
     }
 
-    cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags)
+cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::backend::ProgramState* programState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags)
     {
         TrianglesCommand* command = allocateCommand();
-        command->init(globalOrder, texture, glProgramState, blendType, triangles, mv, flags);
+        command->getPipelineDescriptor().programState = programState;
+        command->init(globalOrder, texture, blendType, triangles, mv, flags);
+        
+        const auto& matrixP = Director::getInstance()->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+        programState->setUniform(programState->getUniformLocation(backend::Uniform::MVP_MATRIX),
+                                 matrixP.m,
+                                 sizeof(matrixP.m));
+        
+        programState->setTexture(programState->getUniformLocation(backend::Uniform::TEXTURE), 0, texture->getBackendTexture());
+        
         renderer->addCommand(command);
         return command;
     }

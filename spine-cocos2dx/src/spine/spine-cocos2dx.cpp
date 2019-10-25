@@ -112,8 +112,8 @@ void _spAtlasPage_createTexture (spAtlasPage* self, const char* path) {
         throw std::runtime_error("Missing or Invalid image for spine atlas");
 	texture->retain();
 
-	Texture2D::TexParams textureParams = {filter(self->minFilter), magFilter(self->magFilter), wrap(self->uWrap), wrap(self->vWrap)};
-	texture->setTexParameters(textureParams);
+//	Texture2D::TexParams textureParams = {filter(self->minFilter), magFilter(self->magFilter), wrap(self->uWrap), wrap(self->vWrap)};
+//	texture->setTexParameters(textureParams);
 
 	self->rendererObject = texture;
 	self->width = texture->getPixelsWide();

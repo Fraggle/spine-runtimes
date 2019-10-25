@@ -68,8 +68,6 @@
 #include <cocos/math/Vec3.h>
 #include <cocos/platform/CCGL.h>
 #include <cocos/platform/CCPlatformMacros.h>
-#include <cocos/renderer/CCGLProgram.h>
-#include <cocos/renderer/CCGLProgramState.h>
 #include <cocos/renderer/CCTrianglesCommand.h>
 
 #include <cstring>
@@ -146,15 +144,44 @@ void SkeletonRenderer::initialize () {
     _blendFunc = BlendFunc::ALPHA_PREMULTIPLIED;
     setOpacityModifyRGB(true);
 
-    setupGLProgramState();
+    setupProgramState();
 
     spSkeleton_setToSetupPose(_skeleton);
     spSkeleton_updateWorldTransform(_skeleton);
 }
 
-void SkeletonRenderer::setupGLProgramState() {
+void SkeletonRenderer::setupProgramState() {
     if (_twoColorTint) {
-        setGLProgramState(SkeletonTwoColorBatch::getInstance().getTwoColorTintProgramState());
+        auto twoProgramState = SkeletonTwoColorBatch::getTwoColorTintProgramState();
+        setProgramState(twoProgramState);
+        auto vertexLayout = twoProgramState->getVertexLayout();
+        
+        //a_position
+        vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_POSITION,
+                                   twoProgramState->getAttributeLocation(backend::Attribute::POSITION),
+                                   backend::VertexFormat::FLOAT3,
+                                   0,
+                                   false);
+        
+        //a_texCoord
+        vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_TEXCOORD,
+                                   twoProgramState->getAttributeLocation(backend::Attribute::TEXCOORD),
+                                   backend::VertexFormat::FLOAT2, offsetof(V3F_C4B_C4B_T2F, texCoords),
+                                   false);
+        
+        //a_color
+        vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_COLOR,
+                                   twoProgramState->getAttributeLocation(backend::Attribute::COLOR),
+                                   backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_C4B_T2F, color),
+                                   true);
+        
+        //a_color2
+        vertexLayout->setAttribute("a_color2",
+                                   twoProgramState->getAttributeLocation("a_color2"),
+                                   backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_C4B_T2F, color2),
+                                   true);
+        
+        vertexLayout->setLayout(sizeof(V3F_C4B_C4B_T2F));
         return;
     }
 
@@ -181,7 +208,30 @@ void SkeletonRenderer::setupGLProgramState() {
             break;
         }
     }
-    setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP, texture));
+    auto programState = new cocos2d::backend::ProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR);
+    setProgramState(programState);
+    auto vertexLayout = programState->getVertexLayout();
+    
+    //a_position
+    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_POSITION,
+                               programState->getAttributeLocation(backend::Attribute::POSITION),
+                               backend::VertexFormat::FLOAT3,
+                               0,
+                               false);
+    
+    //a_texCoord
+    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_TEXCOORD,
+                               programState->getAttributeLocation(backend::Attribute::TEXCOORD),
+                               backend::VertexFormat::FLOAT2, offsetof(V3F_C4B_T2F, texCoords),
+                               false);
+    
+    //a_color
+    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_COLOR,
+                               programState->getAttributeLocation(backend::Attribute::COLOR),
+                               backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_T2F, colors),
+                               true);
+    
+    vertexLayout->setLayout(sizeof(V3F_C4B_T2F));
 }
 
 void SkeletonRenderer::setSkeletonData (spSkeletonData *skeletonData, bool ownsSkeletonData) {
@@ -475,25 +525,25 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
         BlendFunc blendFunc;
         switch (slot->data->blendMode) {
             case SP_BLEND_MODE_ADDITIVE:
-                blendFunc.src = _premultipliedAlpha ? GL_ONE : GL_SRC_ALPHA;
-                blendFunc.dst = GL_ONE;
+                blendFunc.src = _premultipliedAlpha ? backend::BlendFactor::ONE : backend::BlendFactor::SRC_ALPHA;
+                blendFunc.dst = backend::BlendFactor::ONE;
                 break;
             case SP_BLEND_MODE_MULTIPLY:
-                blendFunc.src = GL_DST_COLOR;
-                blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+                blendFunc.src = backend::BlendFactor::DST_COLOR;
+                blendFunc.dst = backend::BlendFactor::ONE_MINUS_SRC_ALPHA;
                 break;
             case SP_BLEND_MODE_SCREEN:
-                blendFunc.src = GL_ONE;
-                blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+                blendFunc.src = backend::BlendFactor::ONE;
+                blendFunc.dst = backend::BlendFactor::ONE_MINUS_SRC_COLOR;
                 break;
             default:
-                blendFunc.src = _premultipliedAlpha ? GL_ONE : GL_SRC_ALPHA;
-                blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+                blendFunc.src = _premultipliedAlpha ? backend::BlendFactor::ONE : backend::BlendFactor::SRC_ALPHA;
+                blendFunc.dst = backend::BlendFactor::ONE_MINUS_SRC_ALPHA;
         }
 
         if (mask) {
-            blendFunc.src = GL_ONE;
-            blendFunc.dst = GL_ZERO;
+            blendFunc.src = backend::BlendFactor::ONE;
+            blendFunc.dst = backend::BlendFactor::ZERO;
         }
 
         if (!isTwoColorTint) {
@@ -512,7 +562,8 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                 triangles.indices = batch.allocateIndices(triangles.indexCount);
                 memcpy(triangles.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, triangles, transform, transformFlags);
+                
 
                 float* verts = _clipper->clippedVertices->items;
                 float* uvs = _clipper->clippedUVs->items;
@@ -552,8 +603,8 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                     }
                 }
             } else {
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
-
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, triangles, transform, transformFlags);
+                
                 if (_effect) {
                     spColor light;
                     spColor dark;
@@ -598,7 +649,8 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                 trianglesTwoColor.indices = twoColorBatch.allocateIndices(trianglesTwoColor.indexCount);
                 memcpy(trianglesTwoColor.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 
-                TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
+                TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, trianglesTwoColor, transform, transformFlags);
+                
 
                 float* verts = _clipper->clippedVertices->items;
                 float* uvs = _clipper->clippedUVs->items;
@@ -649,8 +701,10 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                         vertex->color2.a = (GLubyte)darkColor.a;
                     }
                 }
+                batchedTriangles->draw();
             } else {
-                TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, trianglesTwoColor, transform, transformFlags);
+                TwoColorTrianglesCommand* batchedTriangles = lastTwoColorTrianglesCommand = twoColorBatch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, trianglesTwoColor, transform, transformFlags);
+                
                 if (_effect) {
                     spColor light;
                     spColor dark;
@@ -690,6 +744,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                         vertex->color2.a = (GLubyte)darkColor.a;
                     }
                 }
+                batchedTriangles->draw();
             }
         }
         spSkeletonClipping_clipEnd(_clipper, slot);
@@ -900,7 +955,7 @@ bool SkeletonRenderer::setAttachment (const std::string& slotName, const char* a
 
 void SkeletonRenderer::setTwoColorTint(bool enabled) {
     _twoColorTint = enabled;
-    setupGLProgramState();
+    setupProgramState();
 }
 
 bool SkeletonRenderer::isTwoColorTint() {
