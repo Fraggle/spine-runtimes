@@ -46,6 +46,7 @@ namespace cocos2d
     class Renderer;
     class Texture2D;
     class Mat4;
+    class CallbackCommand;
 }
 
 namespace spine
@@ -55,6 +56,7 @@ namespace spine
     class SkeletonBatch final
     {
         pool_allocator<cocos2d::TrianglesCommand> _pool_commands;
+        pool_allocator<cocos2d::CallbackCommand> _pool_cc_commands;
         pool_allocator<cocos2d::V3F_C4B_T2F> _pool_vertices;
         pool_allocator<std::uint16_t> _pool_indices;
 
@@ -83,6 +85,8 @@ namespace spine
         SkeletonBatch& operator=(SkeletonBatch &&) noexcept = delete;
         ~SkeletonBatch();
 
+        int _lastCmdMaterialIdGroupId;
+        float _lastCmdMaterialIdGlobalOrder;
         uint32_t _lastCmdMaterialId;
         
         void reset();

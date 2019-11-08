@@ -55,6 +55,8 @@ namespace spine
     
     SkeletonBatch::SkeletonBatch()
     : _lastCmdMaterialId(0)
+    , _lastCmdMaterialIdGlobalOrder(-1e9f)
+    , _lastCmdMaterialIdGroupId(-1)
     {
         // callback after drawing is finished so we can clear out the batch state
         // for the next frame
@@ -71,9 +73,12 @@ namespace spine
     void SkeletonBatch::reset()
     {
         _pool_commands.deallocate_all();
+        _pool_cc_commands.deallocate_all();
         _pool_vertices.deallocate_all();
         _pool_indices.deallocate_all();
         _lastCmdMaterialId = 0;
+        _lastCmdMaterialIdGlobalOrder = -1e9f;
+        _lastCmdMaterialIdGroupId = -1;
     }
     
     cocos2d::V3F_C4B_T2F* SkeletonBatch::allocateVertices(uint32_t numVertices)
@@ -113,9 +118,18 @@ namespace spine
         command->getPipelineDescriptor().programState = programState;
         command->init(globalOrder, texture, blendType, triangles, mv, flags);
         
-        if (_lastCmdMaterialId != command->getMaterialID()) {
-            ProgramStateCache::addStandardUniformRenderCommand(renderer, programState, globalOrder, texture, false);
+        if (_lastCmdMaterialId != command->getMaterialID() ||
+            globalOrder < _lastCmdMaterialIdGlobalOrder ||
+            _lastCmdMaterialIdGroupId != renderer->currentGroupId()) {
+            ProgramStateCache::addStandardUniformRenderCommand(_pool_cc_commands.allocate(1),
+                                                               renderer,
+                                                               programState,
+                                                               globalOrder,
+                                                               texture,
+                                                                  false);
             _lastCmdMaterialId = command->getMaterialID();
+            _lastCmdMaterialIdGlobalOrder = globalOrder;
+            _lastCmdMaterialIdGroupId = renderer->currentGroupId();
         }
         
         renderer->addCommand(command);
