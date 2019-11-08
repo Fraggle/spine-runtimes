@@ -169,7 +169,7 @@ protected:
 	void setSkeletonData (spSkeletonData* skeletonData, bool ownsSkeletonData);
 	virtual AttachmentVertices* getAttachmentVertices (spRegionAttachment* attachment) const;
 	virtual AttachmentVertices* getAttachmentVertices (spMeshAttachment* attachment) const;
-	void setupProgramState();
+	
 
 	bool _ownsSkeletonData;
 	bool _ownsSkeleton;

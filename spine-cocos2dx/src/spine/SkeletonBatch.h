@@ -34,14 +34,12 @@
 #include <spine/spine.h>
 #include <spine/pool_allocator.hpp>
 
+#include <engine/utils/SharedPtr.h>
 #include <cocos/renderer/CCTrianglesCommand.h>
 #include <cocos/base/ccTypes.h>
 #include <cocos/math/Mat4.h>
 
-#include <cstddef>
-#include <cstdint>
-#include <unordered_map>
-#include <vector>
+#include <map>
 
 namespace cocos2d
 {
@@ -52,7 +50,8 @@ namespace cocos2d
 
 namespace spine
 {
-    
+    class SkeletonRender;
+
     class SkeletonBatch final
     {
         pool_allocator<cocos2d::TrianglesCommand> _pool_commands;
@@ -68,7 +67,13 @@ namespace spine
         std::uint16_t* allocateIndices(std::uint32_t numIndices);
 		void deallocateIndices(std::uint16_t* data, uint32_t numIndices);
 
-		cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::backend::ProgramState* programState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, std::uint32_t flags);
+        cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer,
+                                              float globalOrder,
+                                              cocos2d::Texture2D* texture,
+                                              cocos2d::BlendFunc blendType,
+                                              const cocos2d::TrianglesCommand::Triangles& triangles,
+                                              const cocos2d::Mat4& mv,
+                                              std::uint32_t flags);
         
     private:
         SkeletonBatch();
@@ -78,8 +83,13 @@ namespace spine
         SkeletonBatch& operator=(SkeletonBatch &&) noexcept = delete;
         ~SkeletonBatch();
 
+        uint32_t _lastCmdMaterialId;
+        
         void reset();
-		
+        
+        void setupProgramState();
+        
+        
 		cocos2d::TrianglesCommand* allocateCommand();
     };
 	

@@ -29,13 +29,15 @@
  *****************************************************************************/
 
 #include <spine/SkeletonBatch.h>
-
+#include <spine/SkeletonTwoColorBatch.h>
 #include <spine/extension.h>
 
 #include <cocos/base/CCDirector.h>
 #include <cocos/base/CCEventCustom.h>
 #include <cocos/base/CCEventDispatcher.h>
 #include <cocos/renderer/CCRenderer.h>
+#include <cocos/renderer/CCCallbackCommand.h>
+#include <cocos/renderer/CCProgramStateCache.h>
 
 #include <algorithm>
 
@@ -43,15 +45,16 @@ USING_NS_CC;
 #define EVENT_AFTER_DRAW_RESET_POSITION "director_after_draw"
 
 namespace spine
-{
-
+    {
+    
     SkeletonBatch& SkeletonBatch::getInstance()
     {
         static SkeletonBatch instance;
         return instance;
     }
-
+    
     SkeletonBatch::SkeletonBatch()
+    : _lastCmdMaterialId(0)
     {
         // callback after drawing is finished so we can clear out the batch state
         // for the next frame
@@ -59,56 +62,66 @@ namespace spine
             reset();
         });
     }
-
+    
     SkeletonBatch::~SkeletonBatch()
     {
         Director::getInstance()->getEventDispatcher()->removeCustomEventListeners(EVENT_AFTER_DRAW_RESET_POSITION);
     }
-
+    
     void SkeletonBatch::reset()
     {
         _pool_commands.deallocate_all();
         _pool_vertices.deallocate_all();
         _pool_indices.deallocate_all();
+        _lastCmdMaterialId = 0;
     }
-
+    
     cocos2d::V3F_C4B_T2F* SkeletonBatch::allocateVertices(uint32_t numVertices)
     {
         return _pool_vertices.allocate(numVertices);
     }
-
+    
     void SkeletonBatch::deallocateVertices(cocos2d::V3F_C4B_T2F* data, uint32_t numVertices)
     {
         _pool_vertices.deallocate(data, numVertices);
     }
-
+    
     std::uint16_t* SkeletonBatch::allocateIndices(uint32_t numIndices)
     {
         return _pool_indices.allocate(numIndices);
     }
-
+    
     void SkeletonBatch::deallocateIndices(std::uint16_t* data, uint32_t numIndices)
     {
         _pool_indices.deallocate(data, numIndices);
     }
-
-cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::backend::ProgramState* programState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags)
+    
+    cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer *                         renderer,
+                                                         float                                       globalOrder,
+                                                         cocos2d::Texture2D *                        texture,
+                                                         cocos2d::BlendFunc                          blendType,
+                                                         const cocos2d::TrianglesCommand::Triangles &triangles,
+                                                         const cocos2d::Mat4 &                       mv,
+                                                         uint32_t                                    flags)
     {
+        auto programState = ProgramStateCache::getOrCreateProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR,
+                                                                       texture,
+                                                                       blendType);
+        ProgramStateCache::setUpStandardAttributeLayout(programState);
+        
         TrianglesCommand* command = allocateCommand();
         command->getPipelineDescriptor().programState = programState;
         command->init(globalOrder, texture, blendType, triangles, mv, flags);
         
-        const auto& matrixP = Director::getInstance()->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
-        programState->setUniform(programState->getUniformLocation(backend::Uniform::MVP_MATRIX),
-                                 matrixP.m,
-                                 sizeof(matrixP.m));
-        
-        programState->setTexture(programState->getUniformLocation(backend::Uniform::TEXTURE), 0, texture->getBackendTexture());
+        if (_lastCmdMaterialId != command->getMaterialID()) {
+            ProgramStateCache::addStandardUniformRenderCommand(renderer, programState, globalOrder, texture, false);
+            _lastCmdMaterialId = command->getMaterialID();
+        }
         
         renderer->addCommand(command);
         return command;
     }
-
+    
     cocos2d::TrianglesCommand* SkeletonBatch::allocateCommand()
     {
         return _pool_commands.allocate(1);

@@ -144,13 +144,6 @@ void SkeletonRenderer::initialize () {
     _blendFunc = BlendFunc::ALPHA_PREMULTIPLIED;
     setOpacityModifyRGB(true);
 
-    setupProgramState();
-
-    spSkeleton_setToSetupPose(_skeleton);
-    spSkeleton_updateWorldTransform(_skeleton);
-}
-
-void SkeletonRenderer::setupProgramState() {
     if (_twoColorTint) {
         auto twoProgramState = SkeletonTwoColorBatch::getTwoColorTintProgramState();
         setProgramState(twoProgramState);
@@ -158,81 +151,40 @@ void SkeletonRenderer::setupProgramState() {
         
         //a_position
         vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_POSITION,
-                                   twoProgramState->getAttributeLocation(backend::Attribute::POSITION),
+                                   _programState->getAttributeLocation(backend::Attribute::POSITION),
                                    backend::VertexFormat::FLOAT3,
                                    0,
                                    false);
         
         //a_texCoord
         vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_TEXCOORD,
-                                   twoProgramState->getAttributeLocation(backend::Attribute::TEXCOORD),
-                                   backend::VertexFormat::FLOAT2, offsetof(V3F_C4B_C4B_T2F, texCoords),
+                                   _programState->getAttributeLocation(backend::Attribute::TEXCOORD),
+                                   backend::VertexFormat::FLOAT2,
+                                   offsetof(V3F_C4B_C4B_T2F, texCoords),
                                    false);
         
         //a_color
         vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_COLOR,
-                                   twoProgramState->getAttributeLocation(backend::Attribute::COLOR),
-                                   backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_C4B_T2F, color),
+                                   _programState->getAttributeLocation(backend::Attribute::COLOR),
+                                   backend::VertexFormat::UBYTE4,
+                                   offsetof(V3F_C4B_C4B_T2F, color),
                                    true);
         
         //a_color2
         vertexLayout->setAttribute("a_color2",
-                                   twoProgramState->getAttributeLocation("a_color2"),
-                                   backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_C4B_T2F, color2),
+                                   _programState->getAttributeLocation("a_color2"),
+                                   backend::VertexFormat::UBYTE4,
+                                   offsetof(V3F_C4B_C4B_T2F, color2),
                                    true);
         
         vertexLayout->setLayout(sizeof(V3F_C4B_C4B_T2F));
-        return;
     }
-
-    Texture2D *texture = nullptr;
-    for (int i = 0, n = _skeleton->slotsCount; i < n; i++) {
-        spSlot* slot = _skeleton->drawOrder[i];
-        if (!slot->attachment) continue;
-        switch (slot->attachment->type) {
-            case SP_ATTACHMENT_REGION: {
-                spRegionAttachment* attachment = (spRegionAttachment*)slot->attachment;
-                texture = static_cast<AttachmentVertices*>(attachment->rendererObject)->_texture;
-                break;
-            }
-            case SP_ATTACHMENT_MESH: {
-                spMeshAttachment* attachment = (spMeshAttachment*)slot->attachment;
-                texture = static_cast<AttachmentVertices*>(attachment->rendererObject)->_texture;
-                break;
-            }
-            default:
-                continue;
-        }
-
-        if (texture != nullptr) {
-            break;
-        }
-    }
-    auto programState = new cocos2d::backend::ProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR);
-    setProgramState(programState);
-    auto vertexLayout = programState->getVertexLayout();
     
-    //a_position
-    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_POSITION,
-                               programState->getAttributeLocation(backend::Attribute::POSITION),
-                               backend::VertexFormat::FLOAT3,
-                               0,
-                               false);
-    
-    //a_texCoord
-    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_TEXCOORD,
-                               programState->getAttributeLocation(backend::Attribute::TEXCOORD),
-                               backend::VertexFormat::FLOAT2, offsetof(V3F_C4B_T2F, texCoords),
-                               false);
-    
-    //a_color
-    vertexLayout->setAttribute(backend::ATTRIBUTE_NAME_COLOR,
-                               programState->getAttributeLocation(backend::Attribute::COLOR),
-                               backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_T2F, colors),
-                               true);
-    
-    vertexLayout->setLayout(sizeof(V3F_C4B_T2F));
+    spSkeleton_setToSetupPose(_skeleton);
+    spSkeleton_updateWorldTransform(_skeleton);
 }
+
+
 
 void SkeletonRenderer::setSkeletonData (spSkeletonData *skeletonData, bool ownsSkeletonData) {
     _skeleton = spSkeleton_create(skeletonData);
@@ -562,7 +514,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                 triangles.indices = batch.allocateIndices(triangles.indexCount);
                 memcpy(triangles.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
                 
 
                 float* verts = _clipper->clippedVertices->items;
@@ -603,7 +555,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                     }
                 }
             } else {
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _programState, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
                 
                 if (_effect) {
                     spColor light;
@@ -955,7 +907,6 @@ bool SkeletonRenderer::setAttachment (const std::string& slotName, const char* a
 
 void SkeletonRenderer::setTwoColorTint(bool enabled) {
     _twoColorTint = enabled;
-    setupProgramState();
 }
 
 bool SkeletonRenderer::isTwoColorTint() {
