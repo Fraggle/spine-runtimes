@@ -111,8 +111,10 @@ namespace spine
     {
         auto programState = ProgramStateCache::getOrCreateProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR,
                                                                        texture,
-                                                                       blendType);
-        ProgramStateCache::setUpStandardAttributeLayout(programState);
+                                                                       blendType,
+                                                                       [](auto programState) {
+            ProgramStateCache::setUpStandardAttributeLayout(programState);
+        });
         
         TrianglesCommand* command = allocateCommand();
         command->getPipelineDescriptor().programState = programState;
