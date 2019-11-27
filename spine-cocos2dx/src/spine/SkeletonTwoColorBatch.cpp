@@ -243,10 +243,21 @@ void main()
     //-----------
 
 
+<<<<<<< Updated upstream
     cocos2d::backend::ProgramState* SkeletonTwoColorBatch::getTwoColorTintProgramState()
     {
         return new backend::ProgramState(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
     }
+=======
+<<<<<<< Updated upstream
+
+=======
+    cocos2d::backend::ProgramState* SkeletonTwoColorBatch::getTwoColorTintProgramState()
+    {
+        return backend::ProgramState::create(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
+    }
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
     SkeletonTwoColorBatch& SkeletonTwoColorBatch::getInstance()
     {
