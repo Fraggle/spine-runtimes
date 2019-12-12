@@ -41,7 +41,6 @@ extern "C" {
 typedef struct spBone spBone;
 typedef struct spSkeleton spSkeleton;
 
-typedef struct spBone spBone;
 struct spBone {
 	spBoneData* const data;
 	struct spSkeleton* const skeleton;

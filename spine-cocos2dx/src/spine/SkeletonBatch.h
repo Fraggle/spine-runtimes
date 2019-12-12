@@ -34,7 +34,6 @@
 #include <spine/spine.h>
 #include <spine/pool_allocator.hpp>
 
-#include <engine/utils/SharedPtr.h>
 #include <cocos/renderer/CCTrianglesCommand.h>
 #include <cocos/base/ccTypes.h>
 #include <cocos/math/Mat4.h>

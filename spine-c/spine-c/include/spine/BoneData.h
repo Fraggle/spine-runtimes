@@ -47,7 +47,6 @@ typedef enum {
 	SP_TRANSFORMMODE_NOSCALEORREFLECTION
 } spTransformMode;
 
-typedef struct spBoneData spBoneData;
 struct spBoneData {
 	const int index;
 	const char* const name;
