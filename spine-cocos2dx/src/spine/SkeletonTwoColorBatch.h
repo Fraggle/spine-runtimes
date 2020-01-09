@@ -126,9 +126,6 @@ namespace spine {
 		cocos2d::Mat4 _mv;
 		cocos2d::backend::TextureBackend  *_alphaTextureID = nullptr;
 		bool _forceFlush = false;
-#ifdef DEBUG_TEXTURE_SIZE
-        cocos2d::Vec2 _texSize = cocos2d::Vec2::ZERO;
-#endif
 	};
 
     class SkeletonTwoColorBatch final

@@ -75,11 +75,6 @@ namespace spine {
 
             generateMaterialID();
         }
-
-#ifdef DEBUG_TEXTURE_SIZE
-        CC_ASSERT(texture != nullptr);
-        _texSize = { static_cast<float>(texture->getPixelsWide()), static_cast<float>(texture->getPixelsHigh()) };
-#endif
     }
 
     template <class T>
