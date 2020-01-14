@@ -109,7 +109,7 @@ namespace spine {
 
         if (_alphaTextureID != nullptr) {
             // ANDROID ETC1 ALPHA supports.
-            _programState->setTexture(_programState->getUniformLocation(backend::Uniform::TEXTURE1), 0, _alphaTextureID);
+            _programState->setTexture(_programState->getUniformLocation(backend::Uniform::TEXTURE1), 1, _alphaTextureID);
         }
         //set blend mode
         _pipelineDescriptor.blendDescriptor.blendEnabled = true;
