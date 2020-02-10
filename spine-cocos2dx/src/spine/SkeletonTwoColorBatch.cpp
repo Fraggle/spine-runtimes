@@ -359,12 +359,12 @@ void main()
         if (materialCommand->getIndexCapacity() != MAX_INDICES)
             materialCommand->createIndexBuffer(backend::IndexFormat::U_SHORT,
                                       MAX_INDICES,
-                                      backend::BufferUsage::STATIC);
+                                      backend::BufferUsage::STATIC, _indexBuffer.data());
         
         if (materialCommand->getVertexCapacity()!= MAX_VERTICES)
             materialCommand->createVertexBuffer(sizeof(V3F_C4B_C4B_T2F),
                                        MAX_VERTICES,
-                                       backend::BufferUsage::STATIC);
+                                       backend::BufferUsage::STATIC, _vertexBuffer.data());
         
         materialCommand->updateIndexBuffer(_indexBuffer.data(),
                                   static_cast<int>(_numIndicesBuffer * sizeof(unsigned short)));
