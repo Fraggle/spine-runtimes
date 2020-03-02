@@ -112,6 +112,7 @@ namespace spine
         auto programState = ProgramStateCache::getOrCreateProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR,
                                                                        texture,
                                                                        blendType,
+                                                                       0,
                                                                        [](auto programState) {
             ProgramStateCache::setUpStandardAttributeLayout(programState);
         });
