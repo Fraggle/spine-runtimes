@@ -97,7 +97,7 @@ SkeletonAnimation* SkeletonAnimation::createWithJsonFile (const std::string& ske
 
 SkeletonAnimation* SkeletonAnimation::createWithJsonFile (const std::string& skeletonJsonFile, const std::string& atlasFile, float scale) {
 	SkeletonAnimation* node = new SkeletonAnimation();
-	spAtlas* atlas = spAtlas_createFromFile(atlasFile.c_str(), 0);
+	spAtlas* atlas = spAtlas_createFromFile(atlasFile.c_str(), 0, NULL);
 	node->initWithJsonFile(skeletonJsonFile, atlas, scale);
 	node->autorelease();
 	return node;
@@ -112,7 +112,7 @@ SkeletonAnimation* SkeletonAnimation::createWithBinaryFile (const std::string& s
 
 SkeletonAnimation* SkeletonAnimation::createWithBinaryFile (const std::string& skeletonBinaryFile, const std::string& atlasFile, float scale) {
 	SkeletonAnimation* node = new SkeletonAnimation();
-	spAtlas* atlas = spAtlas_createFromFile(atlasFile.c_str(), 0);
+	spAtlas* atlas = spAtlas_createFromFile(atlasFile.c_str(), 0, NULL);
 	node->initWithBinaryFile(skeletonBinaryFile, atlas, scale);
 	node->autorelease();
 	return node;

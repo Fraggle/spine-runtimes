@@ -254,7 +254,7 @@ void SkeletonRenderer::initWithJsonFile (const std::string& skeletonDataFile, sp
 }
 
 void SkeletonRenderer::initWithJsonFile (const std::string& skeletonDataFile, const std::string& atlasFile, float scale) {
-    _atlas = spAtlas_createFromFile(atlasFile.c_str(), 0);
+    _atlas = spAtlas_createFromFile(atlasFile.c_str(), 0, NULL);
     CCASSERT(_atlas, "Error reading atlas file.");
 
     _attachmentLoader = SUPER(Cocos2dAttachmentLoader_create(_atlas));
@@ -287,7 +287,7 @@ void SkeletonRenderer::initWithBinaryFile (const std::string& skeletonDataFile, 
 }
 
 void SkeletonRenderer::initWithBinaryFile (const std::string& skeletonDataFile, const std::string& atlasFile, float scale) {
-    _atlas = spAtlas_createFromFile(atlasFile.c_str(), 0);
+    _atlas = spAtlas_createFromFile(atlasFile.c_str(), 0, NULL);
     CCASSERT(_atlas, "Error reading atlas file.");
 
     _attachmentLoader = SUPER(Cocos2dAttachmentLoader_create(_atlas));

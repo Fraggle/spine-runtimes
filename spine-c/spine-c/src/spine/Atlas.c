@@ -168,7 +168,7 @@ static const char* formatNames[] = { "", "Alpha", "Intensity", "LuminanceAlpha",
 static const char* textureFilterNames[] = { "", "Nearest", "Linear", "MipMap", "MipMapNearestNearest", "MipMapLinearNearest",
 "MipMapNearestLinear", "MipMapLinearLinear" };
 
-spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* rendererObject) {
+spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* rendererObject, const char* textureFile) {
 	spAtlas* self;
 
 	int count;
@@ -235,7 +235,7 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 				}
 			}
 
-			_spAtlasPage_createTexture(page, path);
+            _spAtlasPage_createTexture(page, textureFile ? textureFile : path);
 			FREE(path);
 		}
 		else {
@@ -308,7 +308,7 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 	return self;
 }
 
-spAtlas* spAtlas_createFromFile(const char* path, void* rendererObject) {
+spAtlas* spAtlas_createFromFile(const char* path, void* rendererObject, const char* textureFile) {
 	int dirLength;
 	char *dir;
 	int length;
@@ -327,7 +327,7 @@ spAtlas* spAtlas_createFromFile(const char* path, void* rendererObject) {
 	dir[dirLength] = '\0';
 
 	data = _spUtil_readFile(path, &length);
-	if (data) atlas = spAtlas_create(data, length, dir, rendererObject);
+    if (data) atlas = spAtlas_create(data, length, dir, rendererObject, textureFile);
 
 	FREE(data);
 	FREE(dir);
