@@ -50,7 +50,7 @@ namespace cocos2d
 
 namespace spine
 {
-    class SkeletonRender;
+    class SkeletonRenderer;
 
     class SkeletonBatch final
     {
@@ -68,7 +68,8 @@ namespace spine
         std::uint16_t* allocateIndices(std::uint32_t numIndices);
 		void deallocateIndices(std::uint16_t* data, uint32_t numIndices);
 
-        cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer,
+        cocos2d::TrianglesCommand* addCommand(SkeletonRenderer* skeleton,
+                                              cocos2d::Renderer* renderer,
                                               float globalOrder,
                                               cocos2d::Texture2D* texture,
                                               cocos2d::BlendFunc blendType,

@@ -30,6 +30,7 @@
 
 #include <spine/SkeletonRenderer.h>
 
+
 #include <spine/AnimationState.h>
 #include <spine/Array.h>
 #include <spine/Atlas.h>
@@ -514,7 +515,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                 triangles.indices = batch.allocateIndices(triangles.indexCount);
                 memcpy(triangles.indices, _clipper->clippedTriangles->items, sizeof(unsigned short) * _clipper->clippedTriangles->size);
 
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(this, renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
                 
 
                 float* verts = _clipper->clippedVertices->items;
@@ -555,7 +556,7 @@ void SkeletonRenderer::draw (Renderer* renderer, const Mat4& transform, uint32_t
                     }
                 }
             } else {
-                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
+                cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(this, renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
                 
                 if (_effect) {
                     spColor light;

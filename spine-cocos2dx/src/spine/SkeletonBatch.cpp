@@ -28,8 +28,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#include <spine/SkeletonRenderer.h>
 #include <spine/SkeletonBatch.h>
-#include <spine/SkeletonTwoColorBatch.h>
 #include <spine/extension.h>
 
 #include <cocos/base/CCDirector.h>
@@ -101,7 +101,8 @@ namespace spine
         _pool_indices.deallocate(data, numIndices);
     }
     
-    cocos2d::TrianglesCommand* SkeletonBatch::addCommand(cocos2d::Renderer *                         renderer,
+    cocos2d::TrianglesCommand* SkeletonBatch::addCommand(SkeletonRenderer*                           skeleton,
+                                                         cocos2d::Renderer *                         renderer,
                                                          float                                       globalOrder,
                                                          cocos2d::Texture2D *                        texture,
                                                          cocos2d::BlendFunc                          blendType,
@@ -109,17 +110,23 @@ namespace spine
                                                          const cocos2d::Mat4 &                       mv,
                                                          uint32_t                                    flags)
     {
-        auto programState = ProgramStateCache::getOrCreateProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR,
+        cocos2d::backend::ProgramState* programState = skeleton->getProgramState(); // in standard case the Node _programState is null, but sometimes (ie a GameFilter with useRenderTarget=false) can override the program
+
+        if (!programState || programState->getProgram()->getProgramType()==cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR){
+            programState = ProgramStateCache::getOrCreateProgramState(cocos2d::backend::ProgramType::POSITION_TEXTURE_COLOR,
                                                                        texture,
                                                                        blendType,
                                                                        0,
-                                                                       [](auto programState) {
-            ProgramStateCache::setUpStandardAttributeLayout(programState);
-        });
+                                                                       [](auto p_programState) {
+                ProgramStateCache::setUpStandardAttributeLayout(p_programState);
+            });
+        }
         
         TrianglesCommand* command = allocateCommand();
         command->getPipelineDescriptor().programState = programState;
         command->init(globalOrder, texture, blendType, triangles, mv, flags);
+        if (programState->getProgram()->getProgramType()==cocos2d::backend::ProgramType::INVALID_PROGRAM) // INVALID_PROGRAM actually means that the program is not standard (ie in case of a filter)
+            command->updateMaterialIDWithHash(programState->getUniformsBufferHash());
         
         if (_lastCmdMaterialId != command->getMaterialID() ||
             globalOrder < _lastCmdMaterialIdGlobalOrder ||
