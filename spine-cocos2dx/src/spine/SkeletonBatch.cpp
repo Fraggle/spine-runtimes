@@ -126,7 +126,7 @@ namespace spine
         command->getPipelineDescriptor().programState = programState;
         command->init(globalOrder, texture, blendType, triangles, mv, flags);
         if (programState->getProgram()->getProgramType()==cocos2d::backend::ProgramType::INVALID_PROGRAM) // INVALID_PROGRAM actually means that the program is not standard (ie in case of a filter)
-            command->updateMaterialIDWithHash(programState->getUniformsBufferHash());
+            command->enableBatchingForCustomShader(programState->getUniformsBufferHash());
         
         if (_lastCmdMaterialId != command->getMaterialID() ||
             globalOrder < _lastCmdMaterialIdGlobalOrder ||
