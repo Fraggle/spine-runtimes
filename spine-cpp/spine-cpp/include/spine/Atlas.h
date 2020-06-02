@@ -100,7 +100,7 @@ class TextureLoader;
 
 class SP_API Atlas : public SpineObject {
 public:
-	Atlas(const String &path, TextureLoader *textureLoader, bool createTexture = true);
+	Atlas(const String &path, TextureLoader *textureLoader, const String &texturePath, bool createTexture = true);
 
 	Atlas(const char *data, int length, const char *dir, TextureLoader *textureLoader, bool createTexture = true);
 
@@ -120,7 +120,7 @@ private:
 	Vector<AtlasRegion *> _regions;
 	TextureLoader *_textureLoader;
 
-	void load(const char *begin, int length, const char *dir, bool createTexture);
+	void load(const char *begin, int length, const char *dir, const String &texturePath, bool createTexture);
 
 	class Str {
 	public:

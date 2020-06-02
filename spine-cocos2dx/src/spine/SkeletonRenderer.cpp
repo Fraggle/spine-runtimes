@@ -38,7 +38,7 @@ USING_NS_CC;
 namespace spine {
 
 	namespace {
-		Cocos2dTextureLoader textureLoader;
+        Cocos2dTextureLoader textureLoader;
 
 		int computeTotalCoordCount(Skeleton& skeleton, int startSlotIndex, int endSlotIndex);
 		cocos2d::Rect computeBoundingRect(const float* coords, int vertexCount);
@@ -99,38 +99,38 @@ namespace spine {
 		_skeleton->updateWorldTransform();
 	}
 
-	void SkeletonRenderer::setupGLProgramState (bool twoColorTintEnabled) {
-		if (twoColorTintEnabled) {
-#if COCOS2D_VERSION < 0x00040000
-			setGLProgramState(SkeletonTwoColorBatch::getInstance()->getTwoColorTintProgramState());
-#endif
-			return;
-		}
-
-		Texture2D *texture = nullptr;
-		for (int i = 0, n = _skeleton->getSlots().size(); i < n; i++) {
-			Slot* slot = _skeleton->getDrawOrder()[i];
-			Attachment* const attachment = slot->getAttachment();
-			if (!attachment) continue;
-			if (attachment->getRTTI().isExactly(RegionAttachment::rtti)) {
-				RegionAttachment* regionAttachment = static_cast<RegionAttachment*>(attachment);
-				texture = static_cast<AttachmentVertices*>(regionAttachment->getRendererObject())->_texture;
-			} else if (attachment->getRTTI().isExactly(MeshAttachment::rtti)) {
-				MeshAttachment* meshAttachment = static_cast<MeshAttachment*>(attachment);
-				texture = static_cast<AttachmentVertices*>(meshAttachment->getRendererObject())->_texture;
-			}
-			else {
-				continue;
-			}
-
-			if (texture != nullptr) {
-				break;
-			}
-		}
-#if COCOS2D_VERSION < 0x00040000
-		setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP, texture));
-#endif
-	}
+//	void SkeletonRenderer::setupGLProgramState (bool twoColorTintEnabled) {
+//		if (twoColorTintEnabled) {
+//#if COCOS2D_VERSION < 0x00040000
+//			setGLProgramState(SkeletonTwoColorBatch::getInstance()->getTwoColorTintProgramState());
+//#endif
+//			return;
+//		}
+//
+//		Texture2D *texture = nullptr;
+//		for (int i = 0, n = _skeleton->getSlots().size(); i < n; i++) {
+//			Slot* slot = _skeleton->getDrawOrder()[i];
+//			Attachment* const attachment = slot->getAttachment();
+//			if (!attachment) continue;
+//			if (attachment->getRTTI().isExactly(RegionAttachment::rtti)) {
+//				RegionAttachment* regionAttachment = static_cast<RegionAttachment*>(attachment);
+//				texture = static_cast<AttachmentVertices*>(regionAttachment->getRendererObject())->_texture;
+//			} else if (attachment->getRTTI().isExactly(MeshAttachment::rtti)) {
+//				MeshAttachment* meshAttachment = static_cast<MeshAttachment*>(attachment);
+//				texture = static_cast<AttachmentVertices*>(meshAttachment->getRendererObject())->_texture;
+//			}
+//			else {
+//				continue;
+//			}
+//
+//			if (texture != nullptr) {
+//				break;
+//			}
+//		}
+//#if COCOS2D_VERSION < 0x00040000
+//		setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP, texture));
+//#endif
+//	}
 
 	void SkeletonRenderer::setSkeletonData (SkeletonData *skeletonData, bool ownsSkeletonData) {
 		_skeleton = new (__FILE__, __LINE__) Skeleton(skeletonData);
@@ -199,7 +199,7 @@ namespace spine {
 	}
 
 	void SkeletonRenderer::initWithJsonFile (const std::string& skeletonDataFile, const std::string& atlasFile, float scale) {
-		_atlas = new (__FILE__, __LINE__) Atlas(atlasFile.c_str(), &textureLoader, true);
+        _atlas = new (__FILE__, __LINE__) Atlas(atlasFile.c_str(), &textureLoader, nullptr, true);
 		CCASSERT(_atlas, "Error reading atlas file.");
 
 		_attachmentLoader = new (__FILE__, __LINE__) Cocos2dAtlasAttachmentLoader(_atlas);
@@ -231,7 +231,7 @@ namespace spine {
 	}
 
 	void SkeletonRenderer::initWithBinaryFile (const std::string& skeletonDataFile, const std::string& atlasFile, float scale) {
-		_atlas = new (__FILE__, __LINE__) Atlas(atlasFile.c_str(), &textureLoader, true);
+		_atlas = new (__FILE__, __LINE__) Atlas(atlasFile.c_str(), &textureLoader, nullptr, true);
 		CCASSERT(_atlas, "Error reading atlas file.");
 
 		_attachmentLoader = new (__FILE__, __LINE__) Cocos2dAtlasAttachmentLoader(_atlas);
@@ -278,7 +278,7 @@ namespace spine {
 		#endif
 
 		const float* worldCoordPtr = worldCoords;
-		SkeletonBatch* batch = SkeletonBatch::getInstance();
+		auto &batch = SkeletonBatch::getInstance();
 		SkeletonTwoColorBatch* twoColorBatch = SkeletonTwoColorBatch::getInstance();
 		const bool hasSingleTint = (isTwoColorTint() == false);
 
@@ -335,7 +335,7 @@ namespace spine {
 				if (hasSingleTint) {
 					triangles.indices = attachmentVertices->_triangles->indices;
 					triangles.indexCount = attachmentVertices->_triangles->indexCount;
-					triangles.verts = batch->allocateVertices(attachmentVertices->_triangles->vertCount);
+                    triangles.verts = batch.allocateVertices(attachmentVertices->_triangles->vertCount);
 					triangles.vertCount = attachmentVertices->_triangles->vertCount;
 					assert(triangles.vertCount == 4);
 					memcpy(triangles.verts, attachmentVertices->_triangles->verts, sizeof(cocos2d::V3F_C4B_T2F) * attachmentVertices->_triangles->vertCount);
@@ -369,7 +369,7 @@ namespace spine {
 				if (hasSingleTint) {
 					triangles.indices = attachmentVertices->_triangles->indices;
 					triangles.indexCount = attachmentVertices->_triangles->indexCount;
-					triangles.verts = batch->allocateVertices(attachmentVertices->_triangles->vertCount);
+					triangles.verts = batch.allocateVertices(attachmentVertices->_triangles->vertCount);
 					triangles.vertCount = attachmentVertices->_triangles->vertCount;
 					memcpy(triangles.verts, attachmentVertices->_triangles->verts, sizeof(cocos2d::V3F_C4B_T2F) * attachmentVertices->_triangles->vertCount);
 					dstTriangleVertices = (float*)triangles.verts;
@@ -437,7 +437,7 @@ namespace spine {
 			if (hasSingleTint) {
 				if (_clipper->isClipping()) {
 					_clipper->clipTriangles((float*)&triangles.verts[0].vertices, triangles.indices, triangles.indexCount, (float*)&triangles.verts[0].texCoords, sizeof(cocos2d::V3F_C4B_T2F) / 4);
-					batch->deallocateVertices(triangles.vertCount);
+					batch.deallocateVertices(triangles.vertCount);
 
 					if (_clipper->getClippedTriangles().size() == 0){
 						_clipper->clipEnd(*slot);
@@ -445,16 +445,16 @@ namespace spine {
 					}
 
 					triangles.vertCount = _clipper->getClippedVertices().size() / 2;
-					triangles.verts = batch->allocateVertices(triangles.vertCount);
+					triangles.verts = batch.allocateVertices(triangles.vertCount);
 					triangles.indexCount = _clipper->getClippedTriangles().size();
 					triangles.indices =
-					batch->allocateIndices(triangles.indexCount);
+					batch.allocateIndices(triangles.indexCount);
 					memcpy(triangles.indices, _clipper->getClippedTriangles().buffer(), sizeof(unsigned short) * _clipper->getClippedTriangles().size());
 
 #if COCOS2D_VERSION < 0x00040000
 					cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
 #else
-					cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
+					cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(this, renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
 #endif
 
 					const float* verts = _clipper->getClippedVertices().buffer();
@@ -486,7 +486,7 @@ namespace spine {
 #if COCOS2D_VERSION < 0x00040000
 					cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, _glProgramState, blendFunc, triangles, transform, transformFlags);
 #else
-					cocos2d::TrianglesCommand* batchedTriangles = batch->addCommand(renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
+					cocos2d::TrianglesCommand* batchedTriangles = batch.addCommand(this, renderer, _globalZOrder, attachmentVertices->_texture, blendFunc, triangles, transform, transformFlags);
 #endif
 
 					if (_effect) {
@@ -811,10 +811,11 @@ namespace spine {
 	}
 
 	void SkeletonRenderer::setTwoColorTint(bool enabled) {
+        assert(!enabled); // The two color tint are not supported so far
+        
 #if COCOS2D_VERSION >= 0x00040000
 		_twoColorTint = enabled;
 #endif
-		setupGLProgramState(enabled);
 	}
 
 	bool SkeletonRenderer::isTwoColorTint() {
@@ -1069,7 +1070,7 @@ namespace spine {
 			float hSizeX = rect.size.width/2;
 			float hSizeY = rect.size.height/2;
 			Vec3 v3p(rect.origin.x + hSizeX, rect.origin.y + hSizeY, 0);
-			transform.transformPoint(&v3p);
+			transform.transformPoint(v3p);
 			Vec2 v2p = Camera::getVisitingCamera()->projectGL(v3p);
 
 			// convert content size to world coordinates

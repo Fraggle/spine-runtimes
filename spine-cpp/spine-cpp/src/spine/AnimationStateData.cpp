@@ -43,8 +43,8 @@ AnimationStateData::AnimationStateData(SkeletonData *skeletonData) : _skeletonDa
 void AnimationStateData::setMix(const String &fromName, const String &toName, float duration) {
 	Animation *from = _skeletonData->findAnimation(fromName);
 	Animation *to = _skeletonData->findAnimation(toName);
-
-	setMix(from, to, duration);
+    if (from && to)
+        setMix(from, to, duration);
 }
 
 void AnimationStateData::setMix(Animation *from, Animation *to, float duration) {

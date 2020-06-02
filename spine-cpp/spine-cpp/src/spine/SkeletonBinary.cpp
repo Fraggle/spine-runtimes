@@ -27,6 +27,8 @@
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#include <string>
+
 #ifdef SPINE_UE4
 #include "SpinePluginPrivatePCH.h"
 #endif
@@ -134,6 +136,13 @@ SkeletonData *SkeletonBinary::readSkeletonData(const unsigned char *binary, cons
         setError("Unsupported skeleton data, please export with a newer version of Spine.", "");
         return NULL;
     }
+    
+    if (std::string(skeletonData_version).substr(0,3) != "3.8") {
+        delete input;
+        delete skeletonData;
+        setError("Unsupported skeleton data, You need to export with spine 3.8.x.", "");
+        return NULL;
+    }
 
 	skeletonData->_x = readFloat(input);
 	skeletonData->_y = readFloat(input);
@@ -230,7 +239,7 @@ SkeletonData *SkeletonBinary::readSkeletonData(const unsigned char *binary, cons
 		data->_bones.setSize(bonesCount, 0);
 		for (int ii = 0; ii < bonesCount; ++ii)
 			data->_bones[ii] = skeletonData->_bones[readVarint(input, true)];
-		data->_target = skeletonData->_bones[readVarint(input, true)];
+		data->_target = bonesCount > 0 ? skeletonData->_bones[readVarint(input, true)] : nullptr;
 		data->_local = readBoolean(input);
 		data->_relative = readBoolean(input);
 		data->_offsetRotation = readFloat(input);

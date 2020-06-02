@@ -39,7 +39,7 @@
 
 using namespace spine;
 
-Atlas::Atlas(const String &path, TextureLoader *textureLoader, bool createTexture) : _textureLoader(textureLoader) {
+Atlas::Atlas(const String &path, TextureLoader *textureLoader, const String &texturePath, bool createTexture) : _textureLoader(textureLoader) {
 	int dirLength;
 	char *dir;
 	int length;
@@ -57,7 +57,7 @@ Atlas::Atlas(const String &path, TextureLoader *textureLoader, bool createTextur
 
 	data = SpineExtension::readFile(path, &length);
 	if (data) {
-		load(data, length, dir, createTexture);
+		load(data, length, dir, texturePath, createTexture);
 	}
 
 	SpineExtension::free(data, __FILE__, __LINE__);
@@ -66,7 +66,7 @@ Atlas::Atlas(const String &path, TextureLoader *textureLoader, bool createTextur
 
 Atlas::Atlas(const char *data, int length, const char *dir, TextureLoader *textureLoader, bool createTexture) : _textureLoader(
 		textureLoader) {
-	load(data, length, dir, createTexture);
+    load(data, length, dir, {}, createTexture);
 }
 
 Atlas::~Atlas() {
@@ -98,7 +98,7 @@ Vector<AtlasPage*> &Atlas::getPages() {
 	return _pages;
 }
 
-void Atlas::load(const char *begin, int length, const char *dir, bool createTexture) {
+void Atlas::load(const char *begin, int length, const char *dir, const String &texturePath, bool createTexture) {
 	static const char *formatNames[] = {"", "Alpha", "Intensity", "LuminanceAlpha", "RGB565", "RGBA4444", "RGB888", "RGBA8888"};
 	static const char *textureFilterNames[] = {"", "Nearest", "Linear", "MipMap", "MipMapNearestNearest", "MipMapLinearNearest",
 		"MipMapNearestLinear", "MipMapLinearLinear"};
@@ -156,7 +156,7 @@ void Atlas::load(const char *begin, int length, const char *dir, bool createText
 			}
 
 			if (createTexture) {
-				if (_textureLoader) _textureLoader->load(*page, String(path));
+                if (_textureLoader) _textureLoader->load(*page, texturePath.isEmpty() ?  String(path) : texturePath);
 				SpineExtension::free(path, __FILE__, __LINE__);
 			} else
 				page->texturePath = String(path, true);
