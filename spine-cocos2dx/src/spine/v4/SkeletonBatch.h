@@ -38,7 +38,9 @@
 
 namespace spine {
     class SkeletonRenderer;
-
+    template<typename T>
+    class Vector;
+    
     class SkeletonBatch {
     public:
         static SkeletonBatch &getInstance ();

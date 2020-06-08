@@ -37,6 +37,7 @@
 namespace spine {
 
 class SkeletonAnimation;
+class TrackEntry;
 
 typedef std::function<void(TrackEntry* entry)> StartListener;
 typedef std::function<void(TrackEntry* entry)> InterruptListener;
