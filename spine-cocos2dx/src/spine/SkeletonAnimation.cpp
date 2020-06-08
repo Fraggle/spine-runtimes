@@ -70,6 +70,11 @@ static _TrackEntryListeners* getListeners (TrackEntry* entry) {
 	return (_TrackEntryListeners*)entry->getRendererObject();
 }
 
+void SkeletonAnimation::deleteTrackEntryRenderObject(TrackEntry *entry)
+{
+    if (entry->getRendererObject())
+        delete (spine::_TrackEntryListeners*)entry->getRendererObject();
+}
 //
 
 SkeletonAnimation* SkeletonAnimation::createWithData (SkeletonData* skeletonData, bool ownsSkeletonData) {

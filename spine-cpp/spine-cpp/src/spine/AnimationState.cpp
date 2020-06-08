@@ -45,6 +45,7 @@
 #include <spine/EventTimeline.h>
 #include <spine/Slot.h>
 #include <spine/SlotData.h>
+#include <spine/SkeletonAnimation.h>
 
 #include <float.h>
 
@@ -65,7 +66,9 @@ TrackEntry::TrackEntry() : _animation(NULL), _next(NULL), _mixingFrom(NULL), _mi
 	_listener(dummyOnAnimationEventFunc), _listenerObject(NULL) {
 }
 
-TrackEntry::~TrackEntry() { }
+TrackEntry::~TrackEntry() {
+    SkeletonAnimation::deleteTrackEntryRenderObject(this);
+}
 
 int TrackEntry::getTrackIndex() { return _trackIndex; }
 

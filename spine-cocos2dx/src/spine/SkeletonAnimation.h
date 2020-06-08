@@ -105,6 +105,8 @@ public:
 
 	AnimationState* getState() const;
 	void setUpdateOnlyIfVisible(bool status);
+    
+    static void deleteTrackEntryRenderObject(TrackEntry *entry);
 
 CC_CONSTRUCTOR_ACCESS:
 	SkeletonAnimation ();
