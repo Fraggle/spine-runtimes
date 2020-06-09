@@ -1,37 +1,49 @@
-cmake_minimum_required(VERSION 2.8.9)
+# Sets the minimum version of CMake required to build the native
+# library. You should either keep the default value or only pass a
+# value of 3.4.0 or lower.
+cmake_minimum_required(VERSION 3.4.1)
+
 project(spine)
 
-if(MSVC)
-	message("MSCV detected")
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-	set (CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
-else()
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wunused-value -Wno-c++11-long-long -Wno-variadic-macros -Werror -Wextra -pedantic -Wnonportable-include-path -Wshadow -std=c89")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wunused-value -Wno-c++11-long-long -Wno-variadic-macros -Werror -Wextra -Wnon-virtual-dtor -pedantic -Wnonportable-include-path -Wshadow -std=c++03 -fno-exceptions -fno-rtti")
+# Creates and names a library, sets it as either STATIC
+# or SHARED, and provides the relative paths to its source code.
+# You can define multiple libraries, and CMake builds it for you.
+# Gradle automatically packages shared libraries with your APK.
+
+file(GLOB_RECURSE SRC_FILES spine-cocos2dx/src/spine/*.cpp spine-cpp/spine-cpp/src/spine/*.cpp)
+
+add_library( spineruntime STATIC ${SRC_FILES} )
+
+target_include_directories(spineruntime PUBLIC
+    spine-cocos2dx/src
+    spine-cpp/spine-cpp/include
+    spine-cpp/spine-cpp/src
+    spine-cpp/spine-cpp/src/spine
+    ../cocos2d-x/cocos2d
+    ../cocos2d-x/cocos2d/cocos
+    ../cocos2d-x/cocos2d/external/xxhash)
+
+if(ANDROID)
+
+    # Create target which consume the command via DEPENDS.
+    get_filename_component(LIB_PUBLISH_DIRECTORY
+                           "{CMAKE_SOURCE_DIR}/../../../build/built_libs/android/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}"
+                           ABSOLUTE)
+    file(MAKE_DIRECTORY ${LIB_PUBLISH_DIRECTORY})
+
+    add_custom_command(TARGET spineruntime POST_BUILD
+                       COMMAND "${CMAKE_COMMAND}" -E
+                       copy "${CMAKE_BINARY_DIR}/libspineruntime.a"
+                       "${LIB_PUBLISH_DIRECTORY}/libspineruntime.a"
+                       COMMENT "Copying spineruntime to output directory")
 endif()
 
-set(CMAKE_INSTALL_PREFIX "./")
-set(CMAKE_VERBOSE_MAKEFILE ON)
-set(SPINE_SFML FALSE CACHE BOOL FALSE)
-set(SPINE_COCOS2D_OBJC FALSE CACHE BOOL FALSE)
-set(SPINE_COCOS2D_X FALSE CACHE BOOL FALSE)
+if(EMSCRIPTEN)
 
-if((${SPINE_SFML}) OR (${CMAKE_CURRENT_BINARY_DIR} MATCHES "spine-sfml"))
-	add_subdirectory(spine-c)
-	add_subdirectory(spine-sfml/c)
-	add_subdirectory(spine-cpp)
-	add_subdirectory(spine-sfml/cpp)
+	# str(n)dup() is a POSIX 2008 extension, yet was natively added to BSD before it made it to posix.
+	# It is therefore available on those platforms, but not on emscripten, unless _POSIX_SOURCE is defined
+	# and set to a positive integer
+
+	add_definitions(-D_POSIX_SOURCE=1)
+
 endif()
-
-if((${SPINE_COCOS2D_OBJC}) OR (${CMAKE_CURRENT_BINARY_DIR} MATCHES "spine-cocos2d-objc"))
-	if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-		add_subdirectory(spine-cocos2d-objc)
-	endif()
-endif()
-
-if((${SPINE_COCOS2D_X}) OR (${CMAKE_CURRENT_BINARY_DIR} MATCHES "spine-cocos2dx"))
-	add_subdirectory(spine-cocos2dx)
-endif()
-
-add_subdirectory(spine-c/spine-c-unit-tests)
-add_subdirectory(spine-cpp/spine-cpp-unit-tests)
