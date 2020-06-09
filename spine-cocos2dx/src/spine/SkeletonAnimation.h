@@ -37,6 +37,7 @@
 namespace spine {
 
 class SkeletonAnimation;
+class TrackEntry;
 
 typedef std::function<void(TrackEntry* entry)> StartListener;
 typedef std::function<void(TrackEntry* entry)> InterruptListener;
@@ -105,6 +106,8 @@ public:
 
 	AnimationState* getState() const;
 	void setUpdateOnlyIfVisible(bool status);
+    
+    static void deleteTrackEntryRenderObject(TrackEntry *entry);
 
 CC_CONSTRUCTOR_ACCESS:
 	SkeletonAnimation ();

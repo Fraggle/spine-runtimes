@@ -35,6 +35,7 @@
 #include <stddef.h> // offsetof
 #include "base/ccTypes.h"
 #include "base/ccUtils.h"
+#include "renderer/CCProgramStateCache.h"
 
 #include "xxhash.h"
 #include "renderer/ccShaders.h"
@@ -99,16 +100,16 @@ namespace {
     backend::UniformLocation                __locPMatrix;
     backend::UniformLocation                __locTexture;
 
-    void initTwoColorProgramState()
+    void initTwoColorProgramState(cocos2d::Texture2D *texture, const cocos2d::BlendFunc &blendFunc)
     {
         if (__twoColorProgramState)
         {
             return;
         }
-        auto program = backend::Device::getInstance()->newProgram(TWO_COLOR_TINT_VERTEX_SHADER, TWO_COLOR_TINT_FRAGMENT_SHADER);
-        auto* programState = new backend::ProgramState(program);
-        program->autorelease();
-
+        auto* programState = ProgramStateCache::getOrCreateProgramState(TWO_COLOR_TINT_VERTEX_SHADER,
+                                                                        TWO_COLOR_TINT_FRAGMENT_SHADER,
+                                                                        texture,
+                                                                        blendFunc);
         __locPMatrix = programState->getUniformLocation("u_PMatrix");
         __locTexture = programState->getUniformLocation("u_texture");
 
@@ -181,7 +182,9 @@ void TwoColorTrianglesCommand::updateCommandPipelineDescriptor()
 {
     if (!__twoColorProgramState)
     {
-        initTwoColorProgramState();
+        Texture2D temp;
+        temp.initWithBackendTexture(_texture);
+        initTwoColorProgramState(&temp, _blendType);
     }
 
     CC_SAFE_RELEASE_NULL(_programState);
@@ -228,12 +231,9 @@ void TwoColorTrianglesCommand::draw(Renderer *r) {
 void TwoColorTrianglesCommand::updateVertexAndIndexBuffer(Renderer *r, V3F_C4B_C4B_T2F *vertices, int verticesSize, uint16_t *indices, int indicesSize)
 {
     if(verticesSize != _vertexCapacity)
-        createVertexBuffer(sizeof(V3F_C4B_C4B_T2F), verticesSize, CustomCommand::BufferUsage::DYNAMIC);
+        createVertexBuffer(sizeof(V3F_C4B_C4B_T2F), verticesSize, CustomCommand::BufferUsage::DYNAMIC, vertices);
     if(indicesSize != _indexCapacity)
-        createIndexBuffer(CustomCommand::IndexFormat::U_SHORT, indicesSize, CustomCommand::BufferUsage::DYNAMIC);
-
-    updateVertexBuffer(vertices, sizeof(V3F_C4B_C4B_T2F) * verticesSize);
-    updateIndexBuffer(indices, sizeof(uint16_t) * indicesSize);
+        createIndexBuffer(CustomCommand::IndexFormat::U_SHORT, indicesSize, CustomCommand::BufferUsage::DYNAMIC, indices);
 }
 
 
@@ -351,7 +351,7 @@ void SkeletonTwoColorBatch::batch (cocos2d::Renderer *renderer, TwoColorTriangle
 	memcpy(_vertexBuffer + _numVerticesBuffer, command->getTriangles().verts, sizeof(V3F_C4B_C4B_T2F) * command->getTriangles().vertCount);
 	const Mat4& modelView = command->getModelView();
 	for (int i = _numVerticesBuffer; i < _numVerticesBuffer + command->getTriangles().vertCount; i++) {
-		modelView.transformPoint(&_vertexBuffer[i].position);
+		modelView.transformPoint(_vertexBuffer[i].position);
 	}
 
 	unsigned short vertexOffset = (unsigned short)_numVerticesBuffer;

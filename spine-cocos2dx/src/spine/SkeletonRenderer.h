@@ -32,10 +32,23 @@
 
 #include "cocos2d.h"
 #include <spine/spine.h>
+#include <spine/Vector.h>
 
 namespace spine {
 
-	class AttachmentVertices;
+	class Skeleton;
+    class SkeletonData;
+    class Atlas;
+    class Bone;
+    class Attachment;
+    class AttachmentVertices;
+    class AttachmentLoader;
+    class AtlasAttachmentLoader;
+    class AtlasPage;
+    class VertexEffect;
+    class SkeletonClipping;
+    class Slot;
+    class String;
 
 	/* Draws a skeleton. */
 	class SkeletonRenderer: public cocos2d::Node, public cocos2d::BlendProtocol {
